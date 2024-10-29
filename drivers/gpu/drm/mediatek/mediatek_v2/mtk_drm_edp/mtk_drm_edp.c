@@ -170,7 +170,6 @@ struct mtk_edp {
 	bool external_monitor;
 	bool edp_ui_enable;
 	bool has_fec;
-	bool has_inited;
 
 	/* Kernel suspend and resume event */
 	bool suspend;
@@ -1378,8 +1377,6 @@ static void mtk_edp_set_calibration_data(struct mtk_edp *mtk_edp)
 
 	mtk_edp_phy_update_bits(mtk_edp, ANA_AUX_RG_REG_3,
 				XTP_CKTX_675_VOLTAGE_SEL, RG_XTP_GLB_CKTX_VLDO_SEL);
-
-	mtk_edp->has_inited = true;
 }
 
 static int mtk_edp_phy_configure(struct mtk_edp *mtk_edp,
@@ -1409,14 +1406,13 @@ static int mtk_edp_phy_configure(struct mtk_edp *mtk_edp,
 	if (ret)
 		goto err_phy_config;
 
-	if (!mtk_edp->has_inited)
-		mtk_edp_set_calibration_data(mtk_edp);
-
 	/* Turn on phy power after phy configure */
 	mtk_edp_update_bits(mtk_edp, REG_3FF8_DP_ENC_4P_3,
 			   PHY_STATE_W_1_DP_ENC_4P_3, PHY_STATE_W_1_DP_ENC_4P_3_MASK);
 	mtk_edp_update_bits(mtk_edp, MTK_DP_TOP_PWR_STATE,
 			   DP_PWR_STATE_BANDGAP_TPLL_LANE, DP_PWR_STATE_MASK);
+
+	mtk_edp_set_calibration_data(mtk_edp);
 
 	return 0;
 
@@ -1911,7 +1907,6 @@ static void mtk_edp_initialize_priv_data(struct mtk_edp *mtk_edp)
 	pr_info("%s cable_plugged_in = %d\n", EDPTX_DEBUG_INFO, mtk_edp->train_info.cable_plugged_in);
 	mtk_edp->info.format = DP_PIXELFORMAT_RGB;
 	mtk_edp->has_fec = false;
-	mtk_edp->has_inited = false;
 	memset(&mtk_edp->info.vm, 0, sizeof(struct videomode));
 }
 
@@ -2505,6 +2500,11 @@ static irqreturn_t mtk_edp_hpd_event_thread(int hpd, void *dev)
 			edptx_notify_data.state = 0;
 		} else {
 			dev_info(mtk_edp->dev, "%s MTK_DP_HPD_CONNECT\n", EDPTX_DEBUG_INFO);
+			if (mtk_edp->data->mmsys_id == MMSYS_MT6991) {
+				/* After re-plgugging, we need to reset the MMPC reg to reset the clk state */
+				mtk_edp_pm_ctl(mtk_edp, true);
+			}
+
 			edptx_notify_data.state = 1;
 		}
 	}
@@ -2692,25 +2692,15 @@ static enum drm_connector_status mtk_edp_bdg_detect(struct drm_bridge *bridge)
 
 	struct mtk_edp *mtk_edp = mtk_edp_from_bridge(bridge);
 	enum drm_connector_status ret = connector_status_disconnected;
-	bool enabled = mtk_edp->enabled;
 	u8 sink_count = 0;
 	int ret_value = 0;
 
 	pr_info("%s %s\n", EDPTX_DEBUG_INFO, __func__);
 
-	if (!mtk_edp->train_info.cable_plugged_in) {
+	if (!mtk_edp_plug_state(mtk_edp) && mtk_edp->use_hpd) {
 		pr_info("%s edp return status : 0x%x\n", EDPTX_DEBUG_INFO, ret);
 		return ret;
 	}
-
-
-	if (mtk_edp->next_bridge) {
-		pr_info("%s edp return status : 0x%x\n", EDPTX_DEBUG_INFO, connector_status_connected);
-		return connector_status_connected;
-	}
-
-	if (!enabled)
-		mtk_edp_aux_panel_poweron(mtk_edp, true);
 
 	/*
 	 * Some dongles still source HPD when they do not connect to any
@@ -2721,17 +2711,15 @@ static enum drm_connector_status mtk_edp_bdg_detect(struct drm_bridge *bridge)
 	 */
 	ret_value = drm_dp_dpcd_readb(&mtk_edp->aux, DP_SINK_COUNT, &sink_count);
 	if (ret_value < 0) {
-		pr_info("%s Failed to read sink count ,status: 0x%x\n", EDPTX_DEBUG_INFO, ret);
+		pr_info("%s Failed to erad sink count ,status: 0x%x\n", EDPTX_DEBUG_INFO, ret);
 		return ret;
 	}
 
 	if (DP_GET_SINK_COUNT(sink_count))
 		ret = connector_status_connected;
 
-	if (!enabled)
-		mtk_edp_aux_panel_poweron(mtk_edp, false);
-
-	pr_info("%s edp return status : 0x%x\n", EDPTX_DEBUG_INFO, connector_status_connected);
+	pr_info("%s edp sink count: 0x%x return status:0x%x\n", EDPTX_DEBUG_INFO,
+			DP_GET_SINK_COUNT(sink_count), ret);
 	return ret;
 }
 
@@ -2987,6 +2975,11 @@ static void mtk_edp_bridge_atomic_enable(struct drm_bridge *bridge,
 
 	dev_info(mtk_edp->dev, "%s %s+\n", EDPTX_DEBUG_INFO, __func__);
 
+	if (mtk_edp->enabled) {
+		dev_info(mtk_edp->dev, "%s %s already enabled\n", EDPTX_DEBUG_INFO, __func__);
+		return;
+	}
+
 	mtk_edp->conn = drm_atomic_get_new_connector_for_encoder(old_state->base.state,
 								bridge->encoder);
 	if (!mtk_edp->conn) {
@@ -3029,9 +3022,12 @@ static void mtk_edp_bridge_atomic_disable(struct drm_bridge *bridge,
 	struct mtk_edp *mtk_edp = mtk_edp_from_bridge(bridge);
 
 	pr_info("%s %s+\n", EDPTX_DEBUG_INFO, __func__);
-	mtk_edp->enabled = false;
-	mtk_edp_video_enable(mtk_edp, false);
+	if (!mtk_edp->enabled) {
+		dev_info(mtk_edp->dev, "%s %s already disabled\n", EDPTX_DEBUG_INFO, __func__);
+		return;
+	}
 
+	mtk_edp_video_enable(mtk_edp, false);
 	if (mtk_edp->train_info.cable_plugged_in) {
 		drm_dp_dpcd_writeb(&mtk_edp->aux, DP_SET_POWER, DP_SET_POWER_D3);
 		usleep_range(2000, 3000);
@@ -3042,6 +3038,7 @@ static void mtk_edp_bridge_atomic_disable(struct drm_bridge *bridge,
 			   DP_PWR_STATE_BANDGAP_TPLL,
 			   DP_PWR_STATE_MASK);
 
+	mtk_edp->enabled = false;
 	pr_info("%s %s-\n", EDPTX_DEBUG_INFO, __func__);
 	/* Ensure the sink is muted */
 	msleep(20);
@@ -3640,12 +3637,7 @@ static int mtk_edp_resume(struct device *dev)
 		mtk_edp_hwirq_enable(mtk_edp, true);
 	mtk_edp_power_enable(mtk_edp);
 
-	if (mtk_edp->next_bridge)
-		mtk_edp->train_info.cable_plugged_in = true;
-
 	mtk_edp->suspend = false;
-	mtk_edp->has_inited = false;
-
 	dev_info(mtk_edp->dev, "%s %s usage_count %d -\n", EDPTX_DEBUG_INFO, __func__,
 			atomic_read(&dev->power.usage_count));
 
