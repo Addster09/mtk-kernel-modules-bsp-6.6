@@ -1284,6 +1284,11 @@ static void mtk_jpeg_dec_buf_queue(struct vb2_buffer *vb)
 	param = &jpeg_src_buf->dec_param;
 	memset(param, 0, sizeof(*param));
 
+	if (vb2_plane_vaddr(vb, 0) == NULL) {
+		v4l2_err(&jpeg->v4l2_dev, "Error!! vb2_plane_vaddr is NULL\n");
+		return;
+	}
+
 	header_valid = mtk_jpeg_parse(param, (u8 *)vb2_plane_vaddr(vb, 0),
 				      vb2_get_plane_payload(vb, 0));
 	if (!header_valid) {
