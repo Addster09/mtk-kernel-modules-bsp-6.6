@@ -7367,7 +7367,7 @@ static signed int ISP_DONE_Buf_Time(enum eISPIrq irqT, union CQ_RTBC_FBC *pFbc,
 				break;
 			}
 			/*      */
-			if (IspInfo.DebugMask & ISP_DBG_INT_2) {
+			if (i_dma == ch_imgo) {
 				IRQ_LOG_KEEPER(
 					irqT, m_CurrentPPB, _LOG_INF,
 					"[rtbc][DONE]:dma(%d),start(%d),empty(%d)\n",
