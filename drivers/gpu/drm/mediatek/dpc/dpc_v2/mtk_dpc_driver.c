@@ -1620,16 +1620,23 @@ static int dpc_vidle_power_keep(const enum mtk_vidle_voter_user _user)
 		ret = mtk_disp_wait_pwr_ack(DPC_SUBSYS_MML0);
 		break;
 	case DISP_VIDLE_USER_PQ:
-		if (g_priv->root_dev) {
-			/* can only be used by USER_PQ, as it will not be used within ISR */
-			pm_runtime_get_sync(g_priv->root_dev);
-			mtk_disp_wait_pwr_ack(DPC_SUBSYS_DIS1);
-			ret = mtk_disp_wait_pwr_ack(DPC_SUBSYS_DIS0);
+		if (g_priv->root_dev)
+			pm_runtime_get_sync(g_priv->root_dev); /* make sure power is on, must not in ISR */
+		mtk_disp_wait_pwr_ack(DPC_SUBSYS_DIS1);
+		ret = mtk_disp_wait_pwr_ack(DPC_SUBSYS_DIS0);
+		if (g_priv->root_dev)
 			pm_runtime_put_sync(g_priv->root_dev);
-		} else
-			udelay(post_vlp_delay);
 		break;
 	case DISP_VIDLE_USER_CRTC:
+		if (g_priv->root_dev)
+			pm_runtime_get_sync(g_priv->root_dev);
+		mtk_disp_wait_pwr_ack(DPC_SUBSYS_DIS1);
+		mtk_disp_wait_pwr_ack(DPC_SUBSYS_DIS0);
+		mtk_disp_wait_pwr_ack(DPC_SUBSYS_OVL0);
+		ret = mtk_disp_wait_pwr_ack(DPC_SUBSYS_OVL1);
+		if (g_priv->root_dev)
+			pm_runtime_put_sync(g_priv->root_dev);
+		break;
 	case DISP_VIDLE_USER_DISP_DPC_CFG:
 	case DISP_VIDLE_USER_DPC_DUMP:
 	case DISP_VIDLE_USER_SMI_DUMP:
