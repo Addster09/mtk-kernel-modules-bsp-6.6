@@ -9329,7 +9329,9 @@ static int mtk_drm_pm_notifier(struct notifier_block *notifier, unsigned long pm
 
 	switch (pm_event) {
 	case PM_SUSPEND_PREPARE:
-		if (atomic_read(&priv->kernel_pm.wakelock_cnt) != 0) {
+		if ((priv->data->mmsys_id != MMSYS_MT6765
+			&& priv->data->mmsys_id != MMSYS_MT6781)
+			&& (atomic_read(&priv->kernel_pm.wakelock_cnt) != 0)) {
 			DDPMSG("%s PM_SUSPEND_PREPARE but wakelock is held, interrupt the suspend flow\n", __func__);
 			return NOTIFY_BAD;
 		}
