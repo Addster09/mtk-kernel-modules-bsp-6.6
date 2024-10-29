@@ -4475,6 +4475,10 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) = 1500000;
 		else if (IS_MT6781(g_platform_id))
 			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) = 691200;
+		else if (IS_MT6833(g_platform_id))
+			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) = 1631800;
+		else if (IS_MT6853(g_platform_id))
+			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) = 938500;
 		break;
 	case SENSOR_FEATURE_GET_PERIOD_BY_SCENARIO:
 		switch (*feature_data) {
