@@ -15,6 +15,7 @@
 #include <linux/spmi.h>
 #include <linux/irq.h>
 #include "mt-plat/mtk_ccci_common.h"
+#include <mtk-spmi-pmic-debug.h>
 #include "spmi-mtk.h"
 #if IS_ENABLED(CONFIG_MTK_AEE_FEATURE)
 #include <mt-plat/aee.h>
