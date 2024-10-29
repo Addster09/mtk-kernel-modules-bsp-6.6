@@ -1556,7 +1556,7 @@ firmware_class.path=/vendor/firmware kvm-arm.mode=none";
 	};
 
 	hwrng: hwrng {
-		compatible = "mediatek,arm,sec-rng";
+		compatible = "arm,sec-rng";
 		methods = "smc";
 		method-fid = /bits/ 16 <0x26a>;
 		quality = /bits/ 16 <900>;
