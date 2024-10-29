@@ -178,6 +178,15 @@ int disp_pq_proxy_virtual_sw_read(struct drm_crtc *crtc, void *data)
 	case SWREG_DISP_TDSHP_BASE_ADDRESS:
 		ret = pq_data->tuning_pa_table[TUNING_DISP_TDSHP].pa_base;
 		break;
+	case SWREG_C3D9_BASE_ADDRESS:
+		ret = pq_data->tuning_pa_table[TUNING_DISP_C3D9].pa_base;
+		break;
+	case SWREG_C3D17_BASE_ADDRESS:
+		ret = pq_data->tuning_pa_table[TUNING_DISP_C3D17].pa_base;
+		break;
+	case SWREG_DITHER_BASE_ADDRESS:
+		ret = pq_data->tuning_pa_table[TUNING_DISP_DITHER].pa_base;
+		break;
 	case SWREG_MML_HDR_BASE_ADDRESS:
 		if (mtk_drm_get_resource_from_dts(&res, "mediatek,mml-tuning-mml_hdr0"))
 			ret = res.start;
@@ -194,7 +203,7 @@ int disp_pq_proxy_virtual_sw_read(struct drm_crtc *crtc, void *data)
 		if (mtk_drm_get_resource_from_dts(&res, "mediatek,mml-tuning-mml_color0"))
 			ret = res.start;
 		break;
-	case SWREG_TDSHP_BASE_ADDRESS:
+	case SWREG_MDP_TDSHP_BASE_ADDRESS:
 		if (mtk_drm_get_resource_from_dts(&res, "mediatek,mdp-tuning-mdp_tdshp0"))
 			ret = res.start;
 		break;
@@ -265,6 +274,9 @@ static int disp_pq_get_table_index(struct drm_crtc *crtc, unsigned int pa)
 	struct pq_common_data *pq_data = mtk_crtc->pq_data;
 	unsigned int pa_base = pa & 0xFFFFF000;
 	int i;
+
+	if (!pa_base)
+		return -1;
 
 	for (i = 0; i < TUNING_REG_MAX; i++) {
 		if (pq_data->tuning_pa_table[i].pa_base == pa_base)
@@ -1038,7 +1050,18 @@ static void disp_pq_helper_fill_tuning_table(struct mtk_ddp_comp *comp,
 		table_index = TUNING_DISP_ODDMR_TOP;
 		break;
 	case MTK_DISP_DITHER:
+		table_index = TUNING_DISP_DITHER;
+		break;
 	case MTK_DISP_C3D:
+	{
+		struct mtk_disp_c3d *c3d_data = comp_to_c3d(comp);
+
+		if (c3d_data->bin_num == 9)
+			table_index = TUNING_DISP_C3D9;
+		else
+			table_index = TUNING_DISP_C3D17;
+	}
+		break;
 	case MTK_DISP_CHIST:
 		break;
 	default:
