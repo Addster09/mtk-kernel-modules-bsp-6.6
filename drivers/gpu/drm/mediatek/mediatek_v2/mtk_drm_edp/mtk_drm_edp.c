@@ -2907,8 +2907,11 @@ static int mtk_edp_bridge_attach(struct drm_bridge *bridge,
 	if (mtk_edp->data->mmsys_id == MMSYS_MT6991) {
 		mtk_edp->dpc_dev = mtk_priv->dpc_dev;
 		/* get mminfra before eDPTX on */
-		if (mtk_edp->dpc_dev)
-			pm_runtime_resume_and_get(mtk_edp->dpc_dev);
+		if (mtk_edp->dpc_dev) {
+			ret = pm_runtime_resume_and_get(mtk_edp->dpc_dev);
+			if (ret < 0)
+				dev_info(mtk_edp->dev, "%s Failed to power on mminfra power\n", EDPTX_DEBUG_INFO);
+		}
 
 		mtk_edp_pm_ctl(mtk_edp, true);
 	}
@@ -3559,6 +3562,7 @@ static void mtk_edp_remove(struct platform_device *pdev)
 static int mtk_edp_suspend(struct device *dev)
 {
 	struct mtk_edp *mtk_edp = dev_get_drvdata(dev);
+	int ret = 0;
 
 	if (mtk_edp->suspend) {
 		dev_info(mtk_edp->dev, "%s %s already suspend\n", EDPTX_DEBUG_INFO, __func__);
@@ -3585,8 +3589,11 @@ static int mtk_edp_suspend(struct device *dev)
 	pm_runtime_put_sync(dev);
 	/* put mminfra after eDPTX off */
 	if (mtk_edp->data->mmsys_id == MMSYS_MT6991)
-		if (mtk_edp->dpc_dev)
-			pm_runtime_put_sync(mtk_edp->dpc_dev);
+		if (mtk_edp->dpc_dev) {
+			ret = pm_runtime_put_sync(mtk_edp->dpc_dev);
+			if (ret < 0)
+				dev_info(mtk_edp->dev, "%s Failed to power off mminfra power\n", EDPTX_DEBUG_INFO);
+		}
 
 	mtk_edp->suspend = true;
 	dev_info(mtk_edp->dev, "%s %s usage_count %d -\n", EDPTX_DEBUG_INFO,
@@ -3598,6 +3605,7 @@ static int mtk_edp_suspend(struct device *dev)
 static int mtk_edp_resume(struct device *dev)
 {
 	struct mtk_edp *mtk_edp = dev_get_drvdata(dev);
+	int ret = 0;
 
 	if (!mtk_edp->suspend) {
 		dev_info(mtk_edp->dev, "%s %s already resume\n", EDPTX_DEBUG_INFO, __func__);
@@ -3609,8 +3617,11 @@ static int mtk_edp_resume(struct device *dev)
 
 	/* get mminfra before eDPTX on */
 	if (mtk_edp->data->mmsys_id == MMSYS_MT6991)
-		if (mtk_edp->dpc_dev)
-			pm_runtime_resume_and_get(mtk_edp->dpc_dev);
+		if (mtk_edp->dpc_dev) {
+			ret = pm_runtime_resume_and_get(mtk_edp->dpc_dev);
+			if (ret < 0)
+				dev_info(mtk_edp->dev, "%s Failed to power on mminfra power\n", EDPTX_DEBUG_INFO);
+		}
 
 	pm_runtime_get_sync(dev);
 	if (mtk_edp->data->mmsys_id == MMSYS_MT6991) {
