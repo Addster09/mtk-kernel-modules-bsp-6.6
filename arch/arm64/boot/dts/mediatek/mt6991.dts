@@ -253,7 +253,7 @@
 	chosen: chosen {
 		bootargs = "console=tty0 root=/dev/ram \
 			    nosoftlockup kasan.page_alloc.sample=1 \
-			    8250.nr_uarts=4 \
+			    8250.nr_uarts=6 \
 			    androidboot.hardware=mt6991 \
 			    vmalloc=400M swiotlb=noforce\
 			    firmware_class.path=/vendor/firmware \
@@ -5415,7 +5415,11 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				<0 0x16530000 0 0x80>,
 				<0 0x16530080 0 0x80>,
 				<0 0x16540000 0 0x80>,
-				<0 0x16540080 0 0x80>;
+				<0 0x16540080 0 0x80>,
+				<0 0x16550000 0 0x80>,
+				<0 0x16550080 0 0x80>,
+				<0 0x16560000 0 0x80>,
+				<0 0x16560080 0 0x80>;
 			interrupts = <GIC_SPI 299 IRQ_TYPE_LEVEL_HIGH 0>,
 					<GIC_SPI 300 IRQ_TYPE_LEVEL_HIGH 0>,
 					<GIC_SPI 301 IRQ_TYPE_LEVEL_HIGH 0>,
@@ -5423,10 +5427,14 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 					<GIC_SPI 779 IRQ_TYPE_LEVEL_HIGH 0>,
 					<GIC_SPI 780 IRQ_TYPE_LEVEL_HIGH 0>,
 					<GIC_SPI 781 IRQ_TYPE_LEVEL_HIGH 0>,
-					<GIC_SPI 782 IRQ_TYPE_LEVEL_HIGH 0>;
+					<GIC_SPI 782 IRQ_TYPE_LEVEL_HIGH 0>,
+					<GIC_SPI 783 IRQ_TYPE_LEVEL_HIGH 0>,
+					<GIC_SPI 784 IRQ_TYPE_LEVEL_HIGH 0>,
+					<GIC_SPI 785 IRQ_TYPE_LEVEL_HIGH 0>,
+					<GIC_SPI 786 IRQ_TYPE_LEVEL_HIGH 0>;
 			clocks = <&pericfg_ao_clk CLK_PERAO_AP_DMA_X32W_BCLK_UART>;
 			clock-names = "apdma";
-			dma-requests = <8>;
+			dma-requests = <12>;
 			support-hub = <0xc0>;  /*bit 0~7 to ch 0~7*/
 			#dma-cells = <1>;
 			wakeup-irq-support = <1>;
@@ -5490,6 +5498,28 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 			hub-baud = <24000000>;
 			wakeup-irq-support = <1>;
 			rtff-support = <1>;
+		};
+
+		uart4: serial@16040000 {
+			compatible = "mediatek,mt6577-uart";
+			reg = <0 0x16040000 0 0x1000>;
+			interrupts = <GIC_SPI 315 IRQ_TYPE_LEVEL_HIGH 0>;
+			clocks = <&clk26m>, <&pericfg_ao_clk CLK_PERAO_UART4_BCLK_UART>;
+			clock-names = "baud", "bus";
+			dmas = <&apdma 8 &apdma 9>;
+			dma-names = "tx", "rx";
+			uart-line = <4>;
+		};
+
+		uart5: serial@16050000 {
+			compatible = "mediatek,mt6577-uart";
+			reg = <0 0x16050000 0 0x1000>;
+			interrupts = <GIC_SPI 316 IRQ_TYPE_LEVEL_HIGH 0>;
+			clocks = <&clk26m>, <&pericfg_ao_clk CLK_PERAO_UART5_BCLK_UART>;
+			clock-names = "baud", "bus";
+			dmas = <&apdma 10 &apdma 11>;
+			dma-names = "tx", "rx";
+			uart-line = <5>;
 		};
 
 		spi0: spi0@16110000 {
