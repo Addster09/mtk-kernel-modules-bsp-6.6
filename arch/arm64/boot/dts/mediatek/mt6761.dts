@@ -1391,6 +1391,11 @@ firmware_class.path=/vendor/firmware kvm-arm.mode=none";
 		reg = <0 0x1001a000 0 0x1000>;
 	};
 
+	masp@1000a000 {
+		compatible = "mediatek,masp";
+		reg = <0 0x1000a000 0 0x1000>;
+	};
+
 	topckgen_ao@1001b000 {
 		compatible = "mediatek,topckgen_ao";
 		reg = <0 0x1001b000 0 0x1000>;
@@ -1551,7 +1556,7 @@ firmware_class.path=/vendor/firmware kvm-arm.mode=none";
 	};
 
 	hwrng: hwrng {
-		compatible = "mediatek,mt67xx-rng";
+		compatible = "mediatek,arm,sec-rng";
 		methods = "smc";
 		method-fid = /bits/ 16 <0x26a>;
 		quality = /bits/ 16 <900>;
