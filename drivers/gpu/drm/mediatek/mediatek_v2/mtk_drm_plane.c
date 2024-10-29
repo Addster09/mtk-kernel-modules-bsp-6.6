@@ -40,9 +40,15 @@ static const u32 formats[] = {
 	DRM_FORMAT_Y410,
 };
 
-#if !IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO_YCT)
-unsigned int to_crtc_plane_index(unsigned int plane_index)
+#if !IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO)
+unsigned int to_crtc_plane_index(struct drm_plane *plane)
 {
+	unsigned int plane_index = 0;
+
+	if (!plane)
+		return 0;
+	plane_index = plane->index;
+
 	if (plane_index < OVL_LAYER_NR)
 		return plane_index;
 	else if (plane_index < (OVL_LAYER_NR + EXTERNAL_INPUT_LAYER_NR))
@@ -55,11 +61,48 @@ unsigned int to_crtc_plane_index(unsigned int plane_index)
 		return 0;
 }
 #else
-unsigned int to_crtc_plane_index(unsigned int plane_index)
+unsigned int to_crtc_plane_index(struct drm_plane *plane)
 {
-	DDPINFO("%s plane index %d local_index 0\n", __func__, plane_index);
+	struct drm_crtc *crtc;
+	struct mtk_drm_crtc *mtk_crtc;
+	struct drm_plane *base_plane;
+	unsigned int plane_index;
 
-	return 0;
+	if (!plane) {
+		DDPMSG("[E]%s invalid plane %p\n", __func__, plane);
+		return 0;
+	}
+
+	DDPINFO("%s plane index %d crtc %p %p\n",
+		__func__, plane->index,
+		plane->crtc,
+		plane->state ? plane->state->crtc : NULL);
+
+	if (plane->crtc) {
+		crtc = plane->crtc;
+	} else if (plane->state && plane->state->crtc) {
+		crtc = plane->state->crtc;
+	} else if (plane->dev) {
+		drm_for_each_crtc(crtc, plane->dev) {
+			if (plane->possible_crtcs & drm_crtc_mask(crtc))
+				break;
+		}
+	} else {
+		DDPMSG("[E]%s invalid plane %p %d crtc\n", __func__, plane, plane->index);
+		return 0;
+	}
+
+	mtk_crtc = to_mtk_crtc(crtc);
+
+	base_plane = &mtk_crtc->planes[0].base;
+
+	plane_index = plane->index - base_plane->index;
+
+	DDPINFO("%s crtc %d plane index %d %d possible_crtcs 0x%X\n",
+		__func__, drm_crtc_index(crtc), plane->index, plane_index,
+		plane->possible_crtcs);
+
+	return plane_index;
 }
 #endif
 
@@ -425,7 +468,7 @@ void mtk_plane_get_comp_state(struct drm_plane *plane,
 	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
 	struct list_head *lyeblob_head;
 	unsigned int crtc_lye_idx = crtc_state->prop_val[CRTC_PROP_LYE_IDX];
-	unsigned int plane_index = to_crtc_plane_index(plane->index);
+	unsigned int plane_index = to_crtc_plane_index(plane);
 	int sphrt_enable;
 
 	memset(comp_state, 0x0, sizeof(struct mtk_plane_comp_state));
@@ -457,7 +500,7 @@ static void mtk_plane_atomic_update(struct drm_plane *plane,
 	struct drm_framebuffer *fb = plane->state->fb;
 	int src_x, src_y, src_w, src_h, dst_x, dst_y, dst_w, dst_h, i;
 	struct mtk_drm_crtc *mtk_crtc;
-	unsigned int plane_index = to_crtc_plane_index(plane->index);
+	unsigned int plane_index = to_crtc_plane_index(plane);
 	bool skip_update = 0;
 	unsigned int crtc_index = 0;
 	char dbg_msg[512] = {0};

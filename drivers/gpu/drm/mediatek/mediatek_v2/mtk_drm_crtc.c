@@ -3723,9 +3723,9 @@ mtk_crtc_get_plane_comp(struct drm_crtc *crtc,
 	unsigned int plane_index = 0;
 
 	if (plane_state->base.plane)
-		plane_index = to_crtc_plane_index(plane_state->base.plane->index);
+		plane_index = to_crtc_plane_index(plane_state->base.plane);
 
-#if !IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO_YCT)
+#if !IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO)
 	if (plane_state->comp_state.comp_id == 0) {
 		if (priv->data->ovl_exdma_rule)
 			plane_state->comp_state.comp_id =
@@ -8412,7 +8412,7 @@ static void mtk_drm_ovl_bw_monitor_ratio_prework(struct drm_crtc *crtc,
 	display_fbt_compress_ratio_table.active = 0;
 
 	drm_for_each_plane_mask(plane, crtc->dev, plane_mask) {
-		unsigned int plane_index = to_crtc_plane_index(plane->index);
+		unsigned int plane_index = to_crtc_plane_index(plane);
 		struct mtk_plane_state *plane_state =
 			to_mtk_plane_state(plane->state);
 		int index = plane_index;
@@ -8497,7 +8497,7 @@ static void mtk_drm_ovl_bw_monitor_ratio_get(struct drm_crtc *crtc,
 	to_info = mtk_crtc_get_total_overhead(mtk_crtc);
 
 	drm_for_each_plane_mask(plane, crtc->dev, plane_mask) {
-		unsigned int plane_index = to_crtc_plane_index(plane->index);
+		unsigned int plane_index = to_crtc_plane_index(plane);
 		struct mtk_plane_state *plane_state =
 			to_mtk_plane_state(plane->state);
 		int index = plane_index;
@@ -11999,9 +11999,14 @@ void __mtk_crtc_restore_plane_setting(struct mtk_drm_crtc *mtk_crtc, struct cmdq
 		}
 
 		if (plane_state->comp_state.comp_id == 0 && priv->data->ovl_exdma_rule) {
-			plane_index = to_crtc_plane_index(plane_state->base.plane->index);
+			plane_index = to_crtc_plane_index(plane_state->base.plane);
+#if !IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO)
 			plane_state->comp_state.comp_id =
 				mtk_crtc_get_plane_comp_id(crtc, mtk_crtc_state, plane_index);
+#else
+			comp = mtk_crtc_get_comp_with_index(mtk_crtc, plane_state);
+			plane_state->comp_state.comp_id = comp->id;
+#endif
 		}
 
 		if (plane_state->comp_state.comp_id &&
@@ -16705,7 +16710,7 @@ void mtk_drm_crtc_plane_disable(struct drm_crtc *crtc, struct drm_plane *plane,
 			       struct mtk_plane_state *plane_state)
 {
 	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
-	unsigned int plane_index = to_crtc_plane_index(plane->index);
+	unsigned int plane_index = to_crtc_plane_index(plane);
 	struct drm_crtc_state *crtc_state = crtc->state;
 	struct mtk_crtc_state *state = to_mtk_crtc_state(crtc_state);
 	struct mtk_ddp_comp *comp = mtk_crtc_get_comp(crtc, mtk_crtc->ddp_mode, 0, 0);
@@ -16931,7 +16936,7 @@ void mtk_drm_crtc_plane_update(struct drm_crtc *crtc, struct drm_plane *plane,
 {
 	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
 	struct mtk_drm_private *priv = mtk_crtc->base.dev->dev_private;
-	unsigned int plane_index = to_crtc_plane_index(plane->index);
+	unsigned int plane_index = to_crtc_plane_index(plane);
 	struct mtk_crtc_state *state = to_mtk_crtc_state(crtc->state);
 	struct mtk_ddp_comp *comp = mtk_crtc_get_comp(crtc, mtk_crtc->ddp_mode, 0, 0);
 #ifndef DRM_CMDQ_DISABLE

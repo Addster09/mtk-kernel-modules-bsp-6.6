@@ -9960,7 +9960,7 @@ static int mtk_drm_set_ovl_layer(struct drm_device *dev, void *data,
 	}
 
 	state->comp_state.comp_id = comp->id;
-	state->comp_state.lye_id = to_crtc_plane_index(layer_info->layer_id);
+	// state->comp_state.lye_id = to_crtc_plane_index(layer_info->layer_id);
 
 #ifdef CONFIG_MTK_ULTRARVC_SUPPORT
 		/*{ultrarvc +*/
