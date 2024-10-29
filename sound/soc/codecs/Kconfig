@@ -208,4 +208,12 @@ config SND_SOC_HFDA80X
 	help
 	  Config of hfda80x. It is a Smart amplifier
 	  It would be set to yes if device with HFDA801/HFDA803 on it.
+
+config SND_SOC_RT9123
+	tristate "Richtek RT9123 speaker amplifier"
+	depends on I2C
+	help
+	  Config of RT9123. It is a Smart amplifier
+	  It would be set to yes if device with RT9123 on it.
+	  Select N if you don't have RT9123 on board.
 endmenu
