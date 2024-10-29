@@ -4001,6 +4001,14 @@ def get_overlay_modules_list():
 
         mgk_64_device_modules.append("drivers/misc/mediatek/conn_md/conn_md_drv.ko")
 
+    if "mt6853_overlay_no_adsp.config" in DEFCONFIG_OVERLAYS:
+        mgk_64_device_modules.remove("drivers/misc/mediatek/adsp/adsp.ko")
+        mgk_64_device_modules.remove("drivers/misc/mediatek/adsp/v1/adsp-v1.ko")
+        mgk_64_device_modules.remove("drivers/misc/mediatek/adsp/v2/adsp-v2.ko")
+        mgk_64_device_modules.remove("drivers/misc/mediatek/audio_ipi/audio_ipi.ko")
+        mgk_64_device_modules.remove("sound/soc/mediatek/audio_dsp/mtk-soc-offload-common.ko")
+        mgk_64_device_modules.remove("sound/soc/mediatek/audio_dsp/snd-soc-audiodsp-common.ko")
+
     if "mt8786p2_overlay.config" in DEFCONFIG_OVERLAYS:
         mgk_64_device_modules.append("drivers/video/backlight/sgm37604a.ko")
         mgk_64_device_modules.remove("drivers/misc/mediatek/sensor/1.0/barometer/baro_common.ko")
