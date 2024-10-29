@@ -5199,11 +5199,12 @@ static void mtk_dp_encoder_disable(struct drm_encoder *encoder)
 		return;
 	}
 
-	mtk_dp->video_enable = false;
 	for (i = 0; i < DP_ENCODER_NUM; i++) {
 		mtk_dp_video_enable(mtk_dp, i, false);
 		mtk_dp_video_mute(mtk_dp, i, true);
 	}
+	mtk_dp->video_enable = false;
+	mtk_dp->state = DP_STATE_INITIAL;
 }
 
 static void mtk_dp_encoder_enable(struct drm_encoder *encoder)
