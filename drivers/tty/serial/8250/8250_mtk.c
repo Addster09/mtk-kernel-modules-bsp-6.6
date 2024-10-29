@@ -86,6 +86,10 @@ static struct uarthub_drv_cbs uarthub_drv_cbs;
 #define MTK_UART_RX_TRIGGER	MTK_UART_RX_SIZE
 #define MTK_UART_FIFO_SIZE	0x20
 
+#ifdef CONFIG_MTK_NO_SUPPORT_UARTHUB
+#define MTK_UART3_HUB_CHANGE_MODE	BIT(4)
+#endif
+
 #ifdef CONFIG_FPGA_EARLY_PORTING
 #define MTK_UART_FPGA_CLK  10000000
 #define MTK_UART_FPGA_BAUD 921600
@@ -2767,6 +2771,11 @@ static int mtk8250_probe(struct platform_device *pdev)
 	struct resource *regs;
 	int irq, err;
 	const struct mtk8250_comp *comp;
+#ifdef CONFIG_MTK_NO_SUPPORT_UARTHUB
+	void __iomem *uarthub_uart;
+	struct resource *regs_uarthub;
+	u32 val;
+#endif
 
 	irq = platform_get_irq(pdev, 0);
 	if (irq < 0)
@@ -2782,6 +2791,25 @@ static int mtk8250_probe(struct platform_device *pdev)
 					 resource_size(regs));
 	if (!uart.port.membase)
 		return -ENOMEM;
+
+#ifdef CONFIG_MTK_NO_SUPPORT_UARTHUB
+	/*
+	 * Get the address of uart3 PERI_UART_WAKEUP
+	 * register to change uart3 from uarthub mode
+	 * to uart mode.
+	 */
+	regs_uarthub = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+	if (regs_uarthub) {
+		uarthub_uart = devm_ioremap(&pdev->dev, regs_uarthub->start,
+						 resource_size(regs_uarthub));
+		if (IS_ERR(uarthub_uart))
+			return PTR_ERR(uarthub_uart);
+
+		val = readl(uarthub_uart);
+		writel(val | MTK_UART3_HUB_CHANGE_MODE, uarthub_uart);
+		iounmap(uarthub_uart);
+	}
+#endif
 
 	data = devm_kzalloc(&pdev->dev, sizeof(*data), GFP_KERNEL);
 	if (!data)
