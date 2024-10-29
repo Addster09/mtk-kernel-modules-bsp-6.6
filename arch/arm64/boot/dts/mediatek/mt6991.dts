@@ -20241,6 +20241,10 @@ connsys_emi_config_hyp: connsys-emi-config-hyp {
 
 		extbuck-debug {
 			compatible = "mediatek,spmi-pmic-debug";
+			cid-addr = <0x16 0x209 0x208>;
+			spmi-glitch-sta-sel = <0x439>;
+			spmi-glitch-sts = <0x43b>;
+			spmi-debug-out-l = <0x42b 0xf 0x4>;
 		};
 		mt6316_6_regulator: mt6316-6-regulator {
 			compatible = "mediatek,mt6316-6-regulator";
@@ -20273,6 +20277,10 @@ connsys_emi_config_hyp: connsys-emi-config-hyp {
 
 		extbuck-debug {
 			compatible = "mediatek,spmi-pmic-debug";
+			cid-addr = <0x16 0x209 0x208>;
+			spmi-glitch-sta-sel = <0x439>;
+			spmi-glitch-sts = <0x43b>;
+			spmi-debug-out-l = <0x42b 0xf 0x4>;
 		};
 		mt6316_7_regulator: mt6316-7-regulator {
 			compatible = "mediatek,mt6316-7-regulator";
@@ -20296,6 +20304,10 @@ connsys_emi_config_hyp: connsys-emi-config-hyp {
 
 		extbuck-debug {
 			compatible = "mediatek,spmi-pmic-debug";
+			cid-addr = <0x16 0x209 0x208>;
+			spmi-glitch-sta-sel = <0x439>;
+			spmi-glitch-sts = <0x43b>;
+			spmi-debug-out-l = <0x42b 0xf 0x4>;
 		};
 		mt6316_8_regulator: mt6316-8-regulator {
 			compatible = "mediatek,mt6316-8-regulator";
@@ -20328,6 +20340,10 @@ connsys_emi_config_hyp: connsys-emi-config-hyp {
 
 		extbuck-debug {
 			compatible = "mediatek,spmi-pmic-debug";
+			cid-addr = <0x16 0x209 0x208>;
+			spmi-glitch-sta-sel = <0x439>;
+			spmi-glitch-sts = <0x43b>;
+			spmi-debug-out-l = <0x42b 0xf 0x4>;
 		};
 		mt6316_15_regulator: mt6316-15-regulator {
 			compatible = "mediatek,mt6316-15-regulator";
