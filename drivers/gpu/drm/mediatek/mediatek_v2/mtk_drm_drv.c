@@ -11730,7 +11730,7 @@ static bool init_secure_static_path_switch(struct device *dev, struct mtk_drm_pr
 {
 	struct device_node *dt_node;
 
-	dt_node = of_find_node_by_name(dev->of_node, "SecureVideoPath");
+	dt_node = of_find_node_by_name(dev->of_node, "SecureHDCPPath");
 	if (!dt_node) {
 		priv->secure_static_path_switch = false;
 		return false;
