@@ -22,6 +22,10 @@
 #include "../../codecs/mt6681-accdet.h"
 #endif
 
+#if IS_ENABLED(CONFIG_SND_SOC_MTK_AUTO_AUDIO) && IS_ENABLED(CONFIG_SND_SOC_RT9123)
+#include "mt6991-machine.h"
+#endif
+
 /*
  * if need additional control for the ext spk amp that is connected
  * after Lineout Buffer / HP Buffer on the codec, put the control in
@@ -224,6 +228,9 @@ static const struct snd_soc_dapm_route mt6991_mt6681_routes[] = {
 	{EXT_SPK_AMP_W_NAME, NULL, "Headphone R Ext Spk Amp"},
 };
 static const struct snd_soc_dapm_route mt6991_mt6681_routes_dummy[] = {};
+#if IS_ENABLED(CONFIG_SND_SOC_MTK_AUTO_AUDIO) && IS_ENABLED(CONFIG_SND_SOC_RT9123)
+static const struct snd_soc_dapm_route mt6991_external_codec_routes_dummy[] = {};
+#endif
 
 static const struct snd_kcontrol_new mt6991_mt6681_controls[] = {
 	SOC_DAPM_PIN_SWITCH(EXT_SPK_AMP_W_NAME),
@@ -835,10 +842,20 @@ SND_SOC_DAILINK_DEFS(i2sout3,
 	DAILINK_COMP_ARRAY(COMP_CPU("I2SOUT3")),
 	DAILINK_COMP_ARRAY(COMP_DUMMY()),
 	DAILINK_COMP_ARRAY(COMP_EMPTY()));
+#if IS_ENABLED(CONFIG_SND_SOC_MTK_AUTO_AUDIO) && IS_ENABLED(CONFIG_SND_SOC_RT9123)
+SND_SOC_DAILINK_DEFS(i2sout4,
+	DAILINK_COMP_ARRAY(COMP_CPU("I2SOUT4")),
+	DAILINK_COMP_ARRAY(COMP_CODEC(DEVICE_EXTERNAL_CODEC_NAME_1,
+				     DAI_EXTERNAL_CODEC_NAME),
+			   COMP_CODEC(DEVICE_EXTERNAL_CODEC_NAME_2,
+				     DAI_EXTERNAL_CODEC_NAME)),
+	DAILINK_COMP_ARRAY(COMP_EMPTY()));
+#else
 SND_SOC_DAILINK_DEFS(i2sout4,
 	DAILINK_COMP_ARRAY(COMP_CPU("I2SOUT4")),
 	DAILINK_COMP_ARRAY(COMP_DUMMY()),
 	DAILINK_COMP_ARRAY(COMP_EMPTY()));
+#endif
 SND_SOC_DAILINK_DEFS(i2sout5,
 	DAILINK_COMP_ARRAY(COMP_CPU("I2SOUT5")),
 	DAILINK_COMP_ARRAY(COMP_DUMMY()),
@@ -2430,6 +2447,29 @@ static int mt6991_mt6681_bypass_primary_codec(struct platform_device *pdev)
 	return 0;
 }
 
+#if IS_ENABLED(CONFIG_SND_SOC_MTK_AUTO_AUDIO) && IS_ENABLED(CONFIG_SND_SOC_RT9123)
+static int mt6991_bypass_external_codec(struct platform_device *pdev)
+{
+	struct snd_soc_card *card = &mt6991_mt6681_soc_card;
+	int i, j;
+	struct snd_soc_dai_link *dai_link;
+	struct snd_soc_dai_link_component *codec;
+
+	for_each_card_prelinks(card, i, dai_link) {
+		if (strcmp(dai_link->name, "I2SOUT4") == 0) {
+			for_each_link_codecs(dai_link, j, codec) {
+				codec->name = "snd-soc-dummy";
+				codec->dai_name = "snd-soc-dummy-dai";
+				dev_info(&pdev->dev, "%s() I2SOUT4 modified\n", __func__);
+			}
+		}
+	}
+	card->dapm_routes = mt6991_external_codec_routes_dummy;
+	card->num_dapm_routes = ARRAY_SIZE(mt6991_external_codec_routes_dummy);
+	return 0;
+}
+#endif
+
 static int mt6991_mt6681_dev_probe(struct platform_device *pdev)
 {
 	struct snd_soc_card *card = &mt6991_mt6681_soc_card;
@@ -2492,6 +2532,13 @@ static int mt6991_mt6681_dev_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "%s codec probe fail, bypass codec driver\n", __func__);
 		mt6991_mt6681_bypass_primary_codec(pdev);
 	}
+
+#if IS_ENABLED(CONFIG_SND_SOC_MTK_AUTO_AUDIO) && IS_ENABLED(CONFIG_SND_SOC_RT9123)
+	if (!external_codec_done) {
+		dev_info(&pdev->dev, "%s external codec probe fail, bypass codec driver\n", __func__);
+		mt6991_bypass_external_codec(pdev);
+	}
+#endif
 
 	card->dev = &pdev->dev;
 
