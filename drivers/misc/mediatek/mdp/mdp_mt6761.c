@@ -1423,8 +1423,6 @@ static u32 mdp_get_poll_gpr(u16 engine, u32 reg_addr)
 		gpr = CMDQ_GPR_R12;
 		break;
 	default:
-		CMDQ_ERR("%s engine not support:%hu reg_addr:%#x\n",
-			__func__, engine, reg_addr);
 		gpr = CMDQ_GPR_R14;
 		break;
 	}
