@@ -49,6 +49,7 @@ module_param(debug_recover, int, 0644);
 #define VOTE_DELAY_US 2
 #define POLL_DELAY_US 10
 #define TIMEOUT_300MS 300000
+#define TIMEOUT_30MS 30000
 
 #define HW_CCF_AP_VOTER_BIT			(0)
 #define HW_CCF_XPU0_BACKUP1_SET		(0x230)
@@ -153,10 +154,12 @@ static s32 mtk_vdisp_poll_power_cnt(s32 val)
 {
 	s32 ret, tmp;
 
-	ret = readx_poll_timeout(mtk_vdisp_get_power_cnt, , tmp, tmp == val, 100, TIMEOUT_300MS);
+	ret = readx_poll_timeout(mtk_vdisp_get_power_cnt, , tmp, tmp == val, 100, TIMEOUT_30MS);
 	if (ret < 0) {
 		u32 idx, mtcmos_cnt;
 		u64 begin = sched_clock();
+		static u32 fail_cnt, recover_cnt;
+		u32 fail_mtcmos = tmp;
 
 		/* get power from lower bit to higher bit, so disp_vcore is the first one */
 		mtcmos_cnt = tmp;
@@ -175,8 +178,9 @@ static s32 mtk_vdisp_poll_power_cnt(s32 val)
 			pm_runtime_put_sync(g_dev[idx]);
 		}
 
-		ret = readx_poll_timeout(mtk_vdisp_get_power_cnt, , tmp, tmp == val, 100, TIMEOUT_300MS);
+		ret = readx_poll_timeout(mtk_vdisp_get_power_cnt, , tmp, tmp == val, 100, TIMEOUT_30MS);
 		if (ret == 0) {
+			recover_cnt++;
 			if (unlikely(debug_recover))
 				VDISPAEE("mtcmos_cnt(%#x) recovery success, cost(%llu)", tmp,
 					 sched_clock() - begin);
@@ -184,6 +188,9 @@ static s32 mtk_vdisp_poll_power_cnt(s32 val)
 				VDISPDBG("mtcmos_cnt(%#x) recovery success, cost(%llu)", tmp,
 					 sched_clock() - begin);
 		}
+
+		fail_cnt++;
+		VDISPDBG("mtcmos(%#x) fail_recover(%u,%u)", fail_mtcmos, fail_cnt, recover_cnt);
 	}
 
 	return ret;
