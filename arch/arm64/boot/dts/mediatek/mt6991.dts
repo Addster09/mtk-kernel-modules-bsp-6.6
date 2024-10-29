@@ -10423,6 +10423,7 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 			interrupt-names = "combined";
 			#iommu-cells = <1>;
 			mediatek,axslc;
+			mediatek,dvm;
 			dma-coherent;
 
 			iommu-groups {
@@ -10725,6 +10726,7 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 			#iommu-cells = <1>;
 			tcu-prefetch = <2>;
 			mediatek,axslc;
+			mediatek,dvm;
 			dma-coherent;
 
 			iommu-groups {
@@ -10753,6 +10755,7 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 			#iommu-cells = <1>;
 			tcu-prefetch = <2>;
 			mediatek,axslc;
+			mediatek,dvm;
 			dma-coherent;
 
 			/* global mpam: partid, pmg */
@@ -10828,6 +10831,7 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 			/* ste mpam: sid, partid, pmg */
 			mtk,mpam-cfg = <1 5 0>,
 				       <2 5 0>;
+			mediatek,dvm;
 			dma-coherent;
 		};
 
@@ -16392,6 +16396,16 @@ connsys_emi_config_hyp: connsys-emi-config-hyp {
 	gpu-smmu-mpam-mon {
 		compatible = "mtk,smmu-v3-mpam-mon";
 		mtk,smmu = <&gpu_smmu>;
+	};
+
+	emi-pctrl {
+		compatible = "mediatek,emi-pctrl";
+		reg = <0 0x10641000 0 0x1000>;
+	};
+
+	dvm-mi {
+		compatible = "mediatek,dvm-mi";
+		reg = <0 0x10643000 0 0x1000>;
 	};
 
 	smmu_hyp_vms: smmu-hyp-vms {
