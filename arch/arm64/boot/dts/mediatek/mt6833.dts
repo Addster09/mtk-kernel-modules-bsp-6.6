@@ -510,7 +510,7 @@
 		reserve-memory-scp_share {  /* TODO: remove after lk2 ready */
 			compatible = "mediatek,reserve-memory-scp_share";
 			no-map;
-			size = <0 0x003A0000>; /*3MB + 128K share mem size */
+			size = <0 0x00420000>; /*3MB + 128K share mem size */
 			alignment = <0 0x1000000>;
 			alloc-ranges = <0 0x50000000 0 0x40000000>;
 		};
@@ -3862,7 +3862,7 @@
 		/* feature ID, size, alignment */
 		scp-mem-tbl =
 		< 0 0x0      0x0>,      /* secure dump, its size is in secure_dump_size */
-		< 1 0x4E300  0x0>,  /* vow, 297KB (2 model size)*/
+		< 1 0xCA700  0x0>,  /* vow, 297KB (2 model size)*/
 		< 2 0x100000 0x0>, /* ensor main, 1 MB */
 		< 3 0x180000 0x0>, /* logger, 1.5 MB */
 		< 4 0x19000  0x0>,  /* audio, 100 KB */
