@@ -3022,8 +3022,13 @@ static inline void Disable_Unprepare_ccf_clock(void)
 	/* must keep this clk close order: CG_SCP_SYS_CAM ->
 	 * CG_SCP_SYS_DIS
 	 */
-	if (G_u4EnableClockCount == 0)
+	spin_lock(&(IspInfo.SpinLockClock));
+	if (G_u4EnableClockCount == 0) {
+		spin_unlock(&(IspInfo.SpinLockClock));
 		log_inf("+ pm runtime put_sync\n");
+	} else {
+		spin_unlock(&(IspInfo.SpinLockClock));
+	}
 
 	clk_disable_unprepare(isp_clk.CG_CAMSV1);
 	clk_disable_unprepare(isp_clk.CG_CAMSV0);
@@ -3052,9 +3057,9 @@ static void ISP_EnableClock(bool En)
 	if (En) {
 		spin_lock(&(IspInfo.SpinLockClock));
 		G_u4EnableClockCount++;
-		spin_unlock(&(IspInfo.SpinLockClock));
 		Prepare_Enable_ccf_clock();
 		if (G_u4EnableClockCount == 1) {
+			spin_unlock(&(IspInfo.SpinLockClock));
 			log_inf("enable_irq\n");
 			for (module = ISP_CAM0_IRQ_IDX; module < ISP_CAM_IRQ_IDX_NUM; module++) {
 				if (module == ISP_CAM0_IRQ_IDX ||
@@ -3063,12 +3068,14 @@ static void ISP_EnableClock(bool En)
 					enable_irq(cam_isp_devs->irq[module]);
 				}
 			}
+		} else {
+			spin_unlock(&(IspInfo.SpinLockClock));
 		}
 	} else { /* Disable clock. */
 		spin_lock(&(IspInfo.SpinLockClock));
 		G_u4EnableClockCount--;
-		spin_unlock(&(IspInfo.SpinLockClock));
 		if (G_u4EnableClockCount == 0) {
+			spin_unlock(&(IspInfo.SpinLockClock));
 			log_inf("disable_irq\n");
 			for (module = ISP_CAM0_IRQ_IDX; module < ISP_CAM_IRQ_IDX_NUM; module++) {
 				if (module == ISP_CAM0_IRQ_IDX ||
@@ -3077,6 +3084,8 @@ static void ISP_EnableClock(bool En)
 					disable_irq(cam_isp_devs->irq[module]);
 				}
 			}
+		} else {
+			spin_unlock(&(IspInfo.SpinLockClock));
 		}
 		Disable_Unprepare_ccf_clock();
 	}
