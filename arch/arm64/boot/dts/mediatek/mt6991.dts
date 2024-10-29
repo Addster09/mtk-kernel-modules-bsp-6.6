@@ -1413,7 +1413,7 @@
 		reg = <0 0x80000000 0 0x40000000>;
 	};
 
-	reserved-memory {
+	reserved_memory: reserved-memory {
 		/*TODO: add reserved memory node here*/
 		#address-cells = <2>;
 		#size-cells = <2>;
@@ -7788,6 +7788,10 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 			mediatek,larb = <&smi_larb3 MTK_M4U_TO_PORT(SMMU_L3_P7_MDP_FG0)>;
 			mtk,smmu-shared = <&mm_smmu_disp>;
 			mtk,smmu-shared-sec = <&mm_smmu_svp_disp>;
+		};
+
+		wlan: wlan {
+
 		};
 
 		vhost_conninfra: vhost-conninfra@0 {
