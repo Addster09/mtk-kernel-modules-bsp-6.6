@@ -1876,7 +1876,7 @@ int mtk_mmqos_probe(struct platform_device *pdev)
 	struct larb_node *larb_node;
 	struct larb_port_node *larb_port_node;
 	struct mtk_iommu_data *smi_imu;
-	int i, j, id, num_larbs = 0, ret, ddr_type;
+	int i, j, id, num_larbs = 0, ret, ddr_type, io_width;
 #if IS_ENABLED(CONFIG_MTK_DRAMC) && IS_ENABLED(CONFIG_MTK_EMI)
 	int max_freq, chn_cnt;
 #endif
@@ -2197,14 +2197,19 @@ int mtk_mmqos_probe(struct platform_device *pdev)
 		memcpy(hrt, &mmqos_desc->hrt, sizeof(mmqos_desc->hrt));
 	pr_notice("[mmqos] ddr type: %d\n", mtk_dramc_get_ddr_type());
 
+	if (ddr_type == TYPE_LPDDR3)
+		io_width = 4;
+	else
+		io_width = 2;
+
 #if IS_ENABLED(CONFIG_MTK_DRAMC) && IS_ENABLED(CONFIG_MTK_EMI)
 	max_freq = mtk_dramc_get_steps_freq(0);
 	chn_cnt = mtk_emicen_get_ch_cnt();
 	if (max_freq > 0 && chn_cnt > 0)
-		hrt->hrt_total_bw = max_freq * chn_cnt * 2;
+		hrt->hrt_total_bw = max_freq * chn_cnt * io_width;
 	else
 		MMQOS_ERR("dramc or emi not ready, cannot get max frequency or channel count");
-	MMQOS_DBG("max_freq:%d, channel count:%d", max_freq, chn_cnt);
+	MMQOS_DBG("max_freq:%d, channel count:%d io_width:%d", max_freq, chn_cnt, io_width);
 #endif
 	MMQOS_DBG("hrt_total_bw: %d", hrt->hrt_total_bw);
 
