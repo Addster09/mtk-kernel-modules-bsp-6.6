@@ -1613,6 +1613,8 @@ static enum mml_mode _mtk_atomic_mml_plane(struct drm_device *dev,
 	ret = mml_drm_submit(mml_ctx, submit_kernel, &(mtk_crtc->mml_cb));
 	if (ret)
 		goto err_submit;
+	if (submit_kernel->info.mode == MML_MODE_DIRECT_LINK)
+		mtk_crtc->is_mml_dl_submit = true;
 
 	atomic_set(&(mtk_crtc->wait_mml_last_job_is_flushed), 0);
 
@@ -1638,6 +1640,8 @@ err_src_fd:
 	mtk_free_mml_submit(submit_kernel);
 err_alloc_submit_pq:
 	mtk_free_mml_submit(submit_pq);
+
+	mtk_crtc->is_mml_dl_submit = false;
 	return MML_MODE_UNKNOWN;
 }
 
@@ -1672,6 +1676,7 @@ static void mtk_atomic_mml(struct drm_device *dev,
 		return;
 
 	mtk_crtc = to_mtk_crtc(crtc);
+	mtk_crtc->is_mml_dl_submit = false;
 
 	for_each_old_plane_in_state(state, plane, old_plane_state, i) {
 		plane_state = plane->state;

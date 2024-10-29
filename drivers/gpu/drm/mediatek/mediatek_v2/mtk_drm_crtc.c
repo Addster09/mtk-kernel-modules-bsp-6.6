@@ -5043,13 +5043,23 @@ static void _mtk_crtc_lye_addon_module_connect(
 	if (lye_state->mml_dl_lye) {
 		const struct mtk_addon_module_data *addon_module[2] = {NULL, NULL};
 		union mtk_addon_config addon_config;
+		unsigned int target_comp;
 
 		mtk_addon_get_module(MML_DL, mtk_crtc, &addon_module[0], &addon_module[1]);
 		if (unlikely(!addon_module[0])) {
 			DDPMSG("%s:%d cannot get addon_module\n", __func__, __LINE__);
 			return;
 		}
-		mtk_addon_get_comp(crtc, lye_state->mml_dl_lye, &addon_config.config_type.tgt_comp, NULL);
+		mtk_addon_get_comp(crtc, lye_state->mml_dl_lye, &addon_config.config_type.tgt_comp,
+			&addon_config.config_type.tgt_layer);
+		target_comp = addon_config.config_type.tgt_comp;
+		if (!mtk_crtc->is_mml_dl_submit) {
+			DDPMSG("comp:%d,L%d off\n", target_comp, addon_config.config_type.tgt_layer);
+			mtk_ddp_comp_layer_off(priv->ddp_comp[target_comp],
+				addon_config.config_type.tgt_layer, 0,cmdq_handle);
+			lye_state->mml_dl_lye = 0;
+			return;
+		}
 		mml_addon_module_connect(crtc, ddp_mode, addon_module[0], addon_module[1],
 					 &addon_config, cmdq_handle);
 		CRTC_MMP_MARK(0, mml_dbg, lye_state->mml_dl_lye, 0x4000000 | MMP_ADDON_CONNECT);
@@ -16067,6 +16077,7 @@ static void mtk_drm_crtc_atomic_begin(struct drm_crtc *crtc,
 #ifndef DRM_CMDQ_DISABLE
 	struct cmdq_client *client;
 #endif
+	bool need_sync_mml = true;
 
 	if (unlikely(crtc_idx >= MAX_CRTC)) {
 		DDPPR_ERR("%s invalid crtc_idx %u\n", __func__, crtc_idx);
@@ -16167,9 +16178,11 @@ static void mtk_drm_crtc_atomic_begin(struct drm_crtc *crtc,
 		mtk_drm_ovl_bw_monitor_ratio_prework(crtc, atomic_state);
 	}
 #endif
+	if (mtk_crtc->is_mml_dl)
+		need_sync_mml = mtk_crtc->is_mml_dl_submit;
 
 	mtk_crtc_state->cmdq_handle =
-		mtk_crtc_gce_commit_begin(crtc, old_crtc_state, mtk_crtc_state, true);
+		mtk_crtc_gce_commit_begin(crtc, old_crtc_state, mtk_crtc_state, need_sync_mml);
 	CRTC_MMP_MARK(index, atomic_begin, (unsigned long)mtk_crtc_state->cmdq_handle, __LINE__);
 	drm_trace_tag_mark("atomic_begin");
 
@@ -18952,7 +18965,7 @@ static void mtk_drm_crtc_atomic_flush(struct drm_crtc *crtc,
 	}
 
 	/* need to check mml is submit done */
-	if (mtk_crtc->is_mml || mtk_crtc->is_mml_dl)
+	if (mtk_crtc->is_mml || (mtk_crtc->is_mml_dl && mtk_crtc->is_mml_dl_submit))
 		mtk_drm_wait_mml_submit_done(&(mtk_crtc->mml_cb));
 
 	mtk_vidle_dvfs_trigger(__func__);

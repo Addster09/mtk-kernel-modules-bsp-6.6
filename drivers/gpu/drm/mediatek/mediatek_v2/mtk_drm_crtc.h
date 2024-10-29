@@ -1180,6 +1180,7 @@ struct mtk_drm_crtc {
 	wait_queue_head_t signal_mml_last_job_is_flushed_wq;
 	bool is_mml;
 	bool is_mml_dl;
+	bool is_mml_dl_submit;
 	bool skip_check_trigger;
 	bool is_mml_dc;
 	unsigned int mml_debug;
