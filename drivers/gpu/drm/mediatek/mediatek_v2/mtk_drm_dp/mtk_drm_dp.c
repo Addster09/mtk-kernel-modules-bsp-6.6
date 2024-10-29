@@ -5346,8 +5346,11 @@ mtk_dp_connector_late_register(struct drm_connector *connector)
 
 	mtk_connector = container_of(connector, struct mtk_dp_connector, connector);
 	mtk_dp = mtk_connector->mtk_dp;
-
+#if !IS_ENABLED(CONFIG_MTK_DP_AS_CRTC0)
 	if (connector->connector_type == DRM_MODE_CONNECTOR_DisplayPort)
+#else
+	if (connector->connector_type == DRM_MODE_CONNECTOR_DSI)
+#endif
 		mtk_dp->aux.dev = connector->kdev;
 
 	return 0;
@@ -5527,9 +5530,13 @@ struct drm_connector *mtk_dp_add_connector(struct drm_dp_mst_topology_mgr *mgr,
 
 	mtk_connector->mtk_dp = mtk_dp;
 	mtk_connector->port = port;
-
+#if !IS_ENABLED(CONFIG_MTK_DP_AS_CRTC0)
 	ret = drm_connector_init(mtk_dp->drm_dev, &mtk_connector->connector,
 				 &mtk_dp_connector_funcs, DRM_MODE_CONNECTOR_DisplayPort);
+#else
+	ret = drm_connector_init(mtk_dp->drm_dev, &mtk_connector->connector,
+				 &mtk_dp_connector_funcs, DRM_MODE_CONNECTOR_DSI);
+#endif
 	if (ret) {
 		kfree(mtk_connector);
 		return NULL;
@@ -5608,9 +5615,13 @@ void mtk_dp_connect_attach_encoder(struct mtk_dp *mtk_dp)
 		}
 
 		mtk_connector->mtk_dp = mtk_dp;
-
+#if !IS_ENABLED(CONFIG_MTK_DP_AS_CRTC0)
 		ret = drm_connector_init(bridge->dev, &mtk_connector->connector,
 					 &mtk_dp_connector_funcs, DRM_MODE_CONNECTOR_DisplayPort);
+#else
+		ret = drm_connector_init(bridge->dev, &mtk_connector->connector,
+					 &mtk_dp_connector_funcs, DRM_MODE_CONNECTOR_DSI);
+#endif
 		if (ret) {
 			DP_MSG("failed to init connector:%d\n", ret);
 			kfree(mtk_connector);
@@ -5714,9 +5725,13 @@ struct mtk_dp_connector *mtk_dp_create_connector(struct mtk_dp *mtk_dp, enum dp_
 	}
 
 	mtk_connector->mtk_dp = mtk_dp;
-
+#if !IS_ENABLED(CONFIG_MTK_DP_AS_CRTC0)
 	ret = drm_connector_init(bridge->dev, &mtk_connector->connector,
 				 &mtk_dp_connector_funcs, DRM_MODE_CONNECTOR_DisplayPort);
+#else
+	ret = drm_connector_init(bridge->dev, &mtk_connector->connector,
+				 &mtk_dp_connector_funcs, DRM_MODE_CONNECTOR_DSI);
+#endif
 	if (ret) {
 		DP_MSG("failed to init connector:%d\n", ret);
 		kfree(mtk_connector);

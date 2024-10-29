@@ -7711,6 +7711,7 @@ bool mtk_crtc_is_frame_trigger_mode(struct drm_crtc *crtc)
 	}
 
 	comp = mtk_ddp_comp_request_output(mtk_crtc);
+#if !IS_ENABLED(CONFIG_MTK_DP_AS_CRTC0)
 	if (crtc_id == 0 && comp)
 		return mtk_dsi_is_cmd_mode(comp);
 	else if (crtc_id == 0)
@@ -7721,7 +7722,7 @@ bool mtk_crtc_is_frame_trigger_mode(struct drm_crtc *crtc)
 		DDP_FIRST_PATH)
 		if (mtk_ddp_comp_is_output(comp))
 			break;
-
+#endif
 	if (!comp) {
 		DDPPR_ERR("%s, Cannot find output component\n", __func__);
 		return false;
@@ -12687,12 +12688,14 @@ void mtk_crtc_config_default_path(struct mtk_drm_crtc *mtk_crtc)
 	cfg.w = crtc->state->adjusted_mode.hdisplay;
 	cfg.h = crtc->state->adjusted_mode.vdisplay;
 	cfg.clock = crtc->state->adjusted_mode.clock;
+#if !IS_ENABLED(CONFIG_MTK_DP_AS_CRTC0)
 	if (output_comp && drm_crtc_index(crtc) == 0) {
 		cfg.w = mtk_ddp_comp_io_cmd(output_comp, NULL,
 					DSI_GET_VIRTUAL_WIDTH, NULL);
 		cfg.h = mtk_ddp_comp_io_cmd(output_comp, NULL,
 					DSI_GET_VIRTUAL_HEIGH, NULL);
 	}
+#endif
 	if (mtk_crtc->panel_ext && mtk_crtc->panel_ext->params &&
 		mtk_crtc->panel_ext->params->dyn_fps.vact_timing_fps != 0)
 		cfg.vrefresh =

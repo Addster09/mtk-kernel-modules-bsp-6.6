@@ -1862,8 +1862,10 @@ static int mtk_atomic_check(struct drm_device *dev,
 		old_state = to_mtk_crtc_state(crtc->state);
 		new_state = to_mtk_crtc_state(crtc_state);
 
+#if !IS_ENABLED(CONFIG_MTK_DP_AS_CRTC0)
 		if (drm_crtc_index(crtc) == 0)
 			mtk_drm_crtc_mode_check(crtc, crtc->state, crtc_state);
+#endif
 
 		if (new_state->prop_val[CRTC_PROP_LYE_IDX]) {
 			struct mtk_drm_lyeblob_ids *ids, *next;
@@ -9581,21 +9583,37 @@ static int mtk_drm_kms_init(struct drm_device *drm)
 	 */
 	/* TODO: temprorary solution for MT6989 enable full OVL path,*/
 	/* remove it after MT6989 MML DLO switch ready */
+#if !IS_ENABLED(CONFIG_MTK_DP_AS_CRTC0)
 	if (of_property_read_bool(private->mmsys_dev->of_node, "enable-main-full-ovl-path"))
 		ret = mtk_drm_crtc_create(drm, private->data->ext_alter_path_data);
 	else if (of_property_read_bool(private->mmsys_dev->of_node, "bypass-pc-path"))
 		ret = mtk_drm_crtc_create(drm, private->data->main_bypass_pc_path_data);
 	else
 		ret = mtk_drm_crtc_create(drm, private->data->main_path_data);
+#else
+	if (of_property_read_bool(private->mmsys_dev->of_node, "enable_ext_alter_path"))
+		ret = mtk_drm_crtc_create(drm, private->data->ext_alter_path_data);
+	else
+		ret = mtk_drm_crtc_create(drm, private->data->ext_path_data);
+#endif
 	if (ret < 0)
 		goto err_component_unbind;
 
 	if (disp_helper_get_stage() == DISP_HELPER_STAGE_NORMAL) {
+#if !IS_ENABLED(CONFIG_MTK_DP_AS_CRTC0)
 		/* ... and OVL1 -> COLOR1 -> GAMMA -> RDMA1 -> DPI0. */
 		if (of_property_read_bool(private->mmsys_dev->of_node, "enable_ext_alter_path"))
 			ret = mtk_drm_crtc_create(drm, private->data->ext_alter_path_data);
 		else
 			ret = mtk_drm_crtc_create(drm, private->data->ext_path_data);
+#else
+		if (of_property_read_bool(private->mmsys_dev->of_node, "enable-main-full-ovl-path"))
+			ret = mtk_drm_crtc_create(drm, private->data->ext_alter_path_data);
+		else if (of_property_read_bool(private->mmsys_dev->of_node, "bypass-pc-path"))
+			ret = mtk_drm_crtc_create(drm, private->data->main_bypass_pc_path_data);
+		else
+			ret = mtk_drm_crtc_create(drm, private->data->main_path_data);
+#endif
 		if (ret < 0)
 			goto err_component_unbind;
 

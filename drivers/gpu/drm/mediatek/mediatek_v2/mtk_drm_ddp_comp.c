@@ -1455,10 +1455,18 @@ unsigned int mtk_drm_find_possible_crtc_by_comp(struct drm_device *drm,
 
 	if (mtk_drm_find_comp_in_ddp(ddp_comp, private->data->main_path_data) ==
 	    true) {
+#if !IS_ENABLED(CONFIG_MTK_DP_AS_CRTC0)
 		ret = BIT(0);
+#else
+		ret = BIT(1);
+#endif
 	} else if (mtk_drm_find_comp_in_ddp(
 			ddp_comp, private->data->ext_path_data) == true) {
+#if !IS_ENABLED(CONFIG_MTK_DP_AS_CRTC0)
 		ret = BIT(1);
+#else
+		ret = BIT(0);
+#endif
 	} else if (mtk_drm_find_comp_in_ddp(
 			ddp_comp, private->data->third_path_data) == true) {
 		ret = BIT(2);
