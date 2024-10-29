@@ -1413,10 +1413,8 @@ static bool mdp_is_mtee(struct cmdqRecStruct *handle)
 
 static bool mdp_is_isp_img(struct cmdqRecStruct *handle)
 {
-	return ((handle->engineFlag & (1LL << CMDQ_ENG_ISP_IMGI) &&
-		handle->engineFlag & (1LL << CMDQ_ENG_ISP_IMG2O)) ||
-		(handle->engineFlag & (1LL << CMDQ_ENG_ISP_IMGI2) &&
-		 handle->engineFlag & (1LL << CMDQ_ENG_ISP_IMG2O2)));
+	return ((handle->engineFlag & (1LL << CMDQ_ENG_ISP_IMGI)) &&
+		(handle->engineFlag & (1LL << CMDQ_ENG_ISP_IMG2O)));
 }
 
 static u64 cmdq_mdp_get_isp_flag(void)
