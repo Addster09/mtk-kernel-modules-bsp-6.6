@@ -24361,7 +24361,7 @@ static int mtk_ddp_disp1_comp_out_cb_MT6991(enum mtk_ddp_comp_id cur,
 		break;
 	case DDP_COMPONENT_DSC0:
 	case DDP_COMPONENT_COMP0_OUT_CB1:
-		*addr = MT6991_COMP_OUT_CB0_MOUT_EN;
+		*addr = MT6991_COMP_OUT_CB1_MOUT_EN;
 		break;
 	case DDP_COMPONENT_DSC1:
 	case DDP_COMPONENT_COMP0_OUT_CB2:
@@ -24664,7 +24664,7 @@ static int mtk_ddp_mout_en_MT6991(const struct mtk_mmsys_reg_data *data,
 		return 0;
 
 	if (mtk_ddp_comp_get_type(cur) == MTK_OVL_EXDMA) {
-		if (cur == DDP_COMPONENT_OVL_EXDMA2)
+		if (cur == DDP_COMPONENT_OVL_EXDMA2 || cur == DDP_COMPONENT_OVL1_EXDMA2)
 			value = mtk_ddp_ovl_rsz_in_cb_MT6991(cur, next, addr);
 		else
 			value = mtk_ddp_ovl_exdma_out_cb_MT6991(cur, next, addr);
@@ -31310,54 +31310,54 @@ void mtk_ddp_insert_dsc_prim_MT6991(struct mtk_drm_crtc *mtk_crtc,
 {
 	struct mtk_panel_params *panel_ext = mtk_drm_get_lcm_ext_params(&mtk_crtc->base);
 	unsigned int addr, value;
-
 	if (panel_ext && panel_ext->dsc_params.dual_dsc_enable) {
-		addr = MT6991_SPLITTER_IN_CB1_MOUT_EN;
-		value = MT6991_DISP_SPLITTER_IN_CB_TO_SPLITTER0;
-		cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
-			       mtk_crtc->side_config_regs_pa + addr, value, ~0);
-		/* clear orig SPLITTER_OUT_CB9 */
-		addr = MT6991_SPLITTER_OUT_CB9_MOUT_EN;
-		value = 0;
-		cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
-			       mtk_crtc->side_config_regs_pa + addr, value, ~0);
+		if (!mtk_crtc->is_dual_pipe) {
+			addr = MT6991_SPLITTER_IN_CB1_MOUT_EN;
+			value = MT6991_DISP_SPLITTER_IN_CB_TO_SPLITTER0;
+			cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
+				       mtk_crtc->side_config_regs_pa + addr, value, ~0);
+			/* clear orig SPLITTER_OUT_CB9 */
+			addr = MT6991_SPLITTER_OUT_CB9_MOUT_EN;
+			value = 0;
+			cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
+				       mtk_crtc->side_config_regs_pa + addr, value, ~0);
 
-		addr = MT6991_SPLITTER_OUT_CB0_MOUT_EN;
-		if (panel_ext->dual_swap)
-			value = MT6991_DISP_SPLITTER_OUT_CB_TO_DSC1_0;
-		else
-			value = MT6991_DISP_SPLITTER_OUT_CB_TO_DSC0_0;
-		cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
-			       mtk_crtc->side_config_regs_pa + addr, value, ~0);
+			addr = MT6991_SPLITTER_OUT_CB0_MOUT_EN;
+			if (panel_ext->dual_swap)
+				value = MT6991_DISP_SPLITTER_OUT_CB_TO_DSC1_0;
+			else
+				value = MT6991_DISP_SPLITTER_OUT_CB_TO_DSC0_0;
+			cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
+				       mtk_crtc->side_config_regs_pa + addr, value, ~0);
 
-		addr = MT6991_COMP_OUT_CB1_MOUT_EN;
-		value = MT6991_DISP_COMP_OUT_CB_TO_MERGE_OUT_CB0;
-		cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
-			       mtk_crtc->side_config_regs_pa + addr, value, ~0);
-		/* clear orig COMP_OUT_CB6 */
-		addr = MT6991_COMP_OUT_CB6_MOUT_EN;
-		value = 0;
-		cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
-			       mtk_crtc->side_config_regs_pa + addr, value, ~0);
+			addr = MT6991_COMP_OUT_CB1_MOUT_EN;
+			value = MT6991_DISP_COMP_OUT_CB_TO_MERGE_OUT_CB0;
+			cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
+				       mtk_crtc->side_config_regs_pa + addr, value, ~0);
+			/* clear orig COMP_OUT_CB6 */
+			addr = MT6991_COMP_OUT_CB6_MOUT_EN;
+				value = 0;
+			cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
+				       mtk_crtc->side_config_regs_pa + addr, value, ~0);
 
-		addr = MT6991_SPLITTER_OUT_CB1_MOUT_EN;
-		if (panel_ext->dual_swap)
-			value = MT6991_DISP_SPLITTER_OUT_CB_TO_DSC0_0;
-		else
-			value = MT6991_DISP_SPLITTER_OUT_CB_TO_DSC1_0;
-		cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
-			       mtk_crtc->side_config_regs_pa + addr, value, ~0);
+			addr = MT6991_SPLITTER_OUT_CB1_MOUT_EN;
+			if (panel_ext->dual_swap)
+				value = MT6991_DISP_SPLITTER_OUT_CB_TO_DSC0_0;
+			else
+				value = MT6991_DISP_SPLITTER_OUT_CB_TO_DSC1_0;
+			cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
+				       mtk_crtc->side_config_regs_pa + addr, value, ~0);
 
-		addr = MT6991_COMP_OUT_CB2_MOUT_EN;
-		value = MT6991_DISP_COMP_OUT_CB_TO_MERGE_OUT_CB1;
-		cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
-			       mtk_crtc->side_config_regs_pa + addr, value, ~0);
+			addr = MT6991_COMP_OUT_CB2_MOUT_EN;
+			value = MT6991_DISP_COMP_OUT_CB_TO_MERGE_OUT_CB1;
+			cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
+				       mtk_crtc->side_config_regs_pa + addr, value, ~0);
 
-		addr = MT6991_MERGE_OUT_CB1_MOUT_EN;
-		value = MT6991_DISP_MERGE_OUT_CB_TO_DSI1_0;
-		cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
-			       mtk_crtc->side_config_regs_pa + addr, value, ~0);
-
+			addr = MT6991_MERGE_OUT_CB1_MOUT_EN;
+			value = MT6991_DISP_MERGE_OUT_CB_TO_DSI1_0;
+			cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
+				       mtk_crtc->side_config_regs_pa + addr, value, ~0);
+		}
 		return;
 	}
 
@@ -39058,8 +39058,12 @@ int mtk_ddp_exdma_mout_MT6991(enum mtk_ddp_comp_id cur, enum mtk_ddp_comp_id nex
 	if (mtk_ddp_comp_get_type(cur) == MTK_OVL_EXDMA) {
 		if (cur == DDP_COMPONENT_OVL_EXDMA2 && next == DDP_COMPONENT_OVL0_MDP_RSZ0)
 			value = mtk_ddp_ovl_rsz_in_cb_MT6991(cur, next, addr);
+		else if (cur == DDP_COMPONENT_OVL1_EXDMA2 && next == DDP_COMPONENT_OVL1_MDP_RSZ0)
+			value = mtk_ddp_ovl_rsz_in_cb_MT6991(cur, next, addr);
 		else if (cur == DDP_COMPONENT_OVL_EXDMA2)
 			value = mtk_ddp_ovl_exdma_out_cb_MT6991(DDP_COMPONENT_OVL0_MDP_RSZ0, next, addr);
+		else if (cur == DDP_COMPONENT_OVL1_EXDMA2)
+			value = mtk_ddp_ovl_exdma_out_cb_MT6991(DDP_COMPONENT_OVL1_MDP_RSZ0, next, addr);
 		else
 			value = mtk_ddp_ovl_exdma_out_cb_MT6991(cur, next, addr);
 		return value;

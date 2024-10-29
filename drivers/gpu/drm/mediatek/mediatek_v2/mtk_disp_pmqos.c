@@ -1293,8 +1293,11 @@ void mtk_drm_pan_disp_set_hrt_bw(struct drm_crtc *crtc, const char *caller)
 	DDPINFO("%s:pan_disp_set_hrt_bw: %u\n", caller, bw);
 
 	/* FIXME: this value is zero when booting, will be assigned in exdma_layer_config */
-	if (priv->data->mmsys_id == MMSYS_MT6991)
+	if (priv->data->mmsys_id == MMSYS_MT6991) {
 		mtk_crtc->usage_ovl_fmt[1] = 4;
+		if (mtk_crtc->is_dual_pipe)
+			mtk_crtc->usage_ovl_fmt[9] = 4;
+	}
 
 	if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_MAX_CHANNEL_HRT)) {
 		mtk_crtc->usage_ovl_fmt[0] = 4;

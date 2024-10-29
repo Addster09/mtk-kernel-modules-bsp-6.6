@@ -490,7 +490,10 @@ void mtk_drm_crtc_exdma_ovl_path(struct mtk_drm_crtc *mtk_crtc,
 #if IS_ENABLED(CONFIG_MTK_LCM_DUAL_PORT_SUPPORT)
 			next_blender = dual_comp_blender_map_mt6991(comp->id);
 #else
-			next_blender = DDP_COMPONENT_OVL0_BLENDER1 + plane_index;
+			if(comp->id < DDP_COMPONENT_OVL1_EXDMA0)
+				next_blender = DDP_COMPONENT_OVL0_BLENDER1 + plane_index;
+			else
+				next_blender = DDP_COMPONENT_OVL1_BLENDER1 + plane_index;
 #endif
 		else if (crtc_id == 1)
 			next_blender = dual_comp_blender_map_mt6991(comp->id);
@@ -661,6 +664,8 @@ void mtk_drm_crtc_exdma_path_setting_reset_without_cmdq(struct mtk_drm_crtc *mtk
 #if IS_ENABLED(CONFIG_MTK_LCM_DUAL_PORT_SUPPORT)
 				writel_relaxed(0, mtk_crtc->ovlsys1_regs + i);
 #endif
+				if(mtk_crtc->is_dual_pipe)
+					writel_relaxed(0, mtk_crtc->ovlsys1_regs + i);
 			} else if (crtc_id == 1) {
 				writel_relaxed(0, mtk_crtc->ovlsys1_regs + i);
 			} else if (crtc_id == 2) {
@@ -711,6 +716,14 @@ void mtk_drm_crtc_exdma_path_setting_reset(struct mtk_drm_crtc *mtk_crtc,
 						ovl1_mutex_regs_pa + DISP_REG_MUTEX_MOD(0, ddp->data, mutex->id),
 						0, mask);
 #endif
+		if(mtk_crtc->is_dual_pipe) {
+			if (ddp->ovlsys1_regs)
+				ovl1_mutex_regs_pa = ddp->ovlsys1_regs_pa;
+
+			cmdq_pkt_write(cmdq_handle, mtk_crtc->gce_obj.base,
+						ovl1_mutex_regs_pa + DISP_REG_MUTEX_MOD(0, ddp->data, mutex->id),
+						0, mask);
+		}
 	} else if (crtc_id == 1) {
 		if (ddp->ovlsys1_regs)
 			ovl1_mutex_regs_pa = ddp->ovlsys1_regs_pa;
@@ -749,6 +762,9 @@ void mtk_drm_crtc_exdma_path_setting_reset(struct mtk_drm_crtc *mtk_crtc,
 					continue;
 				cmdq_pkt_write(cmdq_handle, mtk_crtc->gce_obj.base,
 							mtk_crtc->ovlsys0_regs_pa + i, 0, ~0);
+				if(mtk_crtc->is_dual_pipe)
+					cmdq_pkt_write(cmdq_handle, mtk_crtc->gce_obj.base,
+								mtk_crtc->ovlsys1_regs_pa + i, 0, ~0);
 			} else if (crtc_id == 1) {
 				cmdq_pkt_write(cmdq_handle, mtk_crtc->gce_obj.base,
 							mtk_crtc->ovlsys1_regs_pa + i, 0, ~0);
@@ -4472,7 +4488,8 @@ static void mtk_crtc_update_ovl_hrt_usage(struct drm_crtc *crtc)
 
 		mtk_ddp_comp_io_cmd(comp, NULL, OVL_PHY_USAGE, plane_state);
 
-		if (mtk_crtc && mtk_crtc->path_data && mtk_crtc->path_data->is_exdma_dual_layer && priv) {
+		if (mtk_crtc && mtk_crtc->path_data && (mtk_crtc->path_data->is_exdma_dual_layer ||
+		    mtk_crtc->is_dual_pipe) && priv) {
 			comp_idx = dual_pipe_comp_mapping(priv->data->mmsys_id, comp->id);
 
 			if (comp_idx < DDP_COMPONENT_ID_MAX) {
@@ -5453,6 +5470,7 @@ static unsigned int dual_comp_map_mt6991(unsigned int comp_id)
 	unsigned int ret = 0;
 
 	switch (comp_id) {
+#if IS_ENABLED(CONFIG_MTK_LCM_DUAL_PORT_SUPPORT)
 	case DDP_COMPONENT_OVL_EXDMA3:
 		ret = DDP_COMPONENT_OVL_EXDMA4;
 		break;
@@ -5474,6 +5492,37 @@ static unsigned int dual_comp_map_mt6991(unsigned int comp_id)
 	case DDP_COMPONENT_OVL1_EXDMA8:
 		ret = DDP_COMPONENT_OVL1_EXDMA9;
 		break;
+#else
+	case DDP_COMPONENT_OVL_EXDMA2:
+		ret = DDP_COMPONENT_OVL1_EXDMA2;
+		break;
+	case DDP_COMPONENT_OVL_EXDMA3:
+		ret = DDP_COMPONENT_OVL1_EXDMA3;
+		break;
+	case DDP_COMPONENT_OVL_EXDMA4:
+		ret = DDP_COMPONENT_OVL1_EXDMA4;
+		break;
+	case DDP_COMPONENT_OVL_EXDMA5:
+		ret = DDP_COMPONENT_OVL1_EXDMA5;
+		break;
+#if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+	case DDP_COMPONENT_OVL_EXDMA6:
+		ret = DDP_COMPONENT_OVL1_EXDMA6;
+		break;
+	case DDP_COMPONENT_OVL_EXDMA7:
+		ret = DDP_COMPONENT_OVL1_EXDMA7;
+		break;
+	case DDP_COMPONENT_OVL_EXDMA8:
+		ret = DDP_COMPONENT_OVL1_EXDMA8;
+#else
+	case DDP_COMPONENT_OVL1_EXDMA6:
+		ret = DDP_COMPONENT_OVL1_EXDMA7;
+		break;
+	case DDP_COMPONENT_OVL1_EXDMA8:
+		ret = DDP_COMPONENT_OVL1_EXDMA9;
+		break;
+#endif
+#endif
 	default:
 		DDPMSG("unknown comp %u for %s\n", comp_id, __func__);
 	}
@@ -5736,6 +5785,10 @@ static void mtk_crtc_get_plane_comp_state(struct drm_crtc *crtc,
 				&& comp_state->comp_id == DDP_COMPONENT_OVL_EXDMA2) {
 				mtk_ddp_comp_layer_off(priv->ddp_comp[DDP_COMPONENT_OVL_EXDMA2],
 					comp_state->lye_id,comp_state->ext_lye_id,cmdq_handle);
+				if (mtk_crtc->is_dual_pipe) {
+					mtk_ddp_comp_layer_off(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+						comp_state->lye_id,comp_state->ext_lye_id,cmdq_handle);
+				}
 			}
 
 			for_each_comp_in_cur_crtc_path(
@@ -5896,6 +5949,10 @@ void mtk_disp_set_module_hrt(struct mtk_drm_crtc *mtk_crtc, unsigned int bw_base
 			(mtk_crtc_state->lye_state.rpo_lye || pre_rpo_lye)) {
 			mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL_EXDMA2],
 				handle, event, &bw_base);
+			if (mtk_crtc->is_dual_pipe) {
+				mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+					handle, event, &bw_base);
+			}
 		}
 		if (event == PMQOS_SET_HRT_BW_DELAY_POST)
 			pre_rpo_lye = mtk_crtc_state->lye_state.rpo_lye;
@@ -8308,17 +8365,29 @@ static void mtk_crtc_update_hrt_qos(struct drm_crtc *crtc,
 	if (crtc_idx < MAX_CRTC && priv->usage[crtc_idx] == DISP_ENABLE) {
 		//EXDMA2 is not on the list of basic main data path, need extra setting
 		if ((priv->data->mmsys_id == MMSYS_MT6991)
-			&& mtk_crtc_state->lye_state.rpo_lye)
+			&& mtk_crtc_state->lye_state.rpo_lye) {
 			mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL_EXDMA2],
 				NULL, PMQOS_UPDATE_BW, &flag);
-		else if ((priv->data->mmsys_id == MMSYS_MT6991)
-			&& pre_rpo_lye) //exit RPO
+			if (mtk_crtc->is_dual_pipe)
+				mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+					NULL, PMQOS_UPDATE_BW, &flag);
+		} else if ((priv->data->mmsys_id == MMSYS_MT6991)
+			&& pre_rpo_lye) { //exit RPO
 			mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL_EXDMA2],
 				NULL, PMQOS_UPDATE_BW, &flag);
+			if (mtk_crtc->is_dual_pipe)
+				mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+					NULL, PMQOS_UPDATE_BW, &flag);
+		}
 		pre_rpo_lye = mtk_crtc_state->lye_state.rpo_lye;
 		for_each_comp_in_target_ddp_mode_bound(comp, mtk_crtc,
 				i, j, ddp_mode, 0)
 			mtk_ddp_comp_io_cmd(comp, NULL, PMQOS_UPDATE_BW, &flag);
+		if (mtk_crtc->is_dual_pipe) {
+			for_each_comp_in_dual_pipe(comp, mtk_crtc, i, j) {
+				mtk_ddp_comp_io_cmd(comp, NULL, PMQOS_UPDATE_BW, &flag);
+			}
+		}
 	}
 
 	if (priv->power_state == false)
@@ -11970,7 +12039,7 @@ void __mtk_crtc_restore_plane_setting(struct mtk_drm_crtc *mtk_crtc, struct cmdq
 	struct mtk_ddp_comp *comp;
 	unsigned int i;
 	unsigned int plane_index = 0;
-
+	int comp_idx;
 
 	for (i = 0; i < mtk_crtc->layer_nr; i++) {
 		struct drm_plane *plane = &mtk_crtc->planes[i].base;
@@ -12027,7 +12096,14 @@ void __mtk_crtc_restore_plane_setting(struct mtk_drm_crtc *mtk_crtc, struct cmdq
 			mtk_ddp_comp_layer_config(comp, i, plane_state, cmdq_handle);
 
 		mtk_ddp_comp_io_cmd(comp, NULL, OVL_PHY_USAGE, plane_state);
+		if (mtk_crtc->is_dual_pipe) {
+			comp_idx = dual_pipe_comp_mapping(priv->data->mmsys_id, comp->id);
 
+			if (comp_idx < DDP_COMPONENT_ID_MAX) {
+				comp = priv->ddp_comp[comp_idx];
+				mtk_ddp_comp_io_cmd(comp, NULL, OVL_PHY_USAGE, plane_state);
+			}
+		}
 #ifdef IF_ZERO
 		if (comp->id == DDP_COMPONENT_OVL2_2L
 			&& mtk_crtc->is_dual_pipe) {
@@ -12092,10 +12168,19 @@ void mtk_crtc_restore_plane_setting(struct mtk_drm_crtc *mtk_crtc)
 		&& mtk_crtc_state->lye_state.rpo_lye) {
 		mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL_EXDMA2],
 			cmdq_handle, PMQOS_UPDATE_BW, NULL);
+		if (mtk_crtc->is_dual_pipe) {
+			mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+				cmdq_handle, PMQOS_UPDATE_BW, NULL);
+		}
+
 	}
 	for_each_comp_in_cur_crtc_path(comp, mtk_crtc, i, j)
 		mtk_ddp_comp_io_cmd(comp, cmdq_handle,
 			PMQOS_UPDATE_BW, NULL);
+	if (mtk_crtc->is_dual_pipe) {
+		for_each_comp_in_dual_pipe(comp, mtk_crtc, i, j)
+			mtk_ddp_comp_io_cmd(comp, cmdq_handle, PMQOS_UPDATE_BW, NULL);
+	}
 	mtk_crtc_tui_ovl_bw(crtc);
 	mtk_disp_total_srt_bw(mtk_crtc, mtk_crtc->total_srt);
 	mtk_disp_channel_srt_bw(mtk_crtc);
@@ -12920,8 +13005,11 @@ void mtk_crtc_stop_ddp(struct mtk_drm_crtc *mtk_crtc,
 	}
 
 	/*EXDMA2 is not on the list of main path. Need extra stop*/
-	if (priv && priv->data && priv->data->mmsys_id == MMSYS_MT6991 && crtc_idx == 0)
+	if (priv && priv->data && priv->data->mmsys_id == MMSYS_MT6991 && crtc_idx == 0) {
 		mtk_ddp_comp_stop(priv->ddp_comp[DDP_COMPONENT_OVL_EXDMA2],cmdq_handle);
+		if (mtk_crtc->is_dual_pipe)
+			mtk_ddp_comp_stop(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],cmdq_handle);
+	}
 
 	for_each_comp_in_cur_crtc_path(comp, mtk_crtc, i, j) {
 		if (only_output && !mtk_ddp_comp_is_output(comp))
@@ -13069,11 +13157,22 @@ skip:
 
 	/* 4. Set QOS BW to 0 */
 	//EXDMA2 is not on the list of basic main data path, need extra setting
-	if (priv->data->mmsys_id == MMSYS_MT6991)
+	if (priv->data->mmsys_id == MMSYS_MT6991) {
 		mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL_EXDMA2],
 			NULL, PMQOS_UPDATE_BW, &flag);
-	for_each_comp_in_cur_crtc_path(comp, mtk_crtc, i, j)
+		if (mtk_crtc->is_dual_pipe) {
+			mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+				NULL, PMQOS_UPDATE_BW, &flag);
+		}
+	}
+	for_each_comp_in_cur_crtc_path(comp, mtk_crtc, i, j) {
 		mtk_ddp_comp_io_cmd(comp, NULL, PMQOS_UPDATE_BW, &flag);
+	}
+	if (mtk_crtc->is_dual_pipe) {
+		for_each_comp_in_dual_pipe(comp, mtk_crtc, i, j) {
+			mtk_ddp_comp_io_cmd(comp, NULL, PMQOS_UPDATE_BW, &flag);
+		}
+	}
 	mtk_disp_total_srt_bw(mtk_crtc, mtk_crtc->total_srt);
 	mtk_disp_channel_srt_bw(mtk_crtc);
 
@@ -13670,6 +13769,10 @@ void mtk_drm_crtc_enable(struct drm_crtc *crtc, bool need_report_bw)
 	if (priv->data->mmsys_id == MMSYS_MT6991) {
 		mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL_EXDMA2],
 			NULL, PMQOS_UPDATE_BW, NULL);
+		if (mtk_crtc->is_dual_pipe) {
+			mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+				NULL, PMQOS_UPDATE_BW, NULL);
+		}
 	}
 
 	bw = _layering_get_frame_bw(crtc, &crtc->state->adjusted_mode);
@@ -14544,14 +14647,24 @@ void mtk_crtc_first_enable_ddp_config(struct mtk_drm_crtc *mtk_crtc)
 		&& mtk_crtc_state->lye_state.rpo_lye) {
 		mtk_ddp_comp_first_cfg(priv->ddp_comp[DDP_COMPONENT_OVL_EXDMA2],
 			&cfg, cmdq_handle);
+			if (mtk_crtc->is_dual_pipe)
+				mtk_ddp_comp_first_cfg(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+					&cfg, cmdq_handle);
 		if (!mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_USE_PQ)) {
 			mtk_crtc->pq_data->opt_bypass_pq = true;
 			mtk_ddp_comp_bypass(priv->ddp_comp[DDP_COMPONENT_OVL_EXDMA2],
 				1, PQ_FEATURE_KRN_OPT_USE_PQ, cmdq_handle);
+			if (mtk_crtc->is_dual_pipe)
+				mtk_ddp_comp_bypass(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+					1, PQ_FEATURE_KRN_OPT_USE_PQ, cmdq_handle);
 		} else {
-			if (mtk_crtc->pq_data->opt_bypass_pq)
+			if (mtk_crtc->pq_data->opt_bypass_pq) {
 				mtk_ddp_comp_bypass(priv->ddp_comp[DDP_COMPONENT_OVL_EXDMA2],
 				0, PQ_FEATURE_KRN_OPT_USE_PQ, cmdq_handle);
+				if (mtk_crtc->is_dual_pipe)
+					mtk_ddp_comp_bypass(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+						1, PQ_FEATURE_KRN_OPT_USE_PQ, cmdq_handle);
+			}
 		}
 		mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL_EXDMA2],
 			cmdq_handle, IRQ_LEVEL_NORMAL, NULL);
@@ -14565,6 +14678,20 @@ void mtk_crtc_first_enable_ddp_config(struct mtk_drm_crtc *mtk_crtc)
 		/* update SRT BW */
 		mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL_EXDMA2],
 			cmdq_handle, PMQOS_UPDATE_BW, NULL);
+		if (mtk_crtc->is_dual_pipe) {
+			mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+				cmdq_handle, IRQ_LEVEL_NORMAL, NULL);
+			mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+				cmdq_handle, DSI_SET_TARGET_LINE, &cfg);
+			mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+				cmdq_handle,
+				MTK_IO_CMD_RDMA_GOLDEN_SETTING, &cfg);
+			cfg.source_bpc = mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+				cmdq_handle, OVL_GET_SOURCE_BPC, NULL);
+			/* update SRT BW */
+			mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+				cmdq_handle, PMQOS_UPDATE_BW, NULL);
+		}
 	}
 	for_each_comp_in_cur_crtc_path(comp, mtk_crtc, i, j) {
 #if IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO)
@@ -19000,6 +19127,17 @@ static void mtk_drm_crtc_atomic_flush(struct drm_crtc *crtc,
 				cmdq_handle, PMQOS_UPDATE_BW, NULL);
 			mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL_EXDMA2],
 				cmdq_handle, FRAME_DIRTY, NULL);
+			if (mtk_crtc->is_dual_pipe) {
+				if (crtc->state->color_mgmt_changed)
+					mtk_ddp_gamma_set(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+					crtc->state, cmdq_handle);
+				mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+					cmdq_handle, COMP_ODDMR_CFG, &mtk_crtc->sec_on);
+				mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+					cmdq_handle, PMQOS_UPDATE_BW, NULL);
+				mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+					cmdq_handle, FRAME_DIRTY, NULL);
+			}
 		}
 		for_each_comp_in_cur_crtc_path(comp, mtk_crtc, i, j) {
 			if (crtc->state->color_mgmt_changed)

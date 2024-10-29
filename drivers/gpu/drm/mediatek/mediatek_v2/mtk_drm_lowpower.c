@@ -2340,6 +2340,9 @@ static void mtk_drm_idlemgr_enable_crtc(struct drm_crtc *crtc)
 		&& crtc_state->lye_state.rpo_lye) {
 		mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL_EXDMA2],
 			NULL, PMQOS_UPDATE_BW, NULL);
+		if (mtk_crtc->is_dual_pipe)
+			mtk_ddp_comp_io_cmd(priv->ddp_comp[DDP_COMPONENT_OVL1_EXDMA2],
+				NULL, PMQOS_UPDATE_BW, NULL);
 	}
 	for_each_comp_in_cur_crtc_path(comp, mtk_crtc, i, j)
 		mtk_ddp_comp_io_cmd(comp, NULL, PMQOS_UPDATE_BW, NULL);

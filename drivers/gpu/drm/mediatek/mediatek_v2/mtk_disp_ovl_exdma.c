@@ -758,7 +758,9 @@ static void mtk_ovl_exdma_all_layer_off(struct mtk_ddp_comp *comp,
 	int i = 0;
 	DDPINFO("%s+ %s\n", __func__, mtk_dump_comp_str(comp));
 	if (keep_first_layer) {
-		if (comp->id == DDP_COMPONENT_OVL_EXDMA2 || comp->id == DDP_COMPONENT_OVL_EXDMA3) {
+		if (comp->id == DDP_COMPONENT_OVL_EXDMA2 || comp->id == DDP_COMPONENT_OVL_EXDMA3 ||
+		    (comp->mtk_crtc->is_dual_pipe && (comp->id == DDP_COMPONENT_OVL1_EXDMA2 ||
+		    comp->id == DDP_COMPONENT_OVL1_EXDMA3))) {
 			DDPMSG("%s+ %s not off\n", __func__, mtk_dump_comp_str(comp));
 			return;
 		}
@@ -856,7 +858,8 @@ static void mtk_ovl_exdma_start(struct mtk_ddp_comp *comp, struct cmdq_pkt *hand
 		       comp->regs_pa + DISP_REG_OVL_DATAPATH_CON,
 		       value, mask);
 	if ((priv->data->mmsys_id == MMSYS_MT6991)
-		&& comp->id == DDP_COMPONENT_OVL_EXDMA2) {
+		&& (comp->id == DDP_COMPONENT_OVL_EXDMA2 || (comp->mtk_crtc->is_dual_pipe &&
+		comp->id == DDP_COMPONENT_OVL1_EXDMA2))) {
 		cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa
 			+ DISP_REG_OVL_DATAPATH_CON, DISP_OVL_OUTPUT_CLAMP, DISP_OVL_OUTPUT_CLAMP);
 		cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + OVL_MOUT, 0x1, 0x3);
@@ -1169,7 +1172,8 @@ static void mtk_ovl_exdma_layer_off(struct mtk_ddp_comp *comp, unsigned int idx,
 		&& comp->bind_comp->funcs->layer_off && !comp->bind_comp->blank_mode)
 		comp->bind_comp->funcs->layer_off(comp->bind_comp, idx, ext_idx, handle);
 
-	if (comp->id == DDP_COMPONENT_OVL_EXDMA2)
+	if (comp->id == DDP_COMPONENT_OVL_EXDMA2 || (comp->mtk_crtc->is_dual_pipe &&
+	    comp->id == DDP_COMPONENT_OVL1_EXDMA2))
 		comp->bind_comp	= NULL;
 }
 
@@ -2149,7 +2153,8 @@ static void _ovl_exdma_common_config(struct mtk_ddp_comp *comp, unsigned int idx
 
 
 		if (pending->pq_loop_type == 2) {
-			if (priv->data->mmsys_id == MMSYS_MT6991 && comp->id == DDP_COMPONENT_OVL_EXDMA2) {
+			if (priv->data->mmsys_id == MMSYS_MT6991 && (comp->id == DDP_COMPONENT_OVL_EXDMA2 ||
+			    (comp->mtk_crtc->is_dual_pipe && comp->id == DDP_COMPONENT_OVL1_EXDMA2))) {
 				cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa +
 					DISP_REG_OVL_SRC_SIZE, src_size, ~0);
 			} else {
@@ -2166,7 +2171,8 @@ static void _ovl_exdma_common_config(struct mtk_ddp_comp *comp, unsigned int idx
 
 		if (comp->bind_comp) {
 			if (pending->pq_loop_type == 2) {
-				if (priv->data->mmsys_id == MMSYS_MT6991 && comp->id == DDP_COMPONENT_OVL_EXDMA2) {
+				if (priv->data->mmsys_id == MMSYS_MT6991 && (comp->id == DDP_COMPONENT_OVL_EXDMA2 ||
+				    (comp->mtk_crtc->is_dual_pipe && comp->id == DDP_COMPONENT_OVL1_EXDMA2))) {
 					if (blender_need_align == 1)
 						cmdq_pkt_write(handle, comp->cmdq_base, comp->bind_comp->regs_pa +
 							DISP_REG_OVL_SRC_SIZE, pending->dst_roi + 1, ~0);
@@ -2425,7 +2431,8 @@ static void mtk_ovl_exdma_layer_config(struct mtk_ddp_comp *comp, unsigned int i
 	if (!pending->addr && pending->pq_loop_type == 0)
 		layer_src |= LSRC_COLOR;
 	else if ((pending->pq_loop_type == 2)
-		&& (priv->data->mmsys_id != MMSYS_MT6991 || comp->id != DDP_COMPONENT_OVL_EXDMA2))
+		&& (priv->data->mmsys_id != MMSYS_MT6991 || (comp->id != DDP_COMPONENT_OVL_EXDMA2 &&
+		comp->id != DDP_COMPONENT_OVL1_EXDMA2)))
 		layer_src |= LSRC_PQ;
 
 	if (rotate) {
@@ -3067,7 +3074,8 @@ bool compr_ovl_exdma_l_config_AFBC_V1_2(struct mtk_ddp_comp *comp,
 			lx_pitch, 0xffff);
 
 		if (pending->pq_loop_type == 2) {
-			if (priv->data->mmsys_id == MMSYS_MT6991 && comp->id == DDP_COMPONENT_OVL_EXDMA2) {
+			if (priv->data->mmsys_id == MMSYS_MT6991 && (comp->id == DDP_COMPONENT_OVL_EXDMA2 ||
+			    (comp->mtk_crtc->is_dual_pipe && comp->id == DDP_COMPONENT_OVL1_EXDMA2))) {
 				cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa +
 					       DISP_REG_OVL_SRC_SIZE, lx_src_size, ~0);
 			} else {
@@ -3095,7 +3103,8 @@ bool compr_ovl_exdma_l_config_AFBC_V1_2(struct mtk_ddp_comp *comp,
 
 		if (comp->bind_comp) {
 			if (pending->pq_loop_type == 2
-				&& (priv->data->mmsys_id == MMSYS_MT6991 && comp->id == DDP_COMPONENT_OVL_EXDMA2))
+				&& (priv->data->mmsys_id == MMSYS_MT6991 && (comp->id == DDP_COMPONENT_OVL_EXDMA2 ||
+				(comp->mtk_crtc->is_dual_pipe && comp->id == DDP_COMPONENT_OVL1_EXDMA2))))
 				cmdq_pkt_write(handle, comp->cmdq_base, comp->bind_comp->regs_pa +
 					DISP_REG_OVL_SRC_SIZE, pending->dst_roi, ~0);
 			else
@@ -3171,7 +3180,7 @@ mtk_ovl_exdma_addon_rsz_config(struct mtk_ddp_comp *comp, enum mtk_ddp_comp_id p
 	} else
 		_ovl_UFOd_in(comp, 0, handle);
 
-	if (prev == -1 && comp->id != DDP_COMPONENT_OVL_EXDMA2) {
+	if (prev == -1 && (comp->id != DDP_COMPONENT_OVL_EXDMA2 && comp->id != DDP_COMPONENT_OVL1_EXDMA2)) {
 		cmdq_pkt_write(handle, comp->cmdq_base,
 			       comp->regs_pa + DISP_REG_OVL_ROI_SIZE,
 			       rsz_src_roi.height << 16 | rsz_src_roi.width,
@@ -3314,7 +3323,8 @@ static void mtk_ovl_exdma_addon_config(struct mtk_ddp_comp *comp,
 
 		mtk_ovl_exdma_golden_setting(comp, config->is_dc, handle);
 
-		if ((priv->data->mmsys_id == MMSYS_MT6991) && comp->id == DDP_COMPONENT_OVL_EXDMA2) {
+		if ((priv->data->mmsys_id == MMSYS_MT6991) && (comp->id == DDP_COMPONENT_OVL_EXDMA2 ||
+		    (comp->mtk_crtc->is_dual_pipe && comp->id == DDP_COMPONENT_OVL1_EXDMA2))) {
 			cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa
 				+ DISP_REG_OVL_DATAPATH_CON, DISP_OVL_OUTPUT_CLAMP, DISP_OVL_OUTPUT_CLAMP);
 			cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + OVL_MOUT, 0x1, 0x3);
@@ -3342,7 +3352,8 @@ static void mtk_ovl_exdma_config_begin(struct mtk_ddp_comp *comp, struct cmdq_pk
 	if (comp->mtk_crtc->base.index != 0)
 		return;
 
-	if ((priv->data->mmsys_id == MMSYS_MT6991) && comp->id == DDP_COMPONENT_OVL_EXDMA2) {
+	if ((priv->data->mmsys_id == MMSYS_MT6991) && (comp->id == DDP_COMPONENT_OVL_EXDMA2 ||
+		    (comp->mtk_crtc->is_dual_pipe && comp->id == DDP_COMPONENT_OVL1_EXDMA2))) {
 		cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa
 			+ DISP_REG_OVL_DATAPATH_CON, DISP_OVL_OUTPUT_CLAMP, DISP_OVL_OUTPUT_CLAMP);
 		cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + OVL_MOUT, 0x1, 0x3);
@@ -3613,11 +3624,14 @@ static int mtk_ovl_replace_bootup_mva(struct mtk_ddp_comp *comp,
 		if (ovl->data->aid_sel_mapping)
 			aid_sel_offset = ovl->data->aid_sel_mapping(comp);
 		if (mmsys_reg && aid_sel_offset &&
-			(comp->id == DDP_COMPONENT_OVL_EXDMA3 || comp->id == DDP_COMPONENT_OVL_EXDMA4))
+			(comp->id == DDP_COMPONENT_OVL_EXDMA3 || comp->id == DDP_COMPONENT_OVL_EXDMA4 ||
+			(comp->mtk_crtc->is_dual_pipe && (comp->id == DDP_COMPONENT_OVL1_EXDMA3 ||
+			comp->id == DDP_COMPONENT_OVL1_EXDMA4))))
 			cmdq_pkt_write(handle, comp->cmdq_base,	mmsys_reg + aid_sel_offset,
 				0x0, 0x7);
 		layer_addr = read_phy_layer_addr(comp, 0);
-		if (comp->id == DDP_COMPONENT_OVL_EXDMA2 || comp->id == DDP_COMPONENT_OVL_EXDMA3) {
+		if (comp->id == DDP_COMPONENT_OVL_EXDMA2 || comp->id == DDP_COMPONENT_OVL_EXDMA3 ||
+		    comp->id == DDP_COMPONENT_OVL1_EXDMA2 || comp->id == DDP_COMPONENT_OVL1_EXDMA3) {
 			DDPMSG("%s, replace mva same as pa %pad\n", __func__, &layer_addr);
 			domain = iommu_get_domain_for_dev(comp->dev);
 			if (domain == NULL) {
@@ -4135,7 +4149,7 @@ static int mtk_ovl_exdma_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *hand
 				priv->srt_channel_bw_sum[crtc_idx][channel_id] += comp->qos_bw;
 		}
 
-		DDPINFO("update ovl qos bw to %u, %u peak %u %u\n",
+		DDPINFO("update %s ovl qos bw to %u, %u peak %u %u\n", mtk_dump_comp_str_id(comp->id),
 			comp->qos_bw, comp->qos_bw_other, comp->hrt_bw, comp->hrt_bw_other);
 		break;
 	}
