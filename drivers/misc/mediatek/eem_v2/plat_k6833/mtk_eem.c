@@ -181,27 +181,31 @@ static void eem_post_work(struct work_struct *work)
 	eem_buck_set_mode(0);
 }
 
+static void deferred_log(struct work_struct *work)
+{
+	eem_error("eem init volt status, cnt:%d, done:%d\n",
+		vboot_check_cnt, eemsn_log->init_vboot_done);
+}
+
+static DECLARE_WORK(log_work, deferred_log);
+
 static enum hrtimer_restart eem_init_check_timer_func(struct hrtimer *timer)
 {
 	int ret;
 
 	if ((eemsn_log->init_vboot_done) || (vboot_check_cnt >= 20)) {
-		eem_error("eem init check disabled, cnt:%d, done:%d\n",
-			vboot_check_cnt, eemsn_log->init_vboot_done);
 		/* hrtimer_cancel(&eem_init_check_timer); */
 #if !EARLY_PORTING
 		/* CPU vporc post-process */
 		schedule_work(&eem_work);
 #endif
+		schedule_work(&log_work);
 		ret = HRTIMER_NORESTART;
 	} else {
 		vboot_check_cnt++;
-		eem_error("eem init check restart, vboot_check_cnt:%d\n",
-			vboot_check_cnt);
 		hrtimer_forward_now(timer, ns_to_ktime(LOG_INTERVAL));
 		ret = HRTIMER_RESTART;
 	}
-
 	return ret;
 }
 #endif
