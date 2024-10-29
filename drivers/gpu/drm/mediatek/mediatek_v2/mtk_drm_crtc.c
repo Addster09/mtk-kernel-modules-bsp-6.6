@@ -10751,6 +10751,7 @@ static void cmdq_pkt_reset_ovl_by_crtc(struct cmdq_pkt *cmdq_handle, struct mtk_
 	cmdq_pkt_read(cmdq_handle, NULL,
 		comp->regs_pa + DISP_REG_OVL_GREQ_LAYER_CNT, ovl_greq_cnt);
 	if (priv && (priv->data->mmsys_id == MMSYS_MT6768
+		|| priv->data->mmsys_id == MMSYS_MT6765
 		|| priv->data->mmsys_id == MMSYS_MT6761)) {
 		const u16 reg_tmp = CMDQ_THR_SPR_IDX1;
 		struct cmdq_operand top;
@@ -10780,6 +10781,7 @@ static void cmdq_pkt_reset_ovl_by_crtc(struct cmdq_pkt *cmdq_handle, struct mtk_
 			DISP_SLOT_OVL_GREQ_CNT(index));
 
 		if (priv && (priv->data->mmsys_id == MMSYS_MT6768
+			|| priv->data->mmsys_id == MMSYS_MT6765
 			|| priv->data->mmsys_id == MMSYS_MT6761))
 			cmdq_pkt_write(cmdq_handle, mtk_crtc->gce_obj.base,
 				comp->regs_pa + DISP_REG_OVL_DUMMY_REG, 0, DISP_REG_OVL_DUMMY_RESET_MASK);
