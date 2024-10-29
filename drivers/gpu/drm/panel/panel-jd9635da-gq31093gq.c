@@ -132,14 +132,12 @@ static void jd9635da_panel_init(struct jd9635da *ctx)
 {
 	pr_info("%s +\n", __func__);
 
-	ctx->reset_gpio = devm_gpiod_get(ctx->dev, "reset", GPIOD_OUT_HIGH);
 	gpiod_set_value(ctx->reset_gpio, 1);
 	usleep_range(10000, 12000);
 	gpiod_set_value(ctx->reset_gpio, 0);
 	usleep_range(5000, 6000);
 	gpiod_set_value(ctx->reset_gpio, 1);
 	usleep_range(5000, 6000);
-	devm_gpiod_put(ctx->dev, ctx->reset_gpio);
 
 	jd9635da_dcs_write_seq_static(ctx, 0xE0, 0x00);
 
@@ -398,15 +396,11 @@ static int jd9635da_unprepare(struct drm_panel *panel)
 	jd9635da_dcs_write_seq_static(ctx, MIPI_DCS_ENTER_SLEEP_MODE);
 	msleep(120);
 
-	ctx->reset_gpio = devm_gpiod_get(ctx->dev, "reset", GPIOD_OUT_HIGH);
 	gpiod_set_value(ctx->reset_gpio, 0);
 	usleep_range(5000, 6000);
-	devm_gpiod_put(ctx->dev, ctx->reset_gpio);
 
-	ctx->vdd33_gpio = devm_gpiod_get(ctx->dev, "vdd33", GPIOD_OUT_HIGH);
 	gpiod_set_value(ctx->vdd33_gpio, 0);
 	usleep_range(2000, 3000);
-	devm_gpiod_put(ctx->dev, ctx->vdd33_gpio);
 
 	ctx->error = 0;
 	ctx->prepared = false;
@@ -425,10 +419,8 @@ static int jd9635da_prepare(struct drm_panel *panel)
 	if (ctx->prepared)
 		return 0;
 
-	ctx->vdd33_gpio = devm_gpiod_get(ctx->dev, "vdd33", GPIOD_OUT_HIGH);
 	gpiod_set_value(ctx->vdd33_gpio, 1);
 	usleep_range(5000, 6000);
-	devm_gpiod_put(ctx->dev, ctx->vdd33_gpio);
 
 	jd9635da_panel_init(ctx);
 	ret = ctx->error;
@@ -496,9 +488,7 @@ static int panel_ext_reset(struct drm_panel *panel, int on)
 {
 	struct jd9635da *ctx = panel_to_jd9635da(panel);
 
-	ctx->reset_gpio = devm_gpiod_get(ctx->dev, "reset", GPIOD_OUT_HIGH);
 	gpiod_set_value(ctx->reset_gpio, on);
-	devm_gpiod_put(ctx->dev, ctx->reset_gpio);
 
 	return 0;
 }
@@ -573,7 +563,6 @@ static int jd9635da_probe(struct mipi_dsi_device *dsi)
 			PTR_ERR(ctx->reset_gpio));
 		return PTR_ERR(ctx->reset_gpio);
 	}
-	devm_gpiod_put(dev, ctx->reset_gpio);
 
 	ctx->vdd33_gpio = devm_gpiod_get(dev, "vdd33", GPIOD_OUT_HIGH);
 	if (IS_ERR(ctx->vdd33_gpio)) {
@@ -581,7 +570,6 @@ static int jd9635da_probe(struct mipi_dsi_device *dsi)
 			PTR_ERR(ctx->vdd33_gpio));
 		return PTR_ERR(ctx->vdd33_gpio);
 	}
-	devm_gpiod_put(dev, ctx->vdd33_gpio);
 
 	ctx->prepared = true;
 	ctx->enabled = true;

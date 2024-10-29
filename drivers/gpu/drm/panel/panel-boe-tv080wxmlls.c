@@ -268,7 +268,6 @@ static int panel_ext_reset(struct drm_panel *panel, int on)
 	struct boe_panel *ctx = to_boe_panel(panel);
 
 	gpiod_set_value(ctx->reset_gpio, on);
-	devm_gpiod_put(ctx->dev, ctx->reset_gpio);
 
 	return 0;
 }
