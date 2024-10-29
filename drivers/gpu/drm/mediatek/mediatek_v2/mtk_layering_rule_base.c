@@ -3012,6 +3012,10 @@ static int mtk_lye_get_exdma_comp_id(int disp_idx, int layer_idx,
 	struct drm_device *drm_dev, int fun_lye)
 {
 	struct mtk_drm_private *priv = drm_dev->dev_private;
+	if (disp_idx < 0 || disp_idx >= MAX_CRTC) {
+		DDPMSG("%s: invalid disp idx %d\n", __func__, disp_idx);
+		return -EINVAL;
+	}
 	struct drm_crtc *crtc = priv->crtc[disp_idx];
 	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
 	int first_exdma_comp = mtk_crtc->first_exdma->id;
