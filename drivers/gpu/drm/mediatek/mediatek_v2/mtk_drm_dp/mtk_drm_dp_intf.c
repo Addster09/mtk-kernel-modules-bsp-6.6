@@ -678,9 +678,12 @@ static int mtk_dpi_set_display_mode(struct mtk_dpi *dpi,
 	 * pixels for each iteration: divide the clock by this number and
 	 * adjust the display porches accordingly.
 	 */
-	hsync.sync_width = vm.hsync_len / dpi->conf->pixels_per_iter;
-	hsync.back_porch = vm.hback_porch / dpi->conf->pixels_per_iter;
-	hsync.front_porch = vm.hfront_porch / dpi->conf->pixels_per_iter;
+	hsync.sync_width = ((vm.hsync_len / dpi->conf->pixels_per_iter) == 0) ?
+		1 : (vm.hsync_len / dpi->conf->pixels_per_iter);
+	hsync.back_porch = ((vm.hback_porch / dpi->conf->pixels_per_iter) == 0) ?
+		1 : (vm.hback_porch / dpi->conf->pixels_per_iter);
+	hsync.front_porch = ((vm.hfront_porch / dpi->conf->pixels_per_iter) == 0) ?
+		1 : (vm.hfront_porch / dpi->conf->pixels_per_iter);
 
 	hsync.shift_half_line = false;
 	vsync_lodd.sync_width = vm.vsync_len;
