@@ -5306,7 +5306,7 @@ int mtk_oddmr_hrt_cal_notify(int *oddmr_hrt)
 				mtk_crtc->base.state->adjusted_mode.hdisplay);
 		}
 		sum = sum * res_ratio / 1000;
-		ODDMRAPI_LOG("od %d dmr %d dbi %d sum %d res_ratio %llu\n",
+		DDPMSG("od %d dmr %d dbi %d sum %d res_ratio %llu\n",
 			g_oddmr_priv->od_enable, g_oddmr_priv->dmr_enable, g_oddmr_priv->dbi_enable, sum, res_ratio);
 	}
 	if (g_oddmr_hrt_en == false)
