@@ -8397,6 +8397,9 @@ void mipi_dsi_dcs_write_pps(struct mtk_dsi *dsi,
 		pr_info("%s:not support cmd mode!\n", __func__);
 		return;
 	} else if (dsi_mode != 0 && use_lpm_or_vm == 0) { /* VDO with VM_CMD */
+		cmdq_pkt_wfe(handle,
+			mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
+
 		mtk_dsi_vm_cmdq(dsi, &msg, handle);
 
 		/* clear VM_CMD_DONE */
@@ -8424,6 +8427,8 @@ void mipi_dsi_dcs_write_pps(struct mtk_dsi *dsi,
 		cmdq_pkt_write(handle, dsi->ddp_comp.cmdq_base,
 			       dsi->ddp_comp.regs_pa + DSI_INTSTA, 0,
 			       VM_CMD_DONE_INT_EN);
+		cmdq_pkt_set_event(handle,
+			mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
 	} else if (dsi_mode != 0 &&
 		   use_lpm_or_vm == 1) { /* VDO to CMD with LP */
 		msg.flags |= MIPI_DSI_MSG_USE_LPM;
@@ -8812,6 +8817,8 @@ void mipi_dsi_dcs_write_gce(struct mtk_dsi *dsi, struct cmdq_pkt *handle,
 		.tx_buf = data,
 		.tx_len = len
 	};
+	struct mtk_ddp_comp *comp = &dsi->ddp_comp;
+	struct mtk_drm_crtc *mtk_crtc = comp->mtk_crtc;
 
 	if (!dsi->driver_data) {
 		pr_info("%s: error! dsi->driver_data=NULL! return!\n", __func__);
@@ -8871,6 +8878,8 @@ void mipi_dsi_dcs_write_gce(struct mtk_dsi *dsi, struct cmdq_pkt *handle,
 					DSI_DUAL_EN, DSI_DUAL_EN);
 		}
 	} else {
+		cmdq_pkt_wfe(handle,
+			mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
 		/* set BL cmd */
 		mtk_dsi_vm_cmdq(dsi, &msg, handle);
 
@@ -8891,6 +8900,8 @@ void mipi_dsi_dcs_write_gce(struct mtk_dsi *dsi, struct cmdq_pkt *handle,
 		mtk_dsi_cmdq_poll(&dsi->ddp_comp, handle,
 			dsi->ddp_comp.regs_pa + DSI_INTSTA,
 			VM_CMD_DONE_INT_EN, VM_CMD_DONE_INT_EN);
+		cmdq_pkt_set_event(handle,
+			mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
 	}
 
 	mtk_dsi_power_keep_gce(dsi, handle, false);
@@ -9019,6 +9030,8 @@ void mipi_dsi_dcs_write_gce2(struct mtk_dsi *dsi, struct cmdq_pkt *dummy,
 	} else {
 		mtk_crtc_pkt_create(&handle, &mtk_crtc->base,
 			mtk_crtc->gce_obj.client[CLIENT_DSI_CFG]);
+		cmdq_pkt_wfe(handle,
+			mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
 
 		/* build VM cmd */
 		mtk_dsi_vm_cmdq(dsi, &msg, handle);
@@ -9049,6 +9062,8 @@ void mipi_dsi_dcs_write_gce2(struct mtk_dsi *dsi, struct cmdq_pkt *dummy,
 		cmdq_pkt_write(handle, dsi->ddp_comp.cmdq_base,
 			dsi->ddp_comp.regs_pa + DSI_INTSTA, 0,
 			VM_CMD_DONE_INT_EN);
+		cmdq_pkt_set_event(handle,
+			mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
 	}
 
 	cmdq_pkt_flush(handle);
@@ -9259,6 +9274,9 @@ int mtk_mipi_dsi_write_gce(struct mtk_dsi *dsi,
 			msg.tx_len = cmd_msg->tx_len[i];
 			msg.tx_buf = cmd_msg->tx_buf[i];
 
+			cmdq_pkt_wfe(handle,
+				mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
+
 			/* build VM cmd */
 			mtk_dsi_vm_cmdq(dsi, &msg, handle);
 
@@ -9288,6 +9306,8 @@ int mtk_mipi_dsi_write_gce(struct mtk_dsi *dsi,
 			cmdq_pkt_write(handle, dsi->ddp_comp.cmdq_base,
 				dsi->ddp_comp.regs_pa + DSI_INTSTA, 0,
 				VM_CMD_DONE_INT_EN);
+			cmdq_pkt_set_event(handle,
+				mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
 		}
 
 		/* Record Vblank end timestamp and calculate duration */
@@ -9360,6 +9380,7 @@ int mtk_dsi_ddic_handler_write_by_gce(struct mtk_dsi *dsi,
 {
 	unsigned int use_lpm = msg->flags & MIPI_DSI_MSG_USE_LPM;
 	struct mtk_ddp_comp *comp = &dsi->ddp_comp;
+	struct mtk_drm_crtc *mtk_crtc = comp->mtk_crtc;
 
 	if (IS_ERR_OR_NULL(msg)) {
 		DDPPR_ERR("%s, %d, invalid msg\n", __func__, __LINE__);
@@ -9407,6 +9428,8 @@ int mtk_dsi_ddic_handler_write_by_gce(struct mtk_dsi *dsi,
 					DSI_DUAL_EN, DSI_DUAL_EN);
 		}
 	} else if (dsi_mode != 0 && !use_lpm) { /* VDO with VM_CMD */
+		cmdq_pkt_wfe(handle,
+			mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
 		/* build VM cmd */
 		mtk_dsi_vm_cmdq(dsi, msg, handle);
 
@@ -9436,6 +9459,8 @@ int mtk_dsi_ddic_handler_write_by_gce(struct mtk_dsi *dsi,
 		cmdq_pkt_write(handle, dsi->ddp_comp.cmdq_base,
 			dsi->ddp_comp.regs_pa + DSI_INTSTA, 0,
 			VM_CMD_DONE_INT_EN);
+		cmdq_pkt_set_event(handle,
+			mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
 	} else if (dsi_mode != 0 && use_lpm) { /* VDO to CMD with LP */
 		mtk_dsi_stop_vdo_mode(dsi, handle);
 
