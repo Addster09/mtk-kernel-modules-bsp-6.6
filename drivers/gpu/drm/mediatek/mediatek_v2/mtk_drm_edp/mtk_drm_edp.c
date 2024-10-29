@@ -2546,8 +2546,13 @@ static irqreturn_t mtk_edp_hpd_event(int hpd, void *dev)
 {
 	struct mtk_edp *mtk_edp = dev;
 	bool cable_sta_chg = false;
-	unsigned long flags;
-	u32 irq_status = mtk_edp_swirq_get_clear(mtk_edp) |
+	unsigned long flags = 0x0;
+	u32 irq_status = 0x0;
+
+	if (mtk_edp->suspend)
+		return IRQ_HANDLED;
+
+	irq_status = mtk_edp_swirq_get_clear(mtk_edp) |
 			 mtk_edp_hwirq_get_clear(mtk_edp);
 
 	if (!irq_status)
