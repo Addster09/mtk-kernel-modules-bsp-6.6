@@ -3057,7 +3057,9 @@ static void ISP_EnableClock(bool En)
 	if (En) {
 		spin_lock(&(IspInfo.SpinLockClock));
 		G_u4EnableClockCount++;
-		Prepare_Enable_ccf_clock();
+		spin_unlock(&(IspInfo.SpinLockClock));
+		Prepare_Enable_ccf_clock(); /* can't be used in spinlock! */
+		spin_lock(&(IspInfo.SpinLockClock));
 		if (G_u4EnableClockCount == 1) {
 			spin_unlock(&(IspInfo.SpinLockClock));
 			log_inf("enable_irq\n");
@@ -3087,7 +3089,7 @@ static void ISP_EnableClock(bool En)
 		} else {
 			spin_unlock(&(IspInfo.SpinLockClock));
 		}
-		Disable_Unprepare_ccf_clock();
+		Disable_Unprepare_ccf_clock(); /* can't be used in spinlock! */
 	}
 	log_dbg("- X. En: %d. G_u4EnableClockCount:%d.\n", En, G_u4EnableClockCount);
 }
