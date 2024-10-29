@@ -238,21 +238,23 @@ static void mtk_dvo_irq_enable(struct mtk_dvo *dvo)
 static void mtk_dvo_config_pol(struct mtk_dvo *dvo,
 				struct mtk_dvo_polarities *dvo_pol)
 {
-	unsigned int pol;
-	unsigned int mask;
-
-	mask = HSYNC_POL | VSYNC_POL;
-	pol = (dvo_pol->hsync_pol == MTK_DVO_POLARITY_RISING ? 0 : HSYNC_POL) |
-			(dvo_pol->vsync_pol == MTK_DVO_POLARITY_RISING ? 0 : VSYNC_POL);
-
-	if (dvo->conf->is_ck_de_pol) {
-		mask |= CK_POL | DE_POL;
-		pol |= (dvo_pol->ck_pol == MTK_DVO_POLARITY_RISING ? 0 : CK_POL) |
-				(dvo_pol->de_pol == MTK_DVO_POLARITY_RISING ? 0 : DE_POL);
-	}
+/*
+ *	unsigned int pol;
+ *	unsigned int mask;
+ *
+ *	mask = HS_INV | VS_INV;
+ *	pol = (dvo_pol->hsync_pol == MTK_DVO_POLARITY_RISING ? 0 : HS_INV) |
+ *			(dvo_pol->vsync_pol == MTK_DVO_POLARITY_RISING ? 0 : VS_INV);
+ *
+ *	if (dvo->conf->is_ck_de_pol) {
+ *		mask |= CK_INV | DE_INV;
+ *		pol |= (dvo_pol->ck_pol == MTK_DVO_POLARITY_RISING ? 0 : CK_INV) |
+ *				(dvo_pol->de_pol == MTK_DVO_POLARITY_RISING ? 0 : DE_INV);
+ *	}
+ */
 
 	/* use default value for remain same */
-	mtk_dvo_mask(dvo, DVO_OUTPUT_SET, 0, mask);
+	mtk_dvo_mask(dvo, DVO_OUTPUT_SET, 0, OUTPUT_SET_MASK);
 }
 
 static void mtk_dvo_info_queue_start(struct mtk_dvo *dvo)
@@ -260,10 +262,58 @@ static void mtk_dvo_info_queue_start(struct mtk_dvo *dvo)
 	mtk_dvo_mask(dvo, DVO_TGEN_INFOQ_LATENCY, 0, INFOQ_START_LATENCY_MASK | INFOQ_END_LATENCY_MASK);
 }
 
-static void mtk_dvo_buffer_ctrl(struct mtk_dvo *dvo)
+static u8 mtk_get_dsi_buf_Bpp(struct mtk_dvo *dvo, enum mtk_dvo_out_color_format format)
 {
+	u8 dsi_buf_Bpp = 0x3;
+
+	if (format == MTK_DVO_COLOR_FORMAT_YCBCR_422)
+		dsi_buf_Bpp = 0x2;
+	else if (format == MTK_DVO_COLOR_FORMAT_RGB)
+		dsi_buf_Bpp = 0x3;
+	else
+		dsi_buf_Bpp = 0x3;
+
+	return dsi_buf_Bpp;
+}
+
+static void mtk_dvo_set_rw_times(struct mtk_dvo *dvo, enum mtk_dvo_out_color_format format,
+									u32 hactive, u32 vactive)
+{
+	u8 Bpp = 0x0;
+	u32 rw_times = 0;
+	u32 ps_wc = 0x0, in_width = 16;
+
+	Bpp = mtk_get_dsi_buf_Bpp(dvo, format);
+
+	if (dvo->color_depth == 10)
+		ps_wc = hactive * 30 / 8;
+	else if (dvo->color_depth == 8)
+		ps_wc = hactive *  Bpp;
+	else {
+		ps_wc = hactive *  Bpp;
+		pr_info("%s please check color depth: %d\n", EDP_DVO_DEBUG_INFO, dvo->color_depth);
+	}
+
+	if ((ps_wc * hactive % in_width) == 0)
+		rw_times = ps_wc * hactive / in_width;
+	else
+		rw_times = (ps_wc * hactive / in_width) + 1;
+
+	mtk_dvo_mask(dvo, DVO_BUF_RW_TIMES, rw_times, DISP_BUF_RW_TIMES_MASK);
+}
+
+static void mtk_dvo_buffer_ctrl(struct mtk_dvo *dvo, enum mtk_dvo_out_color_format format,
+								u32 hactive, u32 vactive)
+{
+	if (format == MTK_DVO_COLOR_FORMAT_YCBCR_422 && ((hactive - 6) % 12) == 0)
+		mtk_dvo_mask(dvo, DVO_BUF_CON0, 0, FIFO_UNDERFLOW_DONE_BLOCK);
+	else if (format != MTK_DVO_COLOR_FORMAT_YCBCR_422 && ((hactive - 4) % 8) == 0)
+		mtk_dvo_mask(dvo, DVO_BUF_CON0, 0, FIFO_UNDERFLOW_DONE_BLOCK);
+	else
+		mtk_dvo_mask(dvo, DVO_BUF_CON0, FIFO_UNDERFLOW_DONE_BLOCK, FIFO_UNDERFLOW_DONE_BLOCK);
+
+	mtk_dvo_set_rw_times(dvo, format, hactive, vactive);
 	mtk_dvo_mask(dvo, DVO_BUF_CON0, DISP_BUF_EN, DISP_BUF_EN);
-	mtk_dvo_mask(dvo, DVO_BUF_CON0, FIFO_UNDERFLOW_DONE_BLOCK, FIFO_UNDERFLOW_DONE_BLOCK);
 }
 
 static void mtk_dvo_pm_ctl(struct mtk_dvo *dvo, bool enable)
@@ -384,7 +434,8 @@ static void mtk_dvo_sodi_setting(struct mtk_dvo *dvo, struct drm_display_mode *m
 	u64 fill_rate = 0, consume_rate = 0;
 	u64 dvo_fifo_size = 0, fifo_size = 0, total_bit = 0;
 	u64 sodi_high_rem = 0, sodi_low_rem = 0, tmp = 0;
-	u64 sodi_high = 0, sodi_low = 0;
+	u64 sodi_high = 0, sodi_low = 0, preultra_high = 0, preultra_low = 0;
+	u64 ultra_high = 0, ultra_low = 0, urgent_high = 0, urgent_low = 0;
 
 	mtk_drm_set_mmclk_by_pixclk(&dvo->ddp_comp.mtk_crtc->base,
 						mode->clock, __func__);
@@ -393,7 +444,6 @@ static void mtk_dvo_sodi_setting(struct mtk_dvo *dvo, struct drm_display_mode *m
 		pr_info("%s mmclk is zero, use default value\n", EDP_DVO_DEBUG_INFO);
 		mmsys_clk = 273;
 	}
-	dev_info(dvo->dev, "%s get mmclk from display %d\n", EDP_DVO_DEBUG_INFO, mmsys_clk);
 
 	fill_rate = ((u64)mmsys_clk * MTK_DVO_INPUT_MODE * 30) / (32 * MTK_DISP_BUF_SRAM_UNIT_SIZE);
 	fill_rate = div64_u64_rem(mmsys_clk * MTK_DVO_INPUT_MODE * 30,
@@ -404,8 +454,6 @@ static void mtk_dvo_sodi_setting(struct mtk_dvo *dvo, struct drm_display_mode *m
 	/* consume_rate = data_rate *  MTK_BLANKING_RATIO * 30 /(8 * 32 * 1000000) */
 	consume_rate = div64_u64_rem(((data_rate * 30 * 5) / 4),
 					(u64)(8 * 32 * 1000000), &consume_rate_rem);
-	dev_info(dvo->dev, "%s data_rate:%llu consume_rate_rem: %llu",
-			EDP_DVO_DEBUG_INFO, data_rate, consume_rate_rem);
 	total_bit = (u64)MTK_DVO_EDP_MAX_CLK * MTK_DVO_OUTPUT_MODE * 30 * MTK_DISP_LINE_BUF_DVO_US;
 
 	fifo_size = total_bit / (MTK_DISP_BUF_SRAM_UNIT_SIZE * 30);
@@ -428,15 +476,49 @@ static void mtk_dvo_sodi_setting(struct mtk_dvo *dvo, struct drm_display_mode *m
 
 	/* sodi_high = ((dvo_fifo_size * 30) / 32 ) - (fill_rate - consume_rate) * TWAIT_SLEEP  + 1; */
 	sodi_high = ((dvo_fifo_size * 30 * 5) - (32 * 6 * (fill_rate - consume_rate)) -
-				sodi_high_rem + 5 * 32 - 1) / (5 * 32);
+				sodi_high_rem + (5 * 32 - 1)) / (5 * 32);
 	sodi_low_rem = (consume_rate_rem * (ULTRA_LOW_US + TWAKE_UP) + (u64)(8 * 32 * 1000000) - 1)
 					/ (u64)(8 * 32 * 1000000);
 	sodi_low = consume_rate * (ULTRA_LOW_US + TWAKE_UP) + sodi_low_rem;
+	preultra_high = consume_rate * PREULTRA_HIGH_US + ((consume_rate_rem * (PREULTRA_HIGH_US)
+					+ (u64)(8 * 32 * 1000000) - 1) / (u64)(8 * 32 * 1000000));
+	preultra_low = (consume_rate * PREULTRA_LOW_US) + ((consume_rate_rem * (PREULTRA_LOW_US)
+					+ (u64)(8 * 32 * 1000000) - 1) / (u64)(8 * 32 * 1000000));
+	ultra_high = (consume_rate * ULTRA_HIGH_US) + ((consume_rate_rem * (ULTRA_HIGH_US)
+					+ (u64)(8 * 32 * 1000000) - 1) / (u64)(8 * 32 * 1000000));
+	ultra_low = (consume_rate * ULTRA_LOW_US) + ((consume_rate_rem * (ULTRA_LOW_US)
+					+ (u64)(8 * 32 * 1000000) - 1) / (u64)(8 * 32 * 1000000));
+	urgent_high = (consume_rate * URGENT_HIGH_US) + ((consume_rate_rem * (URGENT_HIGH_US)
+					+ (u64)(8 * 32 * 1000000) - 1) / (u64)(8 * 32 * 1000000));
+	urgent_low = (consume_rate * URGENT_LOW_US) + ((consume_rate_rem * (URGENT_LOW_US)
+					+ (u64)(8 * 32 * 1000000) - 1) / (u64)(8 * 32 * 1000000));
 
-	dev_info(dvo->dev, "%s SODI high:%llu SOHI low: %llu", EDP_DVO_DEBUG_INFO, sodi_high, sodi_low);
-
+#ifdef EDPTX_DEBUG
+	dev_info(dvo->dev, "%s get mmclk from display %d\n", EDP_DVO_DEBUG_INFO, mmsys_clk);
+	dev_info(dvo->dev, "%s data_rate:%llu consume_rate_rem: %llu",
+			EDP_DVO_DEBUG_INFO, data_rate, consume_rate_rem);
+	dev_info(dvo->dev, "%s fill_rate:%llu consume_rate: %llu",
+			EDP_DVO_DEBUG_INFO, fill_rate, consume_rate);
+	dev_info(dvo->dev, "%s dvo_fifo_size:%llu sodi_high_rem: %llu",
+			EDP_DVO_DEBUG_INFO, dvo_fifo_size, sodi_high_rem);
+	dev_info(dvo->dev, "%s sodi_high:%llu sodi_low: %llu",
+			EDP_DVO_DEBUG_INFO, sodi_high, sodi_low);
+	dev_info(dvo->dev, "%s preultra_high:%llu preultra_low: %llu",
+			EDP_DVO_DEBUG_INFO, preultra_high, preultra_low);
+	dev_info(dvo->dev, "%s ultra_high:%llu ultra_low: %llu",
+			EDP_DVO_DEBUG_INFO, ultra_high, ultra_low);
+	dev_info(dvo->dev, "%s urgent_high:%llu urgent_low: %llu",
+			EDP_DVO_DEBUG_INFO, urgent_high, urgent_low);
+#endif
 	mtk_dvo_mask(dvo, DVO_BUF_SODI_HIGHT, sodi_high, DVO_DISP_BUF_MASK);
 	mtk_dvo_mask(dvo, DVO_BUF_SODI_LOW, sodi_low, DVO_DISP_BUF_MASK);
+	mtk_dvo_mask(dvo, DVO_BUF_PREULTRA_HIGHT, preultra_high, DVO_DISP_BUF_MASK);
+	mtk_dvo_mask(dvo, DVO_BUF_PREULTRA_LOW, preultra_low, DVO_DISP_BUF_MASK);
+	mtk_dvo_mask(dvo, DVO_BUF_ULTRA_HIGHT, ultra_high, DVO_DISP_BUF_MASK);
+	mtk_dvo_mask(dvo, DVO_BUF_ULTRA_LOW, ultra_low, DVO_DISP_BUF_MASK);
+	mtk_dvo_mask(dvo, DVO_BUF_URGENT_HIGHT, urgent_high, DVO_DISP_BUF_MASK);
+	mtk_dvo_mask(dvo, DVO_BUF_URGENT_LOW, urgent_low, DVO_DISP_BUF_MASK);
+	mtk_dvo_mask(dvo, DVO_BUF_URGENT_LOW, urgent_low, DVO_DISP_BUF_MASK);
 }
 
 static void mtk_dvo_shadow_ctrl(struct mtk_dvo *dvo)
@@ -714,11 +796,11 @@ static int mtk_dvo_set_display_mode(struct mtk_dvo *dvo,
 		mtk_dvo_config_fb_size(dvo, vm.hactive, vm.vactive);
 
 	mtk_dvo_info_queue_start(dvo);
-	mtk_dvo_buffer_ctrl(dvo);
 	mtk_dvo_trailing_blank_setting(dvo);
 	mtk_dvo_config_color_format(dvo, dvo->color_format);
 	mtk_dvo_config_color_depth(dvo);
 	mtk_dvo_sodi_setting(dvo, mode);
+	mtk_dvo_buffer_ctrl(dvo, dvo->color_format, vm.hactive, vm.vactive);
 
 	if (dvo->conf->pixels_per_iter)
 		mtk_dvo_shadow_ctrl(dvo);
@@ -1108,16 +1190,18 @@ static int mtk_dvo_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
 	{
 		mode = (struct drm_display_mode **)params;
 
-		dvo->mode.hdisplay = readl(dvo->regs + DVO_SIZE) & 0xFFFF;
-		dvo->mode.vdisplay = readl(dvo->regs + DVO_SIZE) >> 16;
-		vfporch = readl(dvo->regs + DVO_TGEN_VPORCH) >> 16;
-		vbporch = readl(dvo->regs + DVO_TGEN_VPORCH) & 0xFFFF;
-		vsync = readl(dvo->regs + DVO_TGEN_VWIDTH) & 0xFFFF;
+		dvo->mode.hdisplay = readl(dvo->regs + DVO_SRC_SIZE) & 0xFFFF;
+		dvo->mode.vdisplay = readl(dvo->regs + DVO_SRC_SIZE) >> 16;
+		vfporch = (readl(dvo->regs + DVO_TGEN_V0) >> VFP) & 0xFFFF;
+		vsync = (readl(dvo->regs + DVO_TGEN_V0) >> VSYNC) & 0xFFFF;
+		vbporch = ((readl(dvo->regs + DVO_TGEN_V1) >> VSYNC2ACT) & 0xFFFF) - vsync;
 		dvo->mode.vtotal = dvo->mode.vdisplay + vfporch + vbporch + vsync;
-		hfporch = readl(dvo->regs + DVO_TGEN_HPORCH) >> 16;
-		hbporch = readl(dvo->regs + DVO_TGEN_HPORCH) & 0xFFFF;
-		hsync = readl(dvo->regs + DVO_TGEN_HWIDTH) & 0xFFFF;
+
+		hfporch = (readl(dvo->regs + DVO_TGEN_H0) >> HFP) & 0xFFFF;
+		hsync = (readl(dvo->regs + DVO_TGEN_H0) >> HSYNC) & 0xFFFF;
+		hbporch = ((readl(dvo->regs + DVO_TGEN_H1) >> HSYNC2ACT) & 0xFFFF) - hsync;
 		dvo->mode.htotal = dvo->mode.hdisplay + hfporch + hbporch + hsync;
+
 		dvo->mode.clock = clk_get_rate(dvo->pixel_clk) * 4 / 1000;
 		dev_info(dvo->dev, "%s %s cmd:%d\n", EDP_DVO_DEBUG_INFO, __func__, cmd);
 		dev_info(dvo->dev, "%s dvo->hdisplay = %d\n", EDP_DVO_DEBUG_INFO, dvo->mode.hdisplay);
