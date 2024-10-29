@@ -332,7 +332,6 @@ smmu_device_t *get_smmu_dev_from_id(uint32_t smmu_id)
 		if (smmu_dev->smmu_id == smmu_id)
 			return smmu_dev;
 	}
-	pkvm_smmu_ops->puts("get smmu device failed");
 	return NULL;
 }
 
@@ -347,8 +346,12 @@ static bool connect_infra_smmu_and_dvm_mi(void)
 	smmu_device_t *smmu_dev = NULL;
 
 	smmu_dev = get_smmu_dev_from_id(SMMU_SOC);
-	if (!smmu_dev && !smmu_dev->reg_base_va_addr) {
-		pkvm_smmu_ops->puts("reg_base_va_addr is NULL skip disconnect");
+	if (!smmu_dev) {
+		pkvm_smmu_ops->puts("get smmu device failed");
+		return false;
+	}
+	if (!smmu_dev->reg_base_va_addr) {
+		pkvm_smmu_ops->puts("reg_base_va_addr is NULL, skip disconnect");
 		return false;
 	}
 
@@ -374,8 +377,12 @@ static void disconnect_infra_smmu_and_dvm_mi(void)
 	smmu_device_t *smmu_dev = NULL;
 
 	smmu_dev = get_smmu_dev_from_id(SMMU_SOC);
-	if (!smmu_dev && !smmu_dev->reg_base_va_addr) {
-		pkvm_smmu_ops->puts("reg_base_va_addr is NULL skip disconnect");
+	if (!smmu_dev) {
+		pkvm_smmu_ops->puts("get smmu device failed");
+		return;
+	}
+	if (!smmu_dev->reg_base_va_addr) {
+		pkvm_smmu_ops->puts("reg_base_va_addr is NULL, skip disconnect");
 		return;
 	}
 
@@ -520,7 +527,10 @@ void mtk_smmu_share(struct user_pt_regs *regs)
 	type = regs->regs[2];
 
 	smmu_dev = get_smmu_dev_from_id(smmu_id);
-
+	if (!smmu_dev) {
+		pkvm_smmu_ops->puts("get smmu device failed");
+		return;
+	}
 	/* region_start is memory physical address */
 	switch (type) {
 	case CMDQ_SHARE:
@@ -542,7 +552,10 @@ void mtk_smmu_share(struct user_pt_regs *regs)
 	}
 
 	if (share_addr == NULL) {
-		pkvm_smmu_ops->puts("mtk_smmu_share : Can't find smmu device");
+		if (type == CMDQ_SHARE)
+			pkvm_smmu_ops->puts("Can't get CMDQ memory structure va");
+		if (type == STE_SHARE)
+			pkvm_smmu_ops->puts("Can't get STE memory structure va");
 		return;
 	}
 
