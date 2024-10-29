@@ -52,6 +52,7 @@ static int larb_bound_table[HRT_BOUND_NUM][HRT_LEVEL_NUM] = {
  * primary and secondary display.Each table has 16 elements which
  * represent the layer mapping rule by the number of input layers.
  */
+#if !IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO)
 static uint16_t layer_mapping_table[HRT_TB_NUM] = {
 #if IS_ENABLED(CONFIG_MTK_LCM_DUAL_PORT_SUPPORT)
 	0x0003, 0x007C, 0x007A, 0x0001
@@ -59,6 +60,12 @@ static uint16_t layer_mapping_table[HRT_TB_NUM] = {
 	0x0003, 0x007E, 0x007A, 0x0001
 #endif
 };
+#else
+static uint16_t layer_mapping_table[HRT_TB_NUM] = {
+	0x0003, 0x0003, 0x007A, 0x0001
+};
+#endif
+
 static uint16_t layer_mapping_table_mt6985[HRT_TB_NUM] = {
 	0x0003, 0x007E, 0x007A, 0x0001
 }; //0x0006:one OVL_2L, 0x007E:three OVL_2L
