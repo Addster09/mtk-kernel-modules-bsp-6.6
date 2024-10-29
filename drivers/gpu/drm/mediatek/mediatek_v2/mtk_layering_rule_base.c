@@ -5010,6 +5010,7 @@ static int layering_rule_start(struct drm_mtk_layering_info *disp_info_user,
 	/* Initial HRT conditions */
 	if (priv && priv->data && (priv->data->mmsys_id == MMSYS_MT6768 ||
 		priv->data->mmsys_id == MMSYS_MT6765 ||
+		priv->data->mmsys_id == MMSYS_MT6761 ||
 		priv->data->mmsys_id == MMSYS_MT6853 ||
 		priv->data->mmsys_id == MMSYS_MT6833 ||
 		priv->data->mmsys_id == MMSYS_MT6781 ||
@@ -5137,6 +5138,7 @@ static int layering_rule_start(struct drm_mtk_layering_info *disp_info_user,
 	/* adjust scenario after dispatch gles range */
 	if (priv && priv->data && (priv->data->mmsys_id == MMSYS_MT6768 ||
 		priv->data->mmsys_id == MMSYS_MT6765 ||
+		priv->data->mmsys_id == MMSYS_MT6761 ||
 		priv->data->mmsys_id == MMSYS_MT6853 ||
 		priv->data->mmsys_id == MMSYS_MT6833 ||
 		priv->data->mmsys_id == MMSYS_MT6781 ||
