@@ -170,4 +170,13 @@ config MTK_LK_NO_DISPLAY
 	  Choose this option if you want to enable
 	  CONFIG_MTK_DISP_NO_LK for auto.
 
+config MTK_DP_AS_CRTC0
+	tristate "DRM MTK_DP_AS_CRTC0 Support for Mediatek SoCs"
+	depends on DRM_MEDIATEK_V2
+	help
+	  DRM MTK_DP_AS_CRTC0 Support for Mediatek SoCs.
+	  This config will enable MTK_DP_AS_CRTC0.
+	  Choose this option if you want to enable
+	  MTK_DP_AS_CRTC0 for auto.
+
 source "$(KCONFIG_EXT_PREFIX)drivers/gpu/drm/mediatek/mediatek_v2/mtk_drm_edp/Kconfig"
