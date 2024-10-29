@@ -3075,6 +3075,7 @@ static kal_uint32 set_max_framerate_by_scenario(
 			LOG_INF(
 			"Warning: current_fps %d fps is not support, so use cap's setting: %d fps!\n"
 			, framerate, imgsensor_info.cap.max_framerate/10);
+		}
 		frame_length = imgsensor_info.cap.pclk / framerate * 10
 				/ imgsensor_info.cap.linelength;
 		spin_lock(&imgsensor_drv_lock);
@@ -3086,7 +3087,6 @@ static kal_uint32 set_max_framerate_by_scenario(
 				+ imgsensor.dummy_line;
 			imgsensor.min_frame_length = imgsensor.frame_length;
 			spin_unlock(&imgsensor_drv_lock);
-		}
 
 		if (imgsensor.frame_length > imgsensor.shutter)
 			set_dummy();
