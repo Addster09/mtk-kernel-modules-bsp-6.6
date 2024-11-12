@@ -3811,6 +3811,7 @@ static int mtk_ovl_exdma_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *hand
 		u32 hdr_bw_val = 0;
 		u32 stash_bw_val = 0;
 		u32 hdr_stash_bw_val = 0;
+		u32 trans_size = 256;
 
 		if (!mtk_drm_helper_get_opt(priv->helper_opt,
 				MTK_DRM_OPT_MMQOS_SUPPORT))
@@ -3828,6 +3829,8 @@ static int mtk_ovl_exdma_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *hand
 		usage_ovl_compr = mtk_crtc->usage_ovl_compr[phy_id];
 
 		bw_val = (bw_val * usage_ovl_fmt) >> 2;
+		if ((priv->data->mmsys_id == MMSYS_MT6991) && (bw_val > 0))
+			bw_val += trans_size;
 
 		if (debug_module_bw[phy_id])
 			bw_val = debug_module_bw[phy_id];
@@ -3839,6 +3842,8 @@ static int mtk_ovl_exdma_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *hand
 				priv->data->respective_ostdl);
 			comp->last_hrt_bw = bw_val;
 		}
+		if ((priv->data->mmsys_id == MMSYS_MT6991) && (bw_val > 0))
+			bw_val -= trans_size;
 
 		if (!IS_ERR(comp->hdr_qos_req)) {
 			if (bw_val && usage_ovl_compr)
@@ -3902,6 +3907,7 @@ static int mtk_ovl_exdma_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *hand
 		u32 hdr_bw_val = 0;
 		u32 stash_bw_val = 0;
 		u32 hdr_stash_bw_val = 0;
+		u32 trans_size = 256;
 
 		if (!mtk_drm_helper_get_opt(priv->helper_opt,
 				MTK_DRM_OPT_MMQOS_SUPPORT))
@@ -3924,6 +3930,8 @@ static int mtk_ovl_exdma_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *hand
 		usage_ovl_compr = mtk_crtc->usage_ovl_compr[phy_id];
 
 		bw_val = (bw_val * usage_ovl_fmt) >> 2;
+		if ((priv->data->mmsys_id == MMSYS_MT6991) && (bw_val > 0))
+			bw_val += trans_size;
 
 		if (debug_module_bw[phy_id])
 			bw_val = debug_module_bw[phy_id];
@@ -3944,6 +3952,8 @@ static int mtk_ovl_exdma_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *hand
 				bw_val, ~0);
 		}
 		comp->last_hrt_bw = bw_val;
+		if ((priv->data->mmsys_id == MMSYS_MT6991) && (bw_val > 0))
+			bw_val -= trans_size;
 
 		if (!IS_ERR(comp->hdr_qos_req)) {
 			if (bw_val && usage_ovl_compr)

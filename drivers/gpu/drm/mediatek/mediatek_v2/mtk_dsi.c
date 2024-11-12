@@ -3794,6 +3794,7 @@ static void mtk_dsi_ulps_exit_end(struct mtk_dsi *dsi)
 }
 
 static unsigned int dsi_underrun_called;
+static unsigned int underrun_happened;
 unsigned int check_dsi_underrun_event(void)
 {
 	return dsi_underrun_called;
@@ -4000,7 +4001,7 @@ irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 	struct mtk_dsi *dsi = dev_id;
 	struct mtk_drm_crtc *mtk_crtc = NULL;
 	struct mtk_panel_ext *panel_ext = NULL;
-	u32 status;
+	u32 status, inten;
 	unsigned int ret = 0;
 	static DEFINE_RATELIMIT_STATE(print_rate, HZ, 5); /* HZ = 250 */
 	static DEFINE_RATELIMIT_STATE(mmp_rate, 2, 2); /* 8 ms */
@@ -4010,6 +4011,7 @@ irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 	struct drm_crtc *crtc = NULL;
 	struct mtk_ddp_comp *comp = NULL;
 	unsigned int irq_mask = 0;
+	int aee = 0, aee_v2 = 0;
 
 	if (IS_ERR_OR_NULL(dsi) || IS_ERR_OR_NULL(dsi->driver_data)) {
 		DDPPR_ERR("%s:%d NULL Pointer\n", __func__, __LINE__);
@@ -4086,12 +4088,28 @@ irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 	status &= irq_mask;
 	if (status) {
 		writel(~status, dsi->regs + DSI_INTSTA);
+		inten = readl(dsi->regs + DSI_INTEN);
 		if ((status & BUFFER_UNDERRUN_INT_FLAG)	&& (atomic_read(&mtk_crtc->force_high_step) == 0)) {
 			unsigned long long aee_now_ts = sched_clock();
 			bool aee_cooldown = mtk_crtc->last_aee_trigger_ts == 0 ||
 					    (aee_now_ts - mtk_crtc->last_aee_trigger_ts > TIGGER_INTERVAL_S(10));
+			bool aee, aee_v2;
 			int underrun_int_en = 0;
 
+			aee = (priv->data->mmsys_id != MMSYS_MT6899) &&
+				(mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_DSI_UNDERRUN_AEE));
+			aee_v2 = (priv->data->mmsys_id == MMSYS_MT6899) &&
+				(mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_DSI_UNDERRUN_AEE_V2));
+
+			if (mtk_dsi_is_cmd_mode(comp)) {
+				underrun_happened = 1;
+				// enable fdone inten and clr inten when fdone if not enable
+				if (!(inten & FRAME_DONE_INT_FLAG)) {
+					inten |= FRAME_DONE_INT_FLAG;
+					writel(inten, dsi->regs + DSI_INTEN);
+					underrun_happened |= FRAME_DONE_INT_FLAG;
+				}
+			}
 			dump_cur_pos(mtk_crtc);
 			if (dsi->encoder.crtc)
 				mtk_drm_crtc_dump_vr_rg(dsi->encoder.crtc);
@@ -4101,10 +4119,7 @@ irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 #if IS_ENABLED(CONFIG_MTK_DRAMC)
 				DDPINFO("DDR: %u Mbps\n", mtk_dramc_get_data_rate());
 #endif
-				if ((priv->data->mmsys_id != MMSYS_MT6899 &&
-					mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_DSI_UNDERRUN_AEE)) ||
-					(priv->data->mmsys_id == MMSYS_MT6899 &&
-					mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_DSI_UNDERRUN_AEE_V2))){
+				if (aee || aee_v2){
 #if IS_ENABLED(CONFIG_ARM64)
 					DDPAEE_FATAL("[IRQ] %s:buffer underrun. TS: 0x%08x\n",
 						mtk_dump_comp_str(comp), (u32)arch_timer_read_counter());
@@ -4125,9 +4140,7 @@ irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 
 				mtk_vidle_dpc_analysis();
 
-				if (priv->data->mmsys_id != MMSYS_MT6899 ||
-					(priv->data->mmsys_id == MMSYS_MT6899 &&
-					mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_DSI_UNDERRUN_AEE_V2))) {
+				if (priv->data->mmsys_id != MMSYS_MT6899 || aee_v2) {
 					//printing status of mmqos and mmdvfs and smi info
 					atomic_set(&mtk_crtc->smi_info_dump_event, 1);
 					wake_up_interruptible(&mtk_crtc->smi_info_dump_wq);
@@ -4136,11 +4149,7 @@ irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 
 			/* could dump SMI register while dsi not attached to CRTC */
 			if (aee_cooldown &&
-			    (!dsi->driver_data->smi_dbg_disable ||
-			    ((priv->data->mmsys_id != MMSYS_MT6899 &&
-				mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_DSI_UNDERRUN_AEE)) ||
-				(priv->data->mmsys_id == MMSYS_MT6899 &&
-				mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_DSI_UNDERRUN_AEE_V2)))))
+			    (!dsi->driver_data->smi_dbg_disable && (aee || aee_v2)))
 				mtk_smi_dbg_hang_detect("dsi-underrun");
 
 			if (!atomic_read(&priv->need_recover)) {
@@ -4162,6 +4171,8 @@ irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 			++underrun_cnt;
 
 			mtk_disp_clr_debug_deteriorate();
+			if (comp->id == DDP_COMPONENT_DSI0)
+				DRM_MMP_MARK(dsi, underrun_cnt|(0<<16), 0);
 		}
 
 		//if (status & INP_UNFINISH_INT_EN)
@@ -4326,6 +4337,23 @@ irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 		}
 
 		if (status & FRAME_DONE_INT_FLAG) {
+			if (mtk_dsi_is_cmd_mode(comp) &&
+				(inten & FRAME_DONE_INT_FLAG) && underrun_happened) {
+				DDPMSG(pr_fmt("[IRQ] %s: buffer underrun then frame done\n"),
+					mtk_dump_comp_str(comp));
+
+				// to check underrun is because of 'path hang' or 'bw'
+				dump_cur_pos(mtk_crtc);
+				if (dsi->encoder.crtc)
+					mtk_drm_crtc_dump_vr_rg(dsi->encoder.crtc);
+
+				// if enable due to underrun, need disable
+				if (underrun_happened & FRAME_DONE_INT_FLAG) {
+					inten &= ~FRAME_DONE_INT_FLAG;
+					writel(inten, dsi->regs + DSI_INTEN);
+				}
+				underrun_happened = 0;
+			}
 			if (mtk_crtc && mtk_crtc->esd_ctx) {
 				if (comp->id == DDP_COMPONENT_DSI0 ||
 					 comp->id == DDP_COMPONENT_DSI1 ||
