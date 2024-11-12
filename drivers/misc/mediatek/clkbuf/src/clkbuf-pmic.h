@@ -70,6 +70,7 @@ extern struct plat_xodata mt6685_data;
 extern struct plat_xodata mt6685_tb_data;
 extern struct plat_xodata mt6377_data;
 extern struct plat_xodata mt6357_data;
+extern struct plat_xodata mt6357_tb_data;
 extern struct plat_xodata mt6358_data;
 extern struct plat_xodata mt6358_tb_data;
 extern struct plat_xodata mt6359p_data;

@@ -1250,6 +1250,11 @@ static struct clkbuf_hdlr pmic_hdlr_lv3 = {
 	.data = &mt6357_data,
 };
 
+static struct clkbuf_hdlr pmic_hdlr_lv3_tb = {
+	.ops = &clkbuf_ops_lv1,
+	.data = &mt6357_tb_data,
+};
+
 int count_pmic_node(struct device_node *clkbuf_node)
 {
 	struct device_node *pmic_node, *xo_buf;
@@ -1470,8 +1475,16 @@ static struct match_pmic mt6357_match_pmic = {
 	.parse_dts = &pmic_parse_dts_lv1,
 };
 
+static struct match_pmic mt6357_tb_match_pmic = {
+	.name = "mediatek,mt6357-tb-clkbuf",
+	.hdlr = &pmic_hdlr_lv3_tb,
+	.init = &pmic_init_lv1,
+	.parse_dts = &pmic_parse_dts_lv1,
+};
+
 static struct match_pmic *matches_pmic[] = {
 	&mt6357_match_pmic,
+	&mt6357_tb_match_pmic,
 	&mt6358_match_pmic,
 	&mt6358_tb_match_pmic,
 	&mt6685_match_pmic,
