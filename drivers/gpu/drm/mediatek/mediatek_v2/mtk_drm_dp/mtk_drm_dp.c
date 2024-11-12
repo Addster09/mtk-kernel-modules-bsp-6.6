@@ -130,6 +130,8 @@
 #endif
 #define DP_CheckSinkCap_TimeOutCnt		0x3
 
+#define REPORT_DISCONNECT_EVENT		0x00
+
 #define DP_PHY_REG_COUNT              6
 #define DP_SUPPORT_DSC                0 /* confirm DSC scenario before open this */
 #define DP_TBC_BUF_ReadStartAdrThrd	0x08
@@ -3396,6 +3398,7 @@ void mtk_dp_phy_training_config(struct mtk_dp *mtk_dp, const u8 link_rate,
 
 	/* step2: phy-d set link rate */
 	mtk_dp_phy_set_link_rate(mtk_dp, link_rate);
+	mtk_dp_phy_set_param(mtk_dp);
 	mtk_dp_phy_power_on(mtk_dp);
 
 	/* step3: phy-d enable lane */
@@ -4415,6 +4418,7 @@ bool mtk_dp_hpd_get_pin_level(struct mtk_dp *mtk_dp)
 bool mtk_dp_check_sink_cap(struct mtk_dp *mtk_dp)
 {
 	u8 tmp[0x10];
+	int ret = 0;
 
 	if (!mtk_dp_hpd_get_pin_level(mtk_dp))
 		return false;
@@ -4422,10 +4426,15 @@ bool mtk_dp_check_sink_cap(struct mtk_dp *mtk_dp)
 	memset(tmp, 0x0, sizeof(tmp));
 
 	tmp[0x0] = 0x1;
-	drm_dp_dpcd_write(&mtk_dp->aux, DPCD_00600, tmp, 0x1);
+	ret = drm_dp_dpcd_write(&mtk_dp->aux, DPCD_00600, tmp, 0x1);
+	if (ret < 0)
+		return false;
+
 	mdelay(2);
 
-	drm_dp_dpcd_read(&mtk_dp->aux, DPCD_00000, tmp, 0x10);
+	ret = drm_dp_dpcd_read(&mtk_dp->aux, DPCD_00000, tmp, 0x10);
+	if (ret < 0)
+		return false;
 
 	mtk_dp->training_info.sink_ext_cap_en = (tmp[0x0E] & BIT(7)) ?
 		true : false;
@@ -4525,6 +4534,11 @@ void mtk_dp_hotplug_uevent(unsigned int event)
 	}
 
 	DP_FUNC("fake:%d, event:%d\n", fake_cable_in, event);
+
+#if REPORT_DISCONNECT_EVENT == 0
+	if (event == 0)
+		return;
+#endif
 	mtk_dp_notify_uevent_user(&dp_notify_data,
 				  event > 0 ? DP_NOTIFY_STATE_ACTIVE : DP_NOTIFY_STATE_NO_DEVICE);
 
@@ -5955,7 +5969,7 @@ int mtk_dp_hpd_handle_in_thread(struct mtk_dp *mtk_dp)
 				mtk_dp->training_info.dp_mst_cap = false;
 #ifdef DP_PATCH_NIO
 				mtk_dp_create_connector(mtk_dp, DP_OUT_SST);
-				DP_MSG("support MST\n");
+				DP_MSG("support SST\n");
 #endif
 			} else {
 				DP_MSG("support MST\n");
@@ -6336,8 +6350,6 @@ enum dp_train_stage mtk_dp_training_flow(struct mtk_dp *mtk_dp, u8 link_rate, u8
 		mtk_dp->training_info.link_lane_count = lane_count;
 
 		mtk_dp_set_scramble(mtk_dp, true);
-		temp[0] = (lane_count | DP_AUX_SET_ENAHNCED_FRAME);
-		drm_dp_dpcd_write(&mtk_dp->aux, DPCD_00101, temp, 0x1);
 		mtk_dp_set_enhanced_frame_mode(mtk_dp, ENABLE_DP_EF_MODE);
 
 		DP_MSG("Training PASS, link rate:0x%x, lane count:%d\n",
@@ -7014,6 +7026,23 @@ static int mtk_drm_dp_notifier(struct notifier_block *notifier,
 	return NOTIFY_DONE;
 }
 
+static void mtk_dp_mac_power(bool enable)
+{
+	void *base;
+
+	base = ioremap(0x31b50000, 0x100);
+
+	if (enable) {
+		writel((readl(base + 0x78) | (1 << 0)), base + 0x78); // Set bit 0 to 1
+		writel((readl(base + 0x78) & ~(1 << 4)), base + 0x78); // Clear bit 4(enable)
+	} else {
+		writel((readl(base + 0x78) & ~(1 << 0)), base + 0x78); // Clear bit 0 (reset)
+		writel((readl(base + 0x78) |  (1 << 4)), base + 0x78); // Set bit 4 to 1(enable)
+	}
+
+	iounmap(base);
+}
+
 static int mtk_drm_dp_probe(struct platform_device *pdev)
 {
 	struct mtk_dp *mtk_dp;
@@ -7151,8 +7180,8 @@ static int mtk_drm_dp_probe(struct platform_device *pdev)
 	if (ret)
 		DP_ERR("register_pm_notifier failed %d", ret);
 
-	base = ioremap(0x31b50000, 0x1000);
-	writel(0xc2fc224d, base + 0x78);
+	mtk_dp_mac_power(false);
+	mtk_dp_mac_power(true);
 
 	DP_FUNC("done\n");
 
@@ -7225,6 +7254,9 @@ static int mtk_dp_resume(struct device *dev)
 
 	pm_runtime_get_sync(dev);
 	mtk_dp->disp_state = DP_DISP_STATE_RESUME;
+
+	mtk_dp_mac_power(false);
+	mtk_dp_mac_power(true);
 
 	mtk_drm_dpi_resume(); // dpintf
 

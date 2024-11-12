@@ -221,6 +221,10 @@ static void mtk_dpi_enable(struct mtk_dpi *dpi)
 
 static void mtk_dpi_disable(struct mtk_dpi *dpi)
 {
+	mtk_dpi_mask(dpi, DPI_INTEN, 0, (INT_UNDERFLOW_EN |
+						INT_VDE_EN |
+						INT_VSYNC_EN));
+	mtk_dpi_mask(dpi, DPI_INTSTA, 0, 0xf);
 	mtk_dpi_mask(dpi, DPI_EN, 0, EN);
 }
 
