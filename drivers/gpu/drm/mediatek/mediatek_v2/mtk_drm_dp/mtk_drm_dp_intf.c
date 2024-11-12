@@ -858,6 +858,10 @@ static void mtk_dpi_bridge_mode_set(struct drm_bridge *bridge,
 static void mtk_dpi_bridge_disable(struct drm_bridge *bridge)
 {
 	struct mtk_dpi *dpi = bridge_to_dpi(bridge);
+	struct drm_crtc *crtc = dpi->encoder.crtc;
+	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
+
+	mtk_drm_crtc_wait_blank(mtk_crtc);
 
 	mtk_dpi_power_off(dpi);
 
