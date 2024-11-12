@@ -3599,7 +3599,7 @@ static const struct mtk_iommu_plat_data mt6768_data = {
 static const struct mtk_iommu_plat_data mt6771_data = {
 	.m4u_plat      = M4U_MT6771,
 	.flags         = HAS_SUB_COMM | OUT_ORDER_WR_EN | WR_THROT_EN |
-			 NOT_STD_AXI_MODE | SHARE_PGTABLE | HAS_EMI_PM | SMI_DEV_LINK_SKIP |
+			 NOT_STD_AXI_MODE | SHARE_PGTABLE | HAS_EMI_PM |
 			 PGTABLE_PA_35_EN,
 	.inv_sel_reg   = REG_MMU_INV_SEL_GEN1,
 	.iova_region   = single_domain,
