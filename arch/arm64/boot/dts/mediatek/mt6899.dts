@@ -14363,6 +14363,21 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 			clocks = <&clk13m>;
 		};
 
+		mem_mapped_timer: mem-mapped-timer@1cc13000 {
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+			compatible = "arm,mem_mapped_timer";
+			reg = <0 0x1cc13000 0 0x1000>; //CNTCTLBase frame
+			clock-frequency = <13000000>;
+			frame@1cc14000 {
+				frame-number = <0>;
+				interrupts = <GIC_SPI 809 IRQ_TYPE_LEVEL_HIGH 0>, //phys irq
+						<GIC_SPI 869 IRQ_TYPE_LEVEL_HIGH 0>; // virt irq
+				reg = <0 0x1cc14000 0 0x1000>; //CNTBase0
+			};
+		};
+
 		spi0: spi0@11010800 {
 			compatible = "mediatek,mt6899-spi";
 			mediatek,pad-select = <0>;
