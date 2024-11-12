@@ -10,6 +10,9 @@ obj-$(CONFIG_DEVICE_MODULES_COMMON_CLK_MEDIATEK) += clk-disable-unused.o
 
 ifneq ($(wildcard $(srctree)/$(src)/clk-mt6771.c),)
 obj-$(CONFIG_COMMON_CLK_MT6771) += clk-mt6771.o
+obj-$(CONFIG_COMMON_CLK_MT6771) += clkchk-mt6771.o
+obj-$(CONFIG_COMMON_CLK_MT6771) += pd-chk-mt6771.o
+pd-chk-mt6771-$(CONFIG_COMMON_CLK_MT6771) += mtk-pd-chk-mt6771.o
 obj-$(CONFIG_COMMON_CLK_MT6771) += clk-mt6771-pg.o
 endif
 

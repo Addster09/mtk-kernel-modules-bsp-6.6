@@ -752,6 +752,12 @@ static int scpsys_power_on(struct generic_pm_domain *genpd)
 	if (ret < 0)
 		goto err_sram;
 
+	if (MTK_SCPD_CAPS(scpd, MTK_SCPD_SRAM_SLP_B)) {
+		ret = scpsys_sram_table_disable(scpd);
+		if (ret < 0)
+			goto err_sram;
+	}
+
 	ret = scpsys_bus_protect_disable(scpd, MAX_STEPS - 1);
 	if (ret < 0)
 		goto err_sram;
@@ -835,6 +841,12 @@ static int scpsys_power_off(struct generic_pm_domain *genpd)
 	ret = scpsys_sram_disable(scpd, ctl_addr);
 	if (ret < 0)
 		goto out;
+
+	if (MTK_SCPD_CAPS(scpd, MTK_SCPD_SRAM_SLP_B)) {
+		ret = scpsys_sram_table_enable(scpd);
+		if (ret < 0)
+			goto out;
+	}
 
 	if (!MTK_SCPD_CAPS(scpd, MTK_SCPD_BYPASS_CLK)) {
 		scpsys_clk_disable(scpd->subsys_clk, MAX_SUBSYS_CLKS);
