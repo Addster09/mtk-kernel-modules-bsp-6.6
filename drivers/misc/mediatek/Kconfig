@@ -41,7 +41,9 @@ source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/mcdi/Kconfig"
 source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/hps_v3/Kconfig"
 source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/cpuhotplug/Kconfig"
 source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/upower/Kconfig"
+source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/helio-dvfsrc/Kconfig"
 source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/spm/Kconfig"
+source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/spm_v4/Kconfig"
 source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/power_gs_v1/Kconfig"
 source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/thermal/Kconfig"
 source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/smi/Kconfig"
@@ -51,6 +53,14 @@ source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/wla/Kconfig"
 source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/pkvm_mkp/Kconfig"
 source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/pkvm_mgmt/Kconfig"
 source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/pkvm_smmu/Kconfig"
+
+config MTK_PLAT_POWER_MT8788
+	tristate "Platform power specified macro"
+	help
+	  This macro is used to distinguish the platform dependent parts
+	  from those power related features.
+	  If the macro is enabled, compile the mt8788 related code.
+	  If unsure, say N.
 
 config MTK_PLAT_POWER_MT6768
 	tristate "Platform power specified macro"
