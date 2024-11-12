@@ -2633,6 +2633,7 @@ def get_overlay_modules_list():
         mgk_64_device_modules.remove("drivers/power/supply/ufcs/ufcs_class.ko")
         mgk_64_device_modules.remove("drivers/power/supply/ufcs/ufcs_mt6379.ko")
         mgk_64_device_modules.append("sound/soc/mediatek/mt6768/mt6768-mt6358-ref.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/flashlight/flashlights-ocp81375.ko")
 
     if "mt6771_overlay.config" in DEFCONFIG_OVERLAYS:
         mgk_64_common_eng_modules.remove("drivers/firmware/arm_ffa/ffa-module.ko")
