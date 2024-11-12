@@ -674,7 +674,13 @@ static unsigned int mtk_disp_cal_usage_bw(struct mtk_drm_crtc *mtk_crtc,
 		return bw;
 
 	bw = bw_base * mtk_crtc->usage_ovl_fmt[idx] / 4;
+#if IS_ENABLED(CONFIG_MTK_LCM_DUAL_PORT_SUPPORT) || IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+	if (mtk_crtc->is_dual_pipe)
+		bw = bw / 2;
+	else if (mtk_crtc->usage_ovl_compr[idx])
+#else
 	if (mtk_crtc->usage_ovl_compr[idx])
+#endif
 		bw = bw * compr_ratio / 100;
 
 	return bw;

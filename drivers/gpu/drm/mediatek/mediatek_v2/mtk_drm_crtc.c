@@ -6024,6 +6024,9 @@ static void mtk_crtc_update_hrt_state(struct drm_crtc *crtc,
 	unsigned int channel_hrt_write[BW_CHANNEL_NR] = {0};
 	struct mtk_ddp_comp *cwb_comp = NULL;
 	unsigned int wdma_bw = 0;
+#if IS_ENABLED(CONFIG_MTK_LCM_DUAL_PORT_SUPPORT) || IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+	unsigned int frame_num = 0, max_channel_bw = 0;
+#endif
 
 	if (unlikely(!mtk_crtc || !mtk_crtc->qos_ctx)) {
 		DDPPR_ERR("%s invalid qos_ctx\n", __func__);
@@ -6140,6 +6143,11 @@ static void mtk_crtc_update_hrt_state(struct drm_crtc *crtc,
 		}
 	}
 
+#if IS_ENABLED(CONFIG_MTK_LCM_DUAL_PORT_SUPPORT) || IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+	if (lyeblob_ids)
+		frame_num = HRT_GET_SUM_LAYER_FLAG(lyeblob_ids->hrt_num);
+#endif
+
 	if (priv->data->update_channel_hrt) {
 		bw_base = mtk_drm_primary_frame_bw(crtc);
 		CRTC_MMP_MARK(0, atomic_begin, (unsigned long)cmdq_handle, __LINE__);
@@ -6147,7 +6155,22 @@ static void mtk_crtc_update_hrt_state(struct drm_crtc *crtc,
 		DDPINFO("%s channel[%u][%u][%u][%u]\n", __func__,
 			channel_hrt[0], channel_hrt[1], channel_hrt[2], channel_hrt[3]);
 		CRTC_MMP_MARK(0, atomic_begin, (unsigned long)cmdq_handle, __LINE__);
+#if IS_ENABLED(CONFIG_MTK_LCM_DUAL_PORT_SUPPORT) || IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+		for (i = 0 ; i < BW_CHANNEL_NR ; i++) {
+			if(max_channel_bw < channel_hrt[i])
+				max_channel_bw = channel_hrt[i];
+		}
+		if (frame_num > 4)
+			max_channel_bw = 5300;
+		else if (frame_num == 4)
+			max_channel_bw = 4300;
+		else if (frame_num > 2)
+			max_channel_bw = max_channel_bw / 3 * 4;
 
+		channel_hrt[1] = max_channel_bw;
+		DDPINFO("%s framen_num:%d, after channel[%u][%u][%u][%u]\n", __func__, frame_num,
+			channel_hrt[0], channel_hrt[1], channel_hrt[2], channel_hrt[3]);
+#endif
 		for (i = 0 ; i < BW_CHANNEL_NR ; i++) {
 			if (channel_hrt[i] > mtk_crtc->qos_ctx->last_channel_req[i]) {
 				DDPINFO("mtk_disp_set_channel_hrt_bw[%u] = %u\n", i, channel_hrt[i]);

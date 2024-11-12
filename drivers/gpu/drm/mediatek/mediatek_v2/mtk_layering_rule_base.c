@@ -3307,6 +3307,7 @@ static int _dispatch_lye_blob_idx(struct drm_mtk_layering_info *disp_info,
 	struct mtk_drm_private *priv = drm_dev->dev_private;
 	int fun_lye = 0;
 	int mml_decouple2 = 0;
+	int sum_layer_num = 0;
 
 	mml_decouple2 = (mtk_drm_get_mml_mode_caps() & MTK_MML_DISP_DECOUPLE2_LAYER?1:0);
 
@@ -3448,6 +3449,10 @@ static int _dispatch_lye_blob_idx(struct drm_mtk_layering_info *disp_info,
 			no_compress_layer_num++;
 		}
 
+		if (disp_idx == 0 && !is_extended_layer(layer_info)) {
+			sum_layer_num++;
+		}
+
 		if (disp_idx >= MAX_CRTC || plane_idx >= OVL_LAYER_NR) {
 			dump_disp_info(disp_info, DISP_DEBUG_LEVEL_INFO);
 			DDPAEE("%s Error disp_idx %d, plane_idx %d\n", __func__,
@@ -3527,9 +3532,10 @@ static int _dispatch_lye_blob_idx(struct drm_mtk_layering_info *disp_info,
 	if (disp_idx == 0) {
 		HRT_SET_NO_COMPRESS_FLAG(disp_info->hrt_num,
 				no_compress_layer_num);
-		DDPINFO("%s disp_info->hrt_num=0x%x,no_comp_layer_num=%d\n",
-				__func__, disp_info->hrt_num,
-				no_compress_layer_num);
+		HRT_SET_SUM_LAYER_FLAG(disp_info->hrt_num, sum_layer_num);
+		DDPINFO("%s disp_info->hrt_num=0x%x,no_comp_layer_num=%d,sum_layer_num:%d\n",
+			__func__, disp_info->hrt_num,
+			no_compress_layer_num, sum_layer_num);
 	}
 
 	return 0;
