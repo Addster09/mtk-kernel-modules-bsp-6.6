@@ -915,13 +915,11 @@ mgk_64_platform_device_modules = {
     "drivers/gpu/mediatek/gpu_iommu/mtk_gpu_iommu_mt6991.ko": "mt6991",
     "drivers/gpu/mediatek/gpu_pdma/mtk_gpu_pdma_mt6991.ko": "mt6991",
     "drivers/interconnect/mediatek/mmqos-mt6886.ko": "mt6886",
-    "drivers/interconnect/mediatek/mmqos-mt6893.ko": "mt6893",
     "drivers/interconnect/mediatek/mmqos-mt6897.ko": "mt6897",
     "drivers/interconnect/mediatek/mmqos-mt6983.ko": "mt6983",
     "drivers/interconnect/mediatek/mmqos-mt6985.ko": "mt6985",
     "drivers/interconnect/mediatek/mmqos-mt6989.ko": "mt6989",
     "drivers/interconnect/mediatek/mmqos-mt6991.ko": "mt6991",
-    "drivers/interconnect/mediatek/mmqos-mt6877.ko": "mt6877",
     "drivers/interconnect/mediatek/mmqos-mt6899.ko": "mt6899",
     "drivers/misc/mediatek/cameraisp/pda/pda_drv_mt6855.ko": "mt6855",
     "drivers/misc/mediatek/cameraisp/pda/pda_drv_mt6879.ko": "mt6879",
@@ -1319,6 +1317,7 @@ def get_overlay_modules_list():
         mgk_64_platform_device_modules.update({"drivers/clk/mediatek/pd-chk-mt6877.ko":"mt6877"})
         mgk_64_platform_device_modules.update({"drivers/gpu/mediatek/gpufreq/v2_legacy/mtk_gpufreq_mt6877.ko":"mt6877"})
         mgk_64_platform_device_modules.update({"drivers/gpu/mediatek/gpufreq/v2_legacy/mtk_gpufreq_early_init.ko":"mt6877"})
+        mgk_64_platform_device_modules.update({"drivers/interconnect/mediatek/mmqos-mt6877.ko":"mt6877"})
         mgk_64_platform_device_modules.update({"drivers/misc/mediatek/eem_v2/mediatek_eem.ko":"mt6877"})
         mgk_64_platform_device_modules.update({"drivers/misc/mediatek/eem_v2/mtk_picachu.ko":"mt6877"})
         mgk_64_platform_device_modules.update({"drivers/misc/mediatek/ppm_v3/mtk_ppm_v3.ko":"mt6877"})
@@ -2873,6 +2872,7 @@ def get_overlay_modules_list():
         mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-fmeter-mt6893.ko":"mt6893"})
         mgk_64_platform_device_modules.update({"drivers/clk/mediatek/pd-chk-mt6893.ko":"mt6893"})
         mgk_64_platform_device_modules.update({"drivers/gpu/mediatek/gpufreq/v2_legacy/mtk_gpufreq_mt6893.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/interconnect/mediatek/mmqos-mt6893.ko":"mt6893"})
         mgk_64_platform_device_modules.update({"drivers/pinctrl/mediatek/pinctrl-mt6885.ko":"mt6893"})
         mgk_64_platform_device_modules.update({"drivers/misc/mediatek/cm_mgr_legacy_v1/mtk_cm_mgr_mt6893.ko":"mt6893"})
         mgk_64_platform_device_modules.update({"drivers/misc/mediatek/slbc/slbc_mt6893.ko":"mt6893"})
