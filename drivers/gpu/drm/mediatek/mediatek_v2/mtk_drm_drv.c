@@ -8713,7 +8713,7 @@ int mtk_drm_get_info_ioctl(struct drm_device *dev, void *data,
 				DDPINFO("%s crtc_id:%d output_comp:%d alias_id:%d\n",
 					__func__, crtc_id, output_comp->id, alias_id);
 			} else {
-				DDPINFO("%d get alias fail\n", __func__);
+				DDPINFO("%s get alias fail\n", __func__);
 				return -EINVAL;
 			}
 		} else

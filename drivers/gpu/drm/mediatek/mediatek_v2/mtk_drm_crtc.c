@@ -17051,7 +17051,7 @@ static void mtk_drm_plane_for_se(struct drm_crtc *crtc, struct drm_plane *plane,
 	struct mtk_plane_state *plane_state)
 {
 	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
-	int index = mtk_crtc->static_plane.index++;
+	unsigned int index = mtk_crtc->static_plane.index++;
 	int layer_id = 0, comp_id = 0;
 	int crtc_index = drm_crtc_index(crtc);
 
