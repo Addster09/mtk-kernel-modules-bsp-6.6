@@ -73,7 +73,7 @@ config MTK_PLAT_POWER_MT6771
 	help
 	  This macro is used to distinguish the platform dependent parts
 	  from those power related features.
-	  If the macro is enabled, compile the mt6761 related code.
+	  If the macro is enabled, compile the mt6771 related code.
 	  If unsure, say N.
 
 config MTK_PLAT_POWER_MT6877
