@@ -978,6 +978,7 @@ mgk_64_platform_device_modules = {
     "drivers/soc/mediatek/mtk-scpsys-mt6768.ko": "mt6768",
     "drivers/soc/mediatek/mtk-scpsys-mt6781.ko": "mt6781",
     "drivers/soc/mediatek/mtk-scpsys-mt6761.ko": "mt6761",
+    "drivers/soc/mediatek/mtk-scpsys-mt6771.ko": "mt6771",
     "drivers/soc/mediatek/mtk-scpsys-mt6877.ko": "mt6877",
     "drivers/misc/mediatek/cm_mgr/mtk_cm_mgr_mt6886.ko": "mt6886",
     "drivers/misc/mediatek/cm_mgr/mtk_cm_mgr_mt6897.ko": "mt6897",
@@ -2654,6 +2655,8 @@ def get_overlay_modules_list():
 
         mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6771.ko":"mt6771"})
         mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6771-pg.ko":"mt6771"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clkchk-mt6771.ko":"mt6771"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/pd-chk-mt6771.ko":"mt6771"})
         mgk_64_device_modules.append("drivers/regulator/mt6358-regulator.ko")
         mgk_64_device_modules.remove("drivers/spmi/spmi-mtk-mpu.ko")
         mgk_64_device_modules.remove("drivers/spmi/spmi-mtk-pmif.ko")
