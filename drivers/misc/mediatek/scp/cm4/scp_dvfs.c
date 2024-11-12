@@ -347,7 +347,9 @@ int scp_set_pmic_vcore(unsigned int cur_freq)
 	idx = scp_get_freq_idx(cur_freq);
 	if (idx >= 0 && idx < dvfs->scp_opp_num) {
 		unsigned int vcore;
+#if !IS_ENABLED(CONFIG_SCP_DVFS_MT6771)
 		unsigned int uv = dvfs->opp[idx].uv_idx;
+#endif
 		int max_vcore = 0;
 		int max_vsram = 0;
 
@@ -355,11 +357,14 @@ int scp_set_pmic_vcore(unsigned int cur_freq)
 			max_vcore = dvfs->opp[dvfs->scp_opp_num - 1].vcore + 100000;
 			max_vsram = dvfs->opp[dvfs->scp_opp_num - 1].vsram + 100000;
 		}
-
+#if !IS_ENABLED(CONFIG_SCP_DVFS_MT6771)
 		if (uv != 0xff)
 			vcore = mtk_dvfsrc_vcore_uv_table(uv);
 		else
 			vcore = dvfs->opp[idx].vcore;
+#else
+		vcore = dvfs->opp[idx].vcore;
+#endif
 
 		/* vcore MAX_uV set to highest opp + 100mV */
 
