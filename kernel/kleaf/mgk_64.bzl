@@ -2650,6 +2650,8 @@ def get_overlay_modules_list():
         mgk_64_device_modules.remove("drivers/misc/mediatek/swpm/mtk-swpm-perf-arm-pmu.ko")
 
         mgk_64_device_modules.remove("drivers/misc/mediatek/qos/mtk_qos.ko")
+        mgk_64_platform_device_modules.update({"drivers/misc/mediatek/helio-dvfsrc/mtk-pm-qos.ko":"mt6771"})
+        mgk_64_platform_device_modules.update({"drivers/misc/mediatek/helio-dvfsrc/mtk-helio-dvfsrc.ko":"mt6771"})
 
         mgk_64_device_modules.remove("drivers/misc/mediatek/mminfra/mm-fake-engine.ko")
         mgk_64_device_modules.remove("drivers/misc/mediatek/mminfra/mtk-mminfra-debug.ko")
@@ -2660,6 +2662,7 @@ def get_overlay_modules_list():
         mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clkchk-mt6771.ko":"mt6771"})
         mgk_64_platform_device_modules.update({"drivers/clk/mediatek/pd-chk-mt6771.ko":"mt6771"})
         mgk_64_device_modules.append("drivers/misc/mediatek/cpuidle/mtk_cpuidle.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/spm_v4/MTK_INTERNAL_SPM.ko")
         mgk_64_device_modules.append("drivers/regulator/mt6358-regulator.ko")
         mgk_64_device_modules.append("drivers/misc/mediatek/cpuhotplug/mtk_cpuhp.ko")
         mgk_64_device_modules.remove("drivers/spmi/spmi-mtk-mpu.ko")
