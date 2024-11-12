@@ -187,7 +187,7 @@ struct mtk_dsi {
 	unsigned int set_partial_update;
 	unsigned int roi_y_offset;
 	unsigned int roi_height;
-#if IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO)
+#if IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO_YCT)
 	enum drm_connector_status connect_status;
 #endif
 };

@@ -6222,7 +6222,7 @@ static void mtk_dsi_encoder_enable(struct drm_encoder *encoder)
 static enum drm_connector_status
 mtk_dsi_connector_detect(struct drm_connector *connector, bool force)
 {
-#if IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO)
+#if IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO_YCT)
 	struct mtk_dsi *dsi = NULL;
 
 	if (!connector) {
@@ -13407,7 +13407,7 @@ static int mtk_dsi_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
 		list_for_each_entry(m, &dsi->conn.modes, head)
 			num++;
 
-#if IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO)
+#if IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO_AUTO)
 		if (!panel_ext || !num) {
 			DDPMSG("%s %s connector status %s modes %d\n",
 			       __func__, mtk_dump_comp_str(comp),
@@ -14328,7 +14328,7 @@ static int mtk_dsi_bind(struct device *dev, struct device *master, void *data)
 		goto err_unregister;
 	}
 
-#if IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO)
+#if IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO_YCT)
 	if (dsi && dsi->ext && dsi->ext->funcs && dsi->ext->funcs->get_link_status &&
 	    dsi->panel && (dsi->ext->funcs->get_link_status(dsi->panel) & 0x3))
 		dsi->connect_status = connector_status_connected;
