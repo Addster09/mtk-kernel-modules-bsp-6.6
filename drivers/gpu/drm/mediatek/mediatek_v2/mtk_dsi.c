@@ -11281,7 +11281,10 @@ void mtk_dsi_set_mmclk_by_datarate_V2(struct mtk_dsi *dsi,
 	struct mtk_panel_dsc_params *dsc_params = &ext->params->dsc_params;
 	bool adjust_pixclk = ((mtk_crtc->is_dual_pipe && dsc_params->enable) ||
 		(mtk_crtc->dli_relay_1tnp));
-
+#if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+	bool adjust_pixclk_double = ((mtk_crtc->is_dual_pipe && dsc_params->enable) &&
+		(mtk_crtc->dli_relay_1tnp));
+#endif
 	if (!dsi->driver_data) {
 		pr_info("%s: error! dsi->driver_data=NULL! return!\n", __func__);
 		return;
@@ -11428,7 +11431,10 @@ void mtk_dsi_set_mmclk_by_datarate_V2(struct mtk_dsi *dsi,
 			pixclk = (unsigned int)(pixclk / 1000);
 			if (adjust_pixclk)
 				pixclk /= 2;
-
+#if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+			if (adjust_pixclk_double)
+				pixclk /= 2;
+#endif
 			//pixclk = (pixclk_min > pixclk) ? pixclk_min : pixclk;
 		} else {
 			//CMD mode
