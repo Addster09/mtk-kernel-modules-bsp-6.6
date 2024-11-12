@@ -19,5 +19,7 @@
 
 #endif
 
+extern char *spm_vcorefs_dump_dvfs_regs(char *p);
+
 #endif /* _COMMON_MTK_SPM_VCORE_DVFS_H */
 

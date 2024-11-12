@@ -427,7 +427,7 @@ static ssize_t debug_log_store(struct device *dev,
 }
 
 /* 644 */
-static DEVICE_ATTR_RW(debug_log, 0644, debug_log_show, debug_log_store);
+static DEVICE_ATTR_RW(debug_log);
 
 static int spm_probe(struct platform_device *pdev)
 {

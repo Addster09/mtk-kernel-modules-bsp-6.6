@@ -23,11 +23,13 @@
 			arm_smccc_smc(p1, p2, p3, p4,\
 			p5, 0, 0, 0, &res)
 
+#ifndef SMC_CALL
 #define SMC_CALL(_name, _arg0, _arg1, _arg2) ({\
 	struct arm_smccc_res res;\
 	mtk_idle_smc_impl(_name,\
 			_arg0, _arg1, _arg2, 0, res);\
 	res.a0; })
+#endif
 
 #ifndef mt_secure_call
 #define mt_secure_call(x1, x2, x3, x4, x5) ({\

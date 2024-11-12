@@ -182,9 +182,7 @@ void spm_trigger_wfi_for_sodi(u32 pcm_flags)
 	int spm_dormant_sta = 0;
 
 	if (is_cpu_pdn(pcm_flags))
-		//spm_dormant_sta = mtk_enter_idle_state(MTK_SODI_MODE);
-		//to be removed
-		spm_dormant_sta = 0;
+		spm_dormant_sta = mtk_enter_idle_state(MTK_SODI_MODE);
 	else {
 		SMC_CALL(MTK_SIP_KERNEL_SPM_ARGS,
 			       SPM_ARGS_SODI, 0, 0);

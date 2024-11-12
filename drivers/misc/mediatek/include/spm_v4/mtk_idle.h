@@ -59,4 +59,8 @@ extern void mtkTTimer_start_timer(void);
 extern void mtkTTimer_cancel_timer(void);
 #endif
 
+#if IS_ENABLED(CONFIG_MTK_SPM_V4)
+extern int mtk_idle_select(int cpu);
+#endif
+
 #endif

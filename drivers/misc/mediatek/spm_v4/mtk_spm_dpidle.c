@@ -243,9 +243,7 @@ void spm_dpidle_notify_sspm_after_wfi_async_wait(void)
 static void spm_trigger_wfi_for_dpidle(struct pwr_ctrl *pwrctrl)
 {
 	if (is_cpu_pdn(pwrctrl->pcm_flags))
-		//spm_dormant_sta = mtk_enter_idle_state(MTK_DPIDLE_MODE);
-		//to be removed
-		spm_dormant_sta = 0;
+		spm_dormant_sta = mtk_enter_idle_state(MTK_DPIDLE_MODE);
 	else {
 		SMC_CALL(MTK_SIP_KERNEL_SPM_ARGS,
 			       SPM_ARGS_DPIDLE, 0, 0);
@@ -350,7 +348,7 @@ static unsigned int spm_output_wake_reason(struct wake_status *wakesta,
 
 #if IS_ENABLED(CONFIG_MTK_ECCCI_DRIVER)
 	//if (wakesta->r12 & WAKE_SRC_R12_MD2AP_PEER_EVENT_B)
-		//exec_ccci_kern_func_by_md_id(0, ID_GET_MD_WAKEUP_SRC, NULL, 0);
+		//exec_ccci_kern_func_by_md_id(ID_GET_MD_WAKEUP_SRC, NULL, 0);
 #endif
 
 	return wr;

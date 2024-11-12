@@ -97,6 +97,16 @@ int slp_dump_golden_setting_type = GS_PMIC;
 int slp_dump_golden_setting_type = 1;
 #endif
 
+bool (*mcdi_task_pause_fun)(bool paused);
+
+void mcdi_task_pause_fun_register(void *fun)
+{
+	if (fun != NULL)
+		mcdi_task_pause_fun = fun;
+
+}
+EXPORT_SYMBOL(mcdi_task_pause_fun_register);
+
 #if IS_ENABLED(CONFIG_MTK_PLAT_POWER_MT6763)
 /* FIXME: */
 static u32 slp_spm_flags = {

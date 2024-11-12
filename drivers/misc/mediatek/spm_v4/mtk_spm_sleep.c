@@ -112,7 +112,7 @@ static void spm_trigger_wfi_for_sleep(struct pwr_ctrl *pwrctrl)
 	if (is_cpu_pdn(pwrctrl->pcm_flags)) {
 /* TODO: fix */
 #if !defined(SPM_K414_EARLY_PORTING)
-		//spm_dormant_sta = mtk_enter_idle_state(MTK_SUSPEND_MODE);
+		spm_dormant_sta = mtk_enter_idle_state(MTK_SUSPEND_MODE);
 #else
 		;
 #endif
@@ -215,20 +215,20 @@ static unsigned int spm_output_wake_reason(struct wake_status *wakesta)
 #if IS_ENABLED(CONFIG_MTK_CCCI_DEVICES)
 	/* if (wakesta->r13 & 0x18) { */
 		/* spm_crit2("dump ID_DUMP_MD_SLEEP_MODE"); */
-		//exec_ccci_kern_func_by_md_id(0, ID_DUMP_MD_SLEEP_MODE, NULL, 0);
+		//exec_ccci_kern_func_by_md_id(ID_DUMP_MD_SLEEP_MODE, NULL, 0);
 	/* } */
 #endif
 
 #if !IS_ENABLED(CONFIG_FPGA_EARLY_PORTING)
 #if IS_ENABLED(CONFIG_MTK_ECCCI_DRIVER)
 	//if (wakesta->r12 & WAKE_SRC_R12_CLDMA_EVENT_B)
-		//exec_ccci_kern_func_by_md_id(0, ID_GET_MD_WAKEUP_SRC, NULL, 0);
+		//exec_ccci_kern_func_by_md_id(ID_GET_MD_WAKEUP_SRC, NULL, 0);
 	//if (wakesta->r12 & WAKE_SRC_R12_MD2AP_PEER_EVENT_B)
-		//exec_ccci_kern_func_by_md_id(0, ID_GET_MD_WAKEUP_SRC, NULL, 0);
+		//exec_ccci_kern_func_by_md_id(ID_GET_MD_WAKEUP_SRC, NULL, 0);
 	//if (wakesta->r12 & WAKE_SRC_R12_CCIF0_EVENT_B)
-		//exec_ccci_kern_func_by_md_id(0, ID_GET_MD_WAKEUP_SRC, NULL, 0);
+		//exec_ccci_kern_func_by_md_id(ID_GET_MD_WAKEUP_SRC, NULL, 0);
 	//if (wakesta->r12 & WAKE_SRC_R12_CCIF1_EVENT_B)
-		//exec_ccci_kern_func_by_md_id(2, ID_GET_MD_WAKEUP_SRC, NULL, 0);
+		//exec_ccci_kern_func_by_md_id(ID_GET_MD_WAKEUP_SRC, NULL, 0);
 #endif
 #endif
 	return wr;

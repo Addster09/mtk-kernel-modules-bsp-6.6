@@ -55,7 +55,7 @@
 #endif
 
 #if !defined(SPM_K414_EARLY_PORTING)
-#include "mtk_mcdi_governor.h"
+//#include "mtk_mcdi_governor.h" /* idle_refcnt_inc/dec */
 #endif
 
 //#include <mt-plat/mtk_boot.h>
@@ -63,6 +63,9 @@
 #include "mtk_lp_sysfs.h"
 #include "mtk_lp_kernfs.h"
 #include "mtk_idle_sysfs.h"
+
+__weak void idle_refcnt_inc(void) {}
+__weak void idle_refcnt_dec(void) {}
 
 #define IDLE_GPT GPT4
 
@@ -1234,11 +1237,11 @@ int rgidle_enter(int cpu)
 
 	mtk_idle_ratio_calc_start(IDLE_TYPE_RG, cpu);
 
-	//idle_refcnt_inc();
+	idle_refcnt_inc();
 
 	go_to_rgidle(cpu);
 
-	//idle_refcnt_dec();
+	idle_refcnt_dec();
 
 	mtk_idle_ratio_calc_stop(IDLE_TYPE_RG, cpu);
 

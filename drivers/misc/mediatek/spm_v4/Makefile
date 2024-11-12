@@ -44,6 +44,10 @@ ifneq ($(strip $(CONFIG_MTK_PLAT_POWER_MT8788)),)
 ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/sspm/
 endif
 
+ifneq ($(strip $(CONFIG_SND_SOC_MT6771)),)
+subdir-ccflags-y += -Werror -I$(DEVICE_MODULES_PATH)/sound/soc/mediatek/mt6771
+endif
+
 ifneq ($(strip $(CONFIG_MTK_DVFSRC_V1)),)
 ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/helio-dvfsrc/
 endif

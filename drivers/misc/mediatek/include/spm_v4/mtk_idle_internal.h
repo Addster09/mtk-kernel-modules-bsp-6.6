@@ -90,6 +90,7 @@ void soidle_post_handler(void);
 
 u32 get_spm_idle_flags1(void);
 
+void mcdi_task_pause_fun_register(void *fun);
 
 #endif /* __MTK_IDLE_INTERNAL_H__ */
 
