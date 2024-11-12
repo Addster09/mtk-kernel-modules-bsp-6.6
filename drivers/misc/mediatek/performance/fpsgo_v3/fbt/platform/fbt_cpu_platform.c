@@ -138,7 +138,7 @@ void fbt_boost_dram(int boost)
 			icc_set_bw(bw_path, 0, 0);
 	}
 
-#if IS_ENABLED(CONFIG_MTK_SPM_V4)
+#if IS_ENABLED(CONFIG_MTK_SPM_V4_FPSGO)
 	if (plat_dram_boost_enable == 1) {
 		if (boost)
 			vcorefs_request_dvfs_opp(KIR_FBT, 0);
