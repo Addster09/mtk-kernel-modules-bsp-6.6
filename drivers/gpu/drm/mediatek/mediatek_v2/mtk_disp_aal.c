@@ -1550,7 +1550,11 @@ static int disp_aal_sof_kthread(void *data)
 {
 	struct mtk_ddp_comp *comp = (struct mtk_ddp_comp *)data;
 	struct mtk_disp_aal *aal_data = comp_to_aal(comp);
+	struct sched_param param = {.sched_priority = 85 };
 	int ret;
+
+	if (sched_setscheduler(aal_data->primary_data->sof_irq_event_task, SCHED_RR, &param))
+		pr_notice("aal_sof_irq_event_task setschedule fail");
 
 	while (!kthread_should_stop()) {
 		if (atomic_read(&aal_data->primary_data->sof_irq_available) == 0) {
@@ -3076,7 +3080,6 @@ static void disp_aal_primary_data_init(struct mtk_ddp_comp *comp)
 	struct mtk_disp_aal *aal_data = comp_to_aal(comp);
 	struct mtk_disp_aal *companion_aal_data = comp_to_aal(aal_data->companion);
 	char thread_name[20] = "aal_sof_0";
-	struct sched_param param = {.sched_priority = 85 };
 	struct cpumask mask;
 
 	if (aal_data->is_right_pipe) {
@@ -3162,8 +3165,6 @@ static void disp_aal_primary_data_init(struct mtk_ddp_comp *comp)
 	cpumask_setall(&mask);
 	cpumask_clear_cpu(0, &mask);
 	set_cpus_allowed_ptr(aal_data->primary_data->sof_irq_event_task, &mask);
-	if (sched_setscheduler(aal_data->primary_data->sof_irq_event_task, SCHED_RR, &param))
-		pr_notice("aal_sof_irq_event_task setschedule fail");
 
 	wake_up_process(aal_data->primary_data->sof_irq_event_task);
 }
