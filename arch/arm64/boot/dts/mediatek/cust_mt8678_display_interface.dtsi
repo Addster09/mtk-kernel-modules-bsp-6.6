@@ -2735,8 +2735,8 @@
 				panel-mode-vbp = <9>;
 				panel-mode-vrefresh = <60>;
 				panel-mode-lppf = <1>;
-				panel-mode-width-mm = <129>;
-				panel-mode-height-mm = <64>;
+				panel-mode-width-mm = <344>;
+				panel-mode-height-mm = <193>;
 			};
 		};
 	};
@@ -2804,8 +2804,8 @@
 				panel-mode-vbp = <9>;
 				panel-mode-vrefresh = <60>;
 				panel-mode-lppf = <1>;
-				panel-mode-width-mm = <129>;
-				panel-mode-height-mm = <64>;
+				panel-mode-width-mm = <344>;
+				panel-mode-height-mm = <193>;
 			};
 		};
 	};
@@ -2907,8 +2907,8 @@
 				panel-mode-vbp = <9>;
 				panel-mode-vrefresh = <60>;
 				panel-mode-lppf = <1>;
-				panel-mode-width-mm = <129>;
-				panel-mode-height-mm = <64>;
+				panel-mode-width-mm = <344>;
+				panel-mode-height-mm = <193>;
 			};
 		};
 		desb {
@@ -2938,8 +2938,8 @@
 				panel-mode-vbp = <9>;
 				panel-mode-vrefresh = <60>;
 				panel-mode-lppf = <1>;
-				panel-mode-width-mm = <129>;
-				panel-mode-height-mm = <64>;
+				panel-mode-width-mm = <344>;
+				panel-mode-height-mm = <193>;
 			};
 		};
 	};
@@ -3148,8 +3148,8 @@
 
 	BoTai{
 		signal-setting{
-			width-mm = <129>;
-			height-mm = <64>;
+			width-mm = <344>;
+			height-mm = <193>;
 			panel-timing {
 				clock-frequency = <139526400>;
 				hactive = <1920>;
@@ -3164,8 +3164,8 @@
 		};
 
 		superframe-setting{
-			width-mm = <129>;
-			height-mm = <64>;
+			width-mm = <344>;
+			height-mm = <193>;
 			panel-timing {
 				clock-frequency = <278553600>;
 				hactive = <3840>;
@@ -3182,8 +3182,8 @@
 
 	HuaYang{
 		signal-setting{
-			width-mm = <129>;
-			height-mm = <64>;
+			width-mm = <344>;
+			height-mm = <193>;
 			panel-timing {
 				clock-frequency = <139526400>;
 				hactive = <1920>;
@@ -3198,8 +3198,8 @@
 		};
 
 		superframe-setting{
-			width-mm = <129>;
-			height-mm = <64>;
+			width-mm = <344>;
+			height-mm = <193>;
 			panel-timing {
 				clock-frequency = <278553600>;
 				hactive = <3840>;
@@ -3216,8 +3216,8 @@
 
 	YW-1080{
 		signal-setting{
-			width-mm = <129>;
-			height-mm = <64>;
+			width-mm = <344>;
+			height-mm = <193>;
 			panel-timing {
 				clock-frequency = <158709600>;
 				hactive = <1920>;
@@ -3232,8 +3232,8 @@
 		};
 
 		superframe-setting{
-			width-mm = <129>;
-			height-mm = <64>;
+			width-mm = <344>;
+			height-mm = <193>;
 			panel-timing {
 				clock-frequency = <317419200>;
 				hactive = <3840>;
@@ -3250,8 +3250,8 @@
 
 	YW-720{
 		signal-setting{
-			width-mm = <129>;
-			height-mm = <64>;
+			width-mm = <344>;
+			height-mm = <193>;
 			panel-timing {
 				clock-frequency = <88135920>;
 				hactive = <1920>;
@@ -3266,8 +3266,8 @@
 		};
 
 		superframe-setting{
-			width-mm = <129>;
-			height-mm = <64>;
+			width-mm = <344>;
+			height-mm = <193>;
 			panel-timing {
 				clock-frequency = <265970880>;
 				hactive = <3840>;
@@ -3284,8 +3284,8 @@
 
 	YW-3840{
 		signal-setting{
-			width-mm = <129>;
-			height-mm = <64>;
+			width-mm = <344>;
+			height-mm = <193>;
 			panel-timing {
 				clock-frequency = <179150400>;
 				hactive = <3840>;
@@ -3300,8 +3300,8 @@
 		};
 
 		superframe-setting{
-			width-mm = <129>;
-			height-mm = <64>;
+			width-mm = <344>;
+			height-mm = <193>;
 			panel-timing {
 				clock-frequency = <317419200>;
 				hactive = <3840>;
@@ -3332,8 +3332,8 @@
 
 	BoTai{
 		signal-setting{
-			width-mm = <129>;
-			height-mm = <64>;
+			width-mm = <344>;
+			height-mm = <193>;
 			panel-timing {
 				clock-frequency = <139526400>;
 				hactive = <1920>;
@@ -3348,8 +3348,8 @@
 		};
 
 		superframe-setting{
-			width-mm = <129>;
-			height-mm = <64>;
+			width-mm = <344>;
+			height-mm = <193>;
 			panel-timing {
 				clock-frequency = <278553600>;
 				hactive = <3840>;
@@ -3366,8 +3366,8 @@
 
 	HuaYang{
 		signal-setting{
-			width-mm = <129>;
-			height-mm = <64>;
+			width-mm = <344>;
+			height-mm = <193>;
 			panel-timing {
 				clock-frequency = <139526400>;
 				hactive = <1920>;
@@ -3382,8 +3382,8 @@
 		};
 
 		superframe-setting{
-			width-mm = <129>;
-			height-mm = <64>;
+			width-mm = <344>;
+			height-mm = <193>;
 			panel-timing {
 				clock-frequency = <278553600>;
 				hactive = <3840>;
