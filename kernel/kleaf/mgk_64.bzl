@@ -2646,6 +2646,7 @@ def get_overlay_modules_list():
         mgk_64_device_modules.remove("drivers/misc/mediatek/swpm/mtk-swpm-perf-arm-pmu.ko")
 
         mgk_64_device_modules.remove("drivers/misc/mediatek/qos/mtk_qos.ko")
+        mgk_64_device_modules.remove("drivers/misc/mediatek/mcupm/v2/mcupm.ko")
         mgk_64_platform_device_modules.update({"drivers/misc/mediatek/helio-dvfsrc/mtk-pm-qos.ko":"mt6771"})
         mgk_64_platform_device_modules.update({"drivers/misc/mediatek/helio-dvfsrc/mtk-helio-dvfsrc.ko":"mt6771"})
 
@@ -2666,6 +2667,8 @@ def get_overlay_modules_list():
         mgk_64_platform_device_modules.update({"drivers/pinctrl/mediatek/pinctrl-mt6771.ko":"mt6771"})
         mgk_64_platform_device_modules.update({"drivers/misc/mediatek/mdp/mdp_drv_mt6771.ko":"mt6771"})
         mgk_64_device_modules.append("drivers/misc/mediatek/mcdi/mcdi.ko")
+
+        mgk_64_device_modules.append("drivers/misc/mediatek/cpufreq_v2/src/CPU_DVFS.ko")
 
         mgk_64_device_modules.remove("drivers/iommu/arm/arm-smmu-v3/arm_smmu_v3.ko")
         mgk_64_device_modules.remove("drivers/iommu/arm/arm-smmu-v3/mtk-smmuv3-lmu.ko")
