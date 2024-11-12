@@ -1250,6 +1250,7 @@ struct mtk_drm_crtc {
 	unsigned int usage_ovl_fmt[MAX_LAYER_NR]; // for mt6989 hrt by larb
 	unsigned int usage_ovl_compr[MAX_LAYER_NR];
 	unsigned int usage_ovl_ext_compr[MAX_LAYER_NR * OVL_EXT_LYE_NUM]; // for mt6899 port bw report
+	struct mtk_rect usage_ovl_roi[MAX_LAYER_NR];
 
 	struct mtk_ddp_comp *last_blender;
 
