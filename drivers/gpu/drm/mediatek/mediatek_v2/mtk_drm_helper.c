@@ -271,6 +271,8 @@ void mtk_drm_helper_init(struct device *dev, struct mtk_drm_helper **helper_opt)
 #if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
 		mtk_drm_helper_set_opt_by_name(tmp_opt,
 				"MTK_DRM_OPT_PRIM_DUAL_PIPE", 1);
+		mtk_drm_helper_set_opt_by_name(tmp_opt,
+				"MTK_DRM_OPT_RPO", 0);
 #endif
 	*helper_opt = tmp_opt;
 }
