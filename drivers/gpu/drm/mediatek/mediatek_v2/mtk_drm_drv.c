@@ -4512,6 +4512,19 @@ static const struct mtk_addon_scenario_data mt6991_addon_ext[ADDON_SCN_NR] = {
 	},
 };
 
+#if IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO)
+static const struct mtk_addon_scenario_data mt6991_addon_single[ADDON_SCN_NR] = {
+	[NONE] = {
+		.module_num = 0,
+		.hrt_type = HRT_TB_TYPE_SINGLE_LAYER,
+	},
+	[TRIPLE_DISP] = {
+		.module_num = 0,
+		.hrt_type = HRT_TB_TYPE_SINGLE_LAYER,
+	},
+};
+#endif
+
 static const struct mtk_addon_scenario_data mt6989_addon_main_dual[ADDON_SCN_NR] = {
 	[NONE] = {
 		.module_num = 0,
@@ -5804,18 +5817,21 @@ static const struct mtk_crtc_path_data mt6991_mtk_fifth_path_data = {
 	.path[DDP_MAJOR][0] = mt6991_mtk_ddp_fifth_path,
 	.path_len[DDP_MAJOR][0] = ARRAY_SIZE(mt6991_mtk_ddp_fifth_path),
 	.path_req_hrt[DDP_MAJOR][0] = true,
+	.addon_data = mt6991_addon_single,
 };
 
 static const struct mtk_crtc_path_data mt6991_mtk_sixth_path_data = {
 	.path[DDP_MAJOR][0] = mt6991_mtk_ddp_sixth_path,
 	.path_len[DDP_MAJOR][0] = ARRAY_SIZE(mt6991_mtk_ddp_sixth_path),
 	.path_req_hrt[DDP_MAJOR][0] = true,
+	.addon_data = mt6991_addon_single,
 };
 
 static const struct mtk_crtc_path_data mt6991_mtk_seventh_path_data = {
 	.path[DDP_MAJOR][0] = mt6991_mtk_ddp_seventh_path,
 	.path_len[DDP_MAJOR][0] = ARRAY_SIZE(mt6991_mtk_ddp_seventh_path),
 	.path_req_hrt[DDP_MAJOR][0] = true,
+	.addon_data = mt6991_addon_single,
 };
 #endif
 
