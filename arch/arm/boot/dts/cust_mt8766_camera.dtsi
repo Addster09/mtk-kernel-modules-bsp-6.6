@@ -258,6 +258,6 @@
 
 &kd_camera_hw1 {
 	cam0_enable_sensor = "gc5035_mipi_raw hi556_mipi_raw";
-	cam1_enable_sensor = "gc2375h_mipi_raw";
+	cam1_enable_sensor = "hi556_mipi_raw gc2375h_mipi_raw";
 };
 /* CAMERA GPIO end */
