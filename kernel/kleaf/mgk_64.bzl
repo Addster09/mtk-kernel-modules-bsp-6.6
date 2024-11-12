@@ -777,35 +777,6 @@ mgk_64_platform_device_modules = {
     "drivers/clk/mediatek/clk-bringup.ko": "mt6781 mt6833 mt6877 mt6897 mt6886 mt6893 mt6983 mt6985 mt6989 mt8192 mt8188 mt6899",
     "drivers/clk/mediatek/clk-chk-mt6886.ko": "mt6886",
     "drivers/clk/mediatek/clk-chk-mt6897.ko": "mt6897",
-    "drivers/clk/mediatek/clk-mt6893-apu0.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-apu1.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-apu2.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-apuc.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-apum0.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-apum1.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-apuv.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-audsys.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-cam_m.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-cam_ra.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-cam_rb.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-cam_rc.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-imgsys1.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-imgsys2.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-impc.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-impe.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-impn.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-imps.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-ipe.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-mdp.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-mfgcfg.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-mm.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-scp_adsp.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-vde1.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-vde2.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-ven1.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-ven2.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893.ko": "mt6893",
-    "drivers/clk/mediatek/clk-mt6893-pg.ko": "mt6893",
     "drivers/misc/mediatek/cmdq/mailbox/cmdq-platform-mt6893.ko": "mt6893",
     "drivers/soc/mediatek/mtk-scpsys-mt6833.ko": "mt6833",
     "drivers/soc/mediatek/mtk-scpsys-mt6893.ko": "mt6893",
@@ -813,13 +784,11 @@ mgk_64_platform_device_modules = {
     "drivers/misc/mediatek/cmdq/mailbox/cmdq-platform-mt6781.ko": "mt6781",
     "drivers/misc/mediatek/cmdq/mailbox/cmdq-platform-mt6771.ko": "mt6771",
     "drivers/soc/mediatek/mtk-scpsys-mt6853.ko": "mt6853",
-    "drivers/clk/mediatek/clk-chk-mt6893.ko": "mt6893",
     "drivers/clk/mediatek/clk-chk-mt6899.ko": "mt6899",
     "drivers/clk/mediatek/clk-chk-mt6983.ko": "mt6983",
     "drivers/clk/mediatek/clk-chk-mt6985.ko": "mt6985",
     "drivers/clk/mediatek/clk-chk-mt6989.ko": "mt6989",
     "drivers/clk/mediatek/clk-chk-mt6991.ko": "mt6991",
-    "drivers/clk/mediatek/clk-dbg-mt6893.ko": "mt6893",
     "drivers/clk/mediatek/clk-dbg-mt6886.ko": "mt6886",
     "drivers/clk/mediatek/clk-dbg-mt6897.ko": "mt6897",
     "drivers/clk/mediatek/clk-dbg-mt6899.ko": "mt6899",
@@ -831,7 +800,6 @@ mgk_64_platform_device_modules = {
     "drivers/clk/mediatek/clk-fmeter-mt6897.ko": "mt6897",
     "drivers/clk/mediatek/clk-fmeter-mt6899.ko": "mt6899",
     "drivers/clk/mediatek/clk-fmeter-mt6983.ko": "mt6983",
-    "drivers/clk/mediatek/clk-fmeter-mt6893.ko": "mt6893",
     "drivers/clk/mediatek/clk-fmeter-mt6985.ko": "mt6985",
     "drivers/clk/mediatek/clk-fmeter-mt6989.ko": "mt6989",
     "drivers/clk/mediatek/clk-fmeter-mt6991.ko": "mt6991",
@@ -922,7 +890,6 @@ mgk_64_platform_device_modules = {
     #"drivers/clk/mediatek/clk-mt8188-vpp1.ko": "mt8188",
     #"drivers/clk/mediatek/clk-mt8188-wpe.ko": "mt8188",
     "drivers/clk/mediatek/pd-chk-mt6886.ko": "mt6886",
-    "drivers/clk/mediatek/pd-chk-mt6893.ko": "mt6893",
     "drivers/clk/mediatek/pd-chk-mt6897.ko": "mt6897",
     "drivers/clk/mediatek/pd-chk-mt6899.ko": "mt6899",
     "drivers/clk/mediatek/pd-chk-mt6983.ko": "mt6983",
@@ -2031,39 +1998,6 @@ def get_overlay_modules_list():
         mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-fmeter-mt6886.ko")
         mgk_64_platform_device_modules.pop("drivers/clk/mediatek/pd-chk-mt6886.ko")
         mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-dbg-mt6886.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-apu0.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-apu1.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-apu2.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-apuc.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-apum0.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-apum1.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-apuv.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-audsys.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-cam_m.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-cam_ra.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-cam_rb.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-cam_rc.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-imgsys1.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-imgsys2.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-impc.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-impe.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-impn.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-imps.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-ipe.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-mdp.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-mfgcfg.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-mm.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-scp_adsp.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-vde1.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-vde2.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-ven1.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-ven2.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-chk-mt6893.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-dbg-mt6893.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-fmeter-mt6893.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/pd-chk-mt6893.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-pg.ko")
         mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6983.ko")
         mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6983-cam.ko")
         mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6983-img.ko")
@@ -2903,7 +2837,39 @@ def get_overlay_modules_list():
         mgk_64_kleaf_modules.append("//vendor/mediatek/kernel_modules/gpu:gpu_mt6893")
         mgk_64_kleaf_modules.remove("//vendor/mediatek/kernel_modules/mtkcam/sched:c2ps")
         mgk_64_kleaf_modules.remove("//vendor/mediatek/kernel_modules/mtkcam/isp_pspm:isp_pspm")
-
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-apu0.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-apu1.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-apu2.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-apuc.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-apum0.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-apum1.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-apuv.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-audsys.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-cam_m.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-cam_ra.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-cam_rb.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-cam_rc.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-imgsys1.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-imgsys2.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-impc.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-impe.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-impn.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-imps.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-ipe.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-mdp.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-mfgcfg.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-mm.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-scp_adsp.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-vde1.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-vde2.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-ven1.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-ven2.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-mt6893-pg.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-chk-mt6893.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-dbg-mt6893.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/clk-fmeter-mt6893.ko":"mt6893"})
+        mgk_64_platform_device_modules.update({"drivers/clk/mediatek/pd-chk-mt6893.ko":"mt6893"})
         mgk_64_platform_device_modules.update({"drivers/gpu/mediatek/gpufreq/v2_legacy/mtk_gpufreq_mt6893.ko":"mt6893"})
         mgk_64_platform_device_modules.update({"drivers/pinctrl/mediatek/pinctrl-mt6885.ko":"mt6893"})
         mgk_64_platform_device_modules.update({"drivers/misc/mediatek/cm_mgr_legacy_v1/mtk_cm_mgr_mt6893.ko":"mt6893"})
@@ -3602,39 +3568,7 @@ def get_overlay_modules_list():
         mgk_64_device_modules.remove("drivers/memory/mediatek/slc-parity.ko")
         mgk_64_device_modules.remove("drivers/memory/mediatek/smpu.ko")
         mgk_64_device_modules.remove("drivers/memory/mediatek/smpu-hook-v1.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-apu0.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-apu1.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-apu2.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-apuc.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-apum0.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-apum1.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-apuv.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-audsys.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-cam_m.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-cam_ra.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-cam_rb.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-cam_rc.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-imgsys1.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-imgsys2.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-impc.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-impe.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-impn.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-imps.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-ipe.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-mdp.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-mfgcfg.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-mm.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-scp_adsp.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-vde1.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-vde2.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-ven1.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-ven2.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-chk-mt6893.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-dbg-mt6893.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-fmeter-mt6893.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/pd-chk-mt6893.ko")
-        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-mt6893-pg.ko")
+
         mgk_64_platform_device_modules.pop("drivers/gpu/mediatek/gpufreq/v2/mtk_gpufreq_mt6886.ko")
         mgk_64_platform_device_modules.pop("drivers/gpu/mediatek/gpufreq/v2/mtk_gpufreq_mt6897.ko")
         mgk_64_platform_device_modules.pop("drivers/gpu/mediatek/gpufreq/v2/mtk_gpufreq_mt6899.ko")
