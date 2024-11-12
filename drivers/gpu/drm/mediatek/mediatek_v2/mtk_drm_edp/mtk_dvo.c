@@ -1231,6 +1231,15 @@ static int mtk_dvo_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
 		*base_bw = mtk_dvo_get_frame_hrt_bw_base_by_datarate(crtc, dvo);
 	}
 		break;
+	case GET_FRAME_HRT_BW_BY_MODE:
+	{
+		struct mtk_drm_crtc *crtc = comp->mtk_crtc;
+		unsigned long long *base_bw =
+			(unsigned long long *)params;
+
+		*base_bw = mtk_dvo_get_frame_hrt_bw_base_by_datarate(crtc, dvo);
+	}
+		break;
 #if IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO_YCT)
 	case SET_CRTC_ID:
 	{
