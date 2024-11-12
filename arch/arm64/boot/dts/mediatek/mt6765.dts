@@ -991,7 +991,7 @@ initcall_debug=1";
 			reusable;
 			size = <0 0x10000000>;
 			alignment = <0 0x1000000>;
-			alloc-range = <0 0xc0000000 0 0x10000000>;
+			alloc-ranges = <0 0 0 0xffffffff>;
 		};
 
 		ion-carveout-heap {
