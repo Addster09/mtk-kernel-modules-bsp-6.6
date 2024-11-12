@@ -3721,10 +3721,12 @@ static const enum mtk_ddp_comp_id mt6991_mtk_ddp_mem_dp_wo_tdshp[] = {
 
 /* CRTC1 */
 static const enum mtk_ddp_comp_id mt6991_mtk_ddp_ext_dp[] = {
+#if !IS_ENABLED(CONFIG_MTK_DP_AS_CRTC0)
 	DDP_COMPONENT_OVL1_EXDMA3,
 	DDP_COMPONENT_OVL1_BLENDER1,
 	DDP_COMPONENT_OVL1_EXDMA4,
 	DDP_COMPONENT_OVL1_BLENDER2,
+#endif
 	DDP_COMPONENT_OVL1_EXDMA5,
 	DDP_COMPONENT_OVL1_BLENDER3,
 	DDP_COMPONENT_OVL1_EXDMA6,
