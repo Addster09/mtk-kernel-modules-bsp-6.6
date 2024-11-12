@@ -6020,6 +6020,7 @@ static void mtk_crtc_update_hrt_state(struct drm_crtc *crtc,
 	bool opt_mmdvfs = 0, channel_bw_chk = 0;
 	bool is_force_high_step = atomic_read(&mtk_crtc->force_high_step);
 	unsigned int channel_hrt[BW_CHANNEL_NR] = {0};
+	unsigned int channel_hrt_write[BW_CHANNEL_NR] = {0};
 	struct mtk_ddp_comp *cwb_comp = NULL;
 	unsigned int wdma_bw = 0;
 
@@ -6161,6 +6162,31 @@ static void mtk_crtc_update_hrt_state(struct drm_crtc *crtc,
 			}
 
 			mtk_crtc->qos_ctx->last_channel_req[i] = channel_hrt[i];
+		}
+	}
+
+	if (priv->data->update_channel_hrt_write) {
+		if (bw_base == 0)
+			bw_base = mtk_drm_primary_frame_bw(crtc);
+		CRTC_MMP_MARK(0, atomic_begin, (unsigned long)cmdq_handle, __LINE__);
+		priv->data->update_channel_hrt_write(mtk_crtc, bw_base, channel_hrt_write);
+		CRTC_MMP_MARK(0, atomic_begin, (unsigned long)cmdq_handle, __LINE__);
+
+		for (i = 0 ; i < BW_CHANNEL_NR ; i++) {
+			if (channel_hrt_write[i] > mtk_crtc->qos_ctx->last_channel_write_req[i]) {
+				DDPINFO("mtk_disp_set_channel_hrt_write_bw[%u] = %u\n", i, channel_hrt_write[i]);
+				mtk_disp_set_channel_hrt_write_bw(mtk_crtc, channel_hrt_write[i], i);
+				cmdq_pkt_write(cmdq_handle, mtk_crtc->gce_obj.base,
+			       mtk_get_gce_backup_slot_pa(mtk_crtc, DISP_SLOT_CUR_CHAN_HRT_WRITE(i)),
+			       NO_PENDING_HRT, ~0);
+			} else if (channel_hrt_write[i] < mtk_crtc->qos_ctx->last_channel_write_req[i]) {
+				DDPINFO("cmdq_pkt_write channel_hrt_write_bw[%u] = %u\n", i, channel_hrt_write[i]);
+				cmdq_pkt_write(cmdq_handle, mtk_crtc->gce_obj.base,
+			       mtk_get_gce_backup_slot_pa(mtk_crtc, DISP_SLOT_CUR_CHAN_HRT_WRITE(i)),
+			       channel_hrt_write[i], ~0);
+			}
+
+			mtk_crtc->qos_ctx->last_channel_write_req[i] = channel_hrt_write[i];
 		}
 	}
 
@@ -8479,6 +8505,23 @@ static void mtk_crtc_update_hrt_qos(struct drm_crtc *crtc,
 				mtk_disp_set_channel_hrt_bw(mtk_crtc, mtk_crtc->qos_ctx->last_channel_req[i], i);
 				*(unsigned int *)mtk_get_gce_backup_slot_va(mtk_crtc, DISP_SLOT_CUR_CHAN_HRT(i)) =
 					NO_PENDING_HRT;
+			}
+		}
+	}
+
+	if (priv->data->update_channel_hrt_write) {
+		for (i = 0; i < BW_CHANNEL_NR; i++) {
+			cur_chan_hrt_bw = *(unsigned int *)mtk_get_gce_backup_slot_va(mtk_crtc,
+				DISP_SLOT_CUR_CHAN_HRT_WRITE(i));
+
+			if (cur_chan_hrt_bw != NO_PENDING_HRT &&
+				cur_chan_hrt_bw <= mtk_crtc->qos_ctx->last_channel_write_req[i]) {
+				DDPINFO("CRTC%u channel[%d]:%u, release HRT to last_channel_write_hrt_req:%u\n",
+					crtc_idx, i, cur_chan_hrt_bw, mtk_crtc->qos_ctx->last_channel_write_req[i]);
+				mtk_disp_set_channel_hrt_write_bw(mtk_crtc,
+						mtk_crtc->qos_ctx->last_channel_write_req[i], i);
+				*(unsigned int *)mtk_get_gce_backup_slot_va(mtk_crtc,
+						DISP_SLOT_CUR_CHAN_HRT_WRITE(i)) = NO_PENDING_HRT;
 			}
 		}
 	}
@@ -13282,6 +13325,11 @@ skip:
 			mtk_disp_set_channel_hrt_bw(mtk_crtc, 0, i);
 	}
 
+	if (priv->data->update_channel_hrt_write) {
+		for (i = 0; i < BW_CHANNEL_NR; i++)
+			mtk_disp_set_channel_hrt_write_bw(mtk_crtc, 0, i);
+	}
+
 	if (priv->data->respective_ostdl)
 		mtk_disp_set_module_hrt(mtk_crtc, 0, NULL, PMQOS_SET_HRT_BW);
 
@@ -13813,8 +13861,10 @@ void mtk_drm_crtc_enable(struct drm_crtc *crtc, bool need_report_bw)
 	if (!need_report_bw) {
 		mtk_crtc->qos_ctx->last_hrt_req = 0;
 		mtk_crtc->usage_ovl_fmt[0] = 4;
-		for (i = 0; i < BW_CHANNEL_NR ; i++)
+		for (i = 0; i < BW_CHANNEL_NR ; i++) {
 			mtk_crtc->qos_ctx->last_channel_req[i] = 0;
+			mtk_crtc->qos_ctx->last_channel_write_req[i] = 0;
+		}
 	}
 
 	/* 7. config ddp engine */
@@ -13848,6 +13898,12 @@ void mtk_drm_crtc_enable(struct drm_crtc *crtc, bool need_report_bw)
 			for (i = 0; i < BW_CHANNEL_NR; i++)
 				mtk_disp_set_channel_hrt_bw(mtk_crtc,
 					mtk_crtc->qos_ctx->last_channel_req[i], i);
+		}
+
+		if (priv->data->update_channel_hrt_write) {
+			for (i = 0; i < BW_CHANNEL_NR; i++)
+				mtk_disp_set_channel_hrt_write_bw(mtk_crtc,
+					mtk_crtc->qos_ctx->last_channel_write_req[i], i);
 		}
 
 		if (priv->data->respective_ostdl) {

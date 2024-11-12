@@ -61,6 +61,7 @@ struct mtk_drm_qos_ctx {
 	unsigned int last_mmclk_req_idx;
 	unsigned int last_larb_hrt_req;
 	unsigned int last_channel_req[BW_CHANNEL_NR];
+	unsigned int last_channel_write_req[BW_CHANNEL_NR];
 	atomic_t last_hrt_idx;
 	atomic_t hrt_cond_sig;
 	wait_queue_head_t hrt_cond_wq;
@@ -94,8 +95,11 @@ void mtk_drm_check_mmclk(void);
 unsigned int mtk_disp_get_larb_hrt_bw(struct mtk_drm_crtc *mtk_crtc);
 void mtk_disp_update_channel_hrt_MT6991(struct mtk_drm_crtc *mtk_crtc,
 						unsigned int bw_base, unsigned int channel_bw[]);
+void mtk_disp_update_channel_hrt_write_MT6991(struct mtk_drm_crtc *mtk_crtc,
+						unsigned int bw_base, unsigned int channel_bw[]);
 unsigned int mtk_disp_get_channel_idx_MT6991(enum CHANNEL_TYPE type, unsigned int i);
 void mtk_disp_set_channel_hrt_bw(struct mtk_drm_crtc *mtk_crtc, unsigned int bw, int i);
+void mtk_disp_set_channel_hrt_write_bw(struct mtk_drm_crtc *mtk_crtc, unsigned int bw, int i);
 void mtk_disp_channel_srt_bw(struct mtk_drm_crtc *mtk_crtc);
 void mtk_disp_clear_channel_srt_bw(struct mtk_drm_crtc *mtk_crtc);
 void mtk_disp_total_srt_bw(struct mtk_drm_crtc *mtk_crtc, unsigned int bw);
