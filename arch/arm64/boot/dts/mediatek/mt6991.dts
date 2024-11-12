@@ -18060,6 +18060,15 @@ connsys_emi_config_hyp: connsys-emi-config-hyp {
 		pinctrl-7 = <&bt_find_my_phone_low>;
 	};
 
+	/* BT 7XXX RST GPIO control */
+	combo_bt: combo-bt {
+		compatible = "mediatek,bt_7xxx";
+		pinctrl-names = "bt_rst_on_7xxx",
+				"bt_rst_off_7xxx";
+		pinctrl-0 = <&bt_rst_on_7xxx>;
+		pinctrl-1 = <&bt_rst_off_7xxx>;
+	};
+
 	tboard_thermistor1: thermal-ntc1@1c01d128 {
 		compatible = "mediatek,mt6685-tia-ntc";
 		#thermal-sensor-cells = <0>;
@@ -20199,7 +20208,7 @@ connsys_emi_config_hyp: connsys-emi-config-hyp {
 };
 /* WF GPIO end */
 
-/* BT combo GPIO start */
+/* BT 6xxx GPIO start */
 &pio {
 	bt_combo_gpio_init: bt-combo-gpio-init {
 		/* BT_UTXD, GPIO237 */
@@ -20264,7 +20273,24 @@ connsys_emi_config_hyp: connsys-emi-config-hyp {
 		};
 	};
 };
-/* BT combo GPIO end */
+/* BT 6xxx GPIO end */
+
+/* BT 7xxx GPIO start */
+&pio {
+	bt_rst_on_7xxx: bt-rst-on-7xxx {
+		pins-cmd1-dat {
+			pinmux = <PINMUX_GPIO133__FUNC_GPIO133>;
+			output-high;
+		};
+	};
+	bt_rst_off_7xxx: bt-rst-off-7xxx {
+		pins-cmd1-dat {
+			pinmux = <PINMUX_GPIO133__FUNC_GPIO133>;
+			output-low;
+		};
+	};
+};
+/* BT 7xxx GPIO end */
 
 &spmi {
 	pmic: pmic@4 {
