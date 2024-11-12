@@ -12222,8 +12222,8 @@ void mtk_crtc_clr_set_dirty(struct mtk_drm_crtc *mtk_crtc)
 	struct cmdq_pkt *cmdq_handle;
 	struct mtk_cmdq_cb_data *cb_data;
 
-	if (!mtk_crtc->is_mml_dl)
-		return;
+//	if (!mtk_crtc->is_mml_dl)
+//		return;
 
 	cb_data = kmalloc(sizeof(*cb_data), GFP_KERNEL);
 	if (!cb_data) {
@@ -15351,6 +15351,7 @@ struct cmdq_pkt *mtk_crtc_gce_commit_begin(struct drm_crtc *crtc,
 	}
 
 #if !IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO_YCT)
+	mtk_crtc_clr_set_dirty(mtk_crtc);
 	if (crtc_id == 0)
 		mtk_vidle_clear_wfe_event(DISP_VIDLE_USER_DISP_CMDQ, cmdq_handle,
 				  mtk_crtc->gce_obj.event[EVENT_DPC_DISP1_PRETE]);
