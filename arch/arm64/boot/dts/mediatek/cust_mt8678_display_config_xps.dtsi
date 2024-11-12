@@ -46,6 +46,7 @@
 
 &max96789 {
 	status = "okay";
+	inited-in-lk = <0>;
 };
 
 &max96789_1 {
