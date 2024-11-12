@@ -1681,5 +1681,6 @@ void mtk_crtc_gce_event_config(struct drm_crtc *crtc);
 void mtk_crtc_vdisp_ao_config(struct drm_crtc *crtc);
 void mml_cmdq_pkt_init(struct drm_crtc *crtc, struct cmdq_pkt *cmdq_handle);
 struct mtk_ddp_comp *mtk_disp_get_wdma_comp_by_scn(struct drm_crtc *crtc, enum addon_scenario scn);
+enum addon_scenario mtk_crtc_wb_get_scn(struct mtk_crtc_state *state);
 
 #endif /* MTK_DRM_CRTC_H */

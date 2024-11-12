@@ -1725,6 +1725,7 @@ static void mtk_wdma_addon_config(struct mtk_ddp_comp *comp,
 		bw_base = div_u64(bw_base, 1000) * 2;
 
 		mtk_ddp_comp_io_cmd(comp, NULL, PMQOS_SET_HRT_BW, &bw_base);
+		comp->hrt_bw = bw_base;
 	}
 	if (priv->data->mmsys_id == MMSYS_MT6899) {
 		bpp = mtk_get_format_bpp(comp->fb->format->format);
@@ -2356,7 +2357,7 @@ static int mtk_wdma_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
 
 		data->larb_id = -1;
 		data->bw = 0;
-		if (data->type != CHANNEL_HRT_RW)
+		if (data->type != CHANNEL_HRT_RW && data->type != CHANNEL_HRT_WRITE)
 			break;
 
 		if (comp->larb_num == 1)
@@ -2408,8 +2409,6 @@ static int mtk_wdma_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
 					wdma->info_data->force_ostdl_bw, bw);
 				comp->last_hrt_bw = ostdl_bw;
 			}
-			if (wdma->data->hrt_channel)
-				mtk_vidle_channel_bw_set(bw, wdma->data->hrt_channel(comp));
 		}
 		ret = WDMA_REQ_HRT;
 		break;
