@@ -2838,6 +2838,17 @@ def get_overlay_modules_list():
         mgk_64_device_modules.remove("sound/soc/codecs/snd-soc-mt6681.ko")
         mgk_64_device_modules.append("sound/soc/mediatek/codec/mt6358/snd-mtk-soc-codec-6358.ko")
 
+        mgk_64_device_modules.append("drivers/misc/mediatek/scp/cm4/scp.ko")
+        mgk_64_device_modules.remove("sound/soc/codecs/mt6338-accdet.ko")
+        mgk_64_device_modules.remove("sound/soc/codecs/mt6681-accdet.ko")
+        mgk_64_device_modules.remove("drivers/misc/mediatek/sensor/2.0/sensorhub/sensorhub.ko")
+        mgk_64_device_modules.remove("drivers/misc/mediatek/apusys/apu_aov.ko")
+        mgk_64_device_modules.remove("drivers/misc/mediatek/apusys/apusys.ko")
+        mgk_64_device_modules.remove("drivers/gpu/drm/mediatek/mediatek_v2/mtk_aod_scp.ko")
+        mgk_64_device_modules.remove("drivers/misc/mediatek/apusys/sapu/sapu.ko")
+        mgk_64_device_modules.remove("drivers/misc/mediatek/apusys/power/apu_top.ko")
+        mgk_64_kleaf_modules.remove("//vendor/mediatek/kernel_modules/mtkcam/scpsys/mtk-aov:mtk_aov")
+
         mgk_64_platform_device_modules.pop("sound/soc/mediatek/mt6886/mt6886-mt6368.ko")
         mgk_64_platform_device_modules.pop("sound/soc/mediatek/mt6886/snd-soc-mt6886-afe.ko")
         mgk_64_platform_device_modules.pop("sound/soc/mediatek/mt6897/mt6897-mt6368.ko")

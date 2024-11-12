@@ -518,3 +518,10 @@ config MTK_AUTO_SUPPORT
          When the modules/codes only for auto project.
          Say m here if is auto project.
          If unsure, say N.
+config SCP_DVFS_MT6771
+       tristate "smart platform"
+       help
+         Which is used for distinguish smart platform scp dvfs.
+         When the platform is MT6771 or MT8788, the macro should open.
+         Say m here if is MT6771 or MT8788 project.
+         If unsure, say N.
