@@ -36,7 +36,7 @@ void adsp_mt_set_swirq_awake(u32 cid)
 	if (cid == ADSP_A_ID)
 		writel(ADSP_A_SW_INT_AWAKE_BIT, ADSP_SW_INT_SET);
 	else
-		writel(ADSP_A_SW_INT_AWAKE_BIT, ADSP_SW_INT_SET);
+		writel(ADSP_B_SW_INT, ADSP_SW_INT_SET);
 }
 
 u32 adsp_mt_check_swirq_awake(u32 cid)
