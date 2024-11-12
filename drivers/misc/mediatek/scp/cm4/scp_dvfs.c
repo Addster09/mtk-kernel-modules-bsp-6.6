@@ -1593,8 +1593,8 @@ static int __init mt_scp_dvfs_pdrv_probe(struct platform_device *pdev)
 	}
 
 	dvfs->opp = opp;
-	dvfs->legacy_support_v1 = of_property_read_bool(node, "legacy_support_v1");
-	dvfs->legacy_support_v2 = of_property_read_bool(node, "legacy_support_v2");
+	dvfs->legacy_support_v1 = of_property_read_bool(node, "legacy-support-v1");
+	dvfs->legacy_support_v2 = of_property_read_bool(node, "legacy-support-v2");
 
 	/* get dvfsrc table opp count */
 	ret = of_property_read_u32(node, "dvfsrc-opp-num",
