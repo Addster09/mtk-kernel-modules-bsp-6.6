@@ -2444,9 +2444,6 @@ static int disp_aal_act_eventctl(struct mtk_ddp_comp *comp, void *data)
 			mtk_crtc_check_trigger(comp->mtk_crtc, delay_trigger, true);
 	}
 
-#if IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO_YCT)
-	disp_aal_set_interrupt(comp, enable, NULL);
-#endif
 	if (atomic_read(&aal_data->primary_data->force_event_en))
 		enable = 1;
 	atomic_set(&aal_data->primary_data->event_en, enable);
@@ -2460,7 +2457,9 @@ static int disp_aal_act_eventctl(struct mtk_ddp_comp *comp, void *data)
 		disp_aal_relay_control(comp, false);
 		CRTC_MMP_MARK(0, aal_event_ctl, events, 2);
 	}
-
+#if IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO)
+	disp_aal_set_interrupt(comp, enable, NULL);
+#endif
 	return ret;
 }
 
