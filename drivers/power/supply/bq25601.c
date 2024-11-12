@@ -1293,6 +1293,7 @@ static int bq25601_enable_vbus(struct regulator_dev *rdev)
 {
 	bq25601_set_chg_config(0);
 	bq25601_set_otg_config(1);
+	bq25601_set_watchdog(0x0);      /* disable WDT timer */
 
 	return 0;
 }
