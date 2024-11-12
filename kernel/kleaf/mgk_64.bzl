@@ -2661,6 +2661,7 @@ def get_overlay_modules_list():
         mgk_64_platform_device_modules.update({"drivers/clk/mediatek/pd-chk-mt6771.ko":"mt6771"})
         mgk_64_device_modules.append("drivers/misc/mediatek/cpuidle/mtk_cpuidle.ko")
         mgk_64_device_modules.append("drivers/regulator/mt6358-regulator.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/cpuhotplug/mtk_cpuhp.ko")
         mgk_64_device_modules.remove("drivers/spmi/spmi-mtk-mpu.ko")
         mgk_64_device_modules.remove("drivers/spmi/spmi-mtk-pmif.ko")
         mgk_64_platform_device_modules.update({"drivers/pinctrl/mediatek/pinctrl-mt6771.ko":"mt6771"})
