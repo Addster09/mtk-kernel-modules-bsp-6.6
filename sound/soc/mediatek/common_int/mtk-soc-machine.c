@@ -94,6 +94,8 @@
 
 #if IS_ENABLED(CONFIG_SND_SOC_MT6357_ACCDET)
 #include "../../codecs/mt6357-accdet.h"
+#elif IS_ENABLED(CONFIG_SND_SOC_MT6358_ACCDET)
+#include "../../codecs/mt6358-accdet.h"
 #endif
 
 #if IS_ENABLED(CONFIG_DEBUG_FS)
@@ -532,12 +534,16 @@ SND_SOC_DAILINK_DEFS(i2s1_awb_capture,
 	DAILINK_COMP_ARRAY(COMP_DUMMY()),
 	DAILINK_COMP_ARRAY(COMP_PLATFORM(MT_SOC_I2S2_ADC2_PCM)));
 
-static int mt6357_codec_init(struct snd_soc_pcm_runtime *rtd)
+static int mt63xx_codec_init(struct snd_soc_pcm_runtime *rtd)
 {
 #if IS_ENABLED(CONFIG_SND_SOC_MT6357_ACCDET)
 	struct snd_soc_component *codec_component =
 		snd_soc_rtdcom_lookup(rtd, CODEC_MT6357_NAME);
 	mt6357_accdet_init(codec_component, rtd->card);
+#elif IS_ENABLED(CONFIG_SND_SOC_MT6358_ACCDET)
+	struct snd_soc_component *codec_component =
+		snd_soc_rtdcom_lookup(rtd, CODEC_MT6358_NAME);
+	mt6358_accdet_init(codec_component, rtd->card);
 #endif
 	return 0;
 }
@@ -548,7 +554,7 @@ static struct snd_soc_dai_link mt_soc_dai_common[] = {
 	{
 		.name = "MultiMedia1",
 		.stream_name = MT_SOC_DL1_STREAM_NAME,
-		.init = mt6357_codec_init,
+		.init = mt63xx_codec_init,
 		SND_SOC_DAILINK_REG(multimedia1),
 	},
 	{

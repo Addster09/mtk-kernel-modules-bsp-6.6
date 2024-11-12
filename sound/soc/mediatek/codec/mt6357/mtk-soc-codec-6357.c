@@ -5913,7 +5913,7 @@ static int read_efuse_hp_impedance_current_calibration(void)
 #else
 	ret = nvmem_device_read(mCodec_priv->hp_efuse, 0xae, 2, &efuse_val);
 	if (ret < 0) {
-		dev_err(mCodec_priv->dev, "%s(), efuse read fail: %d\n",
+		dev_info(mCodec_priv->dev, "%s(), efuse read fail: %d\n",
 			__func__, ret);
 		efuse_val = 0;
 	}
@@ -6086,7 +6086,7 @@ static int mtk_codec_dev_probe(struct platform_device *pdev)
 	ret = PTR_ERR_OR_ZERO(mCodec_priv->hp_efuse);
 	if (ret) {
 		if (ret != -EPROBE_DEFER)
-			dev_err(&pdev->dev, "Error: Get efuse failed (%d)\n",
+			dev_info(&pdev->dev, "Error: Get efuse failed (%d)\n",
 				ret);
 		return ret;
 	}

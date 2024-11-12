@@ -13,8 +13,8 @@
 #
 
 # Old kernel architecture
-ifdef CONFIG_SND_SOC_MT6739
-MTK_PLATFORM := mt6739
+ifdef CONFIG_SND_SOC_MT6771
+MTK_PLATFORM := mt6771
 else
 MTK_PLATFORM := mt6765
 endif

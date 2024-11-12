@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+# SPDX-License-Identifier: GPL-2.0
 #ifeq ($(CONFIG_MTK_SND_SOC_NEW_ARCH),y)
 #subdir-ccflags-y += -DAUDIO_USING_WRAP
 #endif
