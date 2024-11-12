@@ -54,6 +54,14 @@ source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/pkvm_mkp/Kconfig"
 source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/pkvm_mgmt/Kconfig"
 source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/pkvm_smmu/Kconfig"
 
+config MTK_PLAT_POWER_MT8788_MCDI
+	tristate "Platform power specified macro"
+	help
+	  This macro is used to distinguish the platform dependent parts
+	  from those power related features.
+	  If the macro is enabled, compile the mt8788 mcdi related code.
+	  If unsure, say N.
+
 config MTK_PLAT_POWER_MT8788
 	tristate "Platform power specified macro"
 	help
