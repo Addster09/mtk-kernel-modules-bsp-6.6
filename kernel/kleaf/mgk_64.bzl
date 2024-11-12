@@ -2801,6 +2801,8 @@ def get_overlay_modules_list():
         mgk_64_device_modules.remove("drivers/misc/mediatek/sspm/v3/sspm_v3.ko")
         mgk_64_device_modules.remove("drivers/misc/mediatek/tinysys_scmi/tinysys-scmi.ko")
         mgk_64_device_modules.append("drivers/misc/mediatek/sspm/v1/sspm_v1.ko")
+        mgk_64_device_modules.remove("drivers/misc/mediatek/mdpm/mtk_mdpm.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/mdpm_v1/mtk_mdpm_v1.ko")
 
         mgk_64_device_modules.append("drivers/misc/mediatek/videocodec/vcodec_kernel_common_driver.ko")
         mgk_64_device_modules.append("drivers/misc/mediatek/videocodec/vcodec_kernel_driver-v1.ko")
