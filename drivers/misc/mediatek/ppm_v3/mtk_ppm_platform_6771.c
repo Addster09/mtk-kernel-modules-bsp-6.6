@@ -353,6 +353,7 @@ unsigned int mt_ppm_thermal_get_power_big_max_opp(unsigned int opp)
 	return (power == -1)
 		? (unsigned int)ppm_get_max_pwr_idx() : (unsigned int)power;
 }
+EXPORT_SYMBOL(mt_ppm_thermal_get_power_big_max_opp);
 
 unsigned int mt_ppm_get_leakage_mw(enum ppm_cluster_lkg cluster)
 {
