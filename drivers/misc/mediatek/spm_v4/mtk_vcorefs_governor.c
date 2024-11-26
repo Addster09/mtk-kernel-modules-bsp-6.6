@@ -375,12 +375,6 @@ static int uv_opp[4] = {
 };
 #endif
 
-//static int hz_opp[4] = {
-//	1333000,
-//	1066000,
-//	1066000,
-//	1066000
-//};
 
 int vcorefs_get_vcore_by_steps(u32 opp)
 {
@@ -396,17 +390,54 @@ int vcorefs_get_vcore_by_steps(u32 opp)
 }
 EXPORT_SYMBOL(vcorefs_get_vcore_by_steps);
 
+//refer: build_vcore_opp_table
 int vcorefs_get_ddr_by_steps(u32 opp)
 {
 	int ddr_khz;
+	int ddr_type = __spm_get_dram_type();
 #if IS_ENABLED(CONFIG_MTK_DRAMC_LEGACY)
 	ddr_khz = dram_steps_freq(opp) * 1000;
 #endif
 #if IS_ENABLED(CONFIG_MTK_DRAMC)
-	ddr_khz = mtk_dramc_get_steps_freq(opp) * 1000;
+	switch (opp) {
+	case 0:
+		ddr_khz = mtk_dramc_get_steps_freq(opp) * 1000;
+		break;
+	case 1:
+		if (ddr_type == SPMFW_LP4X_2CH_3200)
+			ddr_khz = mtk_dramc_get_steps_freq(opp-1) * 1000;
+		else if (ddr_type == SPMFW_LP4X_2CH_3733 || ddr_type == SPMFW_LP4_2CH_2400)
+			ddr_khz = mtk_dramc_get_steps_freq(opp) * 1000;
+		else if (ddr_type == SPMFW_LP3_1CH_1866)
+			ddr_khz = mtk_dramc_get_steps_freq(opp) * 1000;
+		else
+			ddr_khz = -1;
+		break;
+	case 2:
+		if (ddr_type == SPMFW_LP4X_2CH_3200)
+			ddr_khz = mtk_dramc_get_steps_freq(opp-1) * 1000;
+		else if (ddr_type == SPMFW_LP4X_2CH_3733 || ddr_type == SPMFW_LP4_2CH_2400)
+			ddr_khz = mtk_dramc_get_steps_freq(opp-1) * 1000;
+		else if (ddr_type == SPMFW_LP3_1CH_1866)
+			ddr_khz = mtk_dramc_get_steps_freq(opp-1) * 1000;
+		else
+			ddr_khz = -1;
+		break;
+	case 3:
+		if (ddr_type == SPMFW_LP4X_2CH_3200)
+			ddr_khz = mtk_dramc_get_steps_freq(opp-1) * 1000;
+		else if (ddr_type == SPMFW_LP4X_2CH_3733 || ddr_type == SPMFW_LP4_2CH_2400)
+			ddr_khz = mtk_dramc_get_steps_freq(opp-1) * 1000;
+		else if (ddr_type == SPMFW_LP3_1CH_1866)
+			ddr_khz = mtk_dramc_get_steps_freq(opp-1) * 1000;
+		else
+			ddr_khz = -1;
+		break;
+	default:
+		ddr_khz = -1;
+	}
 #endif
 	return ddr_khz;
-	//return hz_opp[opp];
 }
 EXPORT_SYMBOL(vcorefs_get_ddr_by_steps);
 
