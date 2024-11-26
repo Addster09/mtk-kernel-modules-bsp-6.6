@@ -32,6 +32,10 @@ ifneq ($(filter y m, $(CONFIG_MTK_MME_SUPPORT)),)
 ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/mme/
 endif
 
+ifneq ($(filter mt6771,$(CONFIG_MTK_LEGACY_PLATFORM)),)
+ccflags-y += -DMT8788_MDP
+endif
+
 ifeq ($(strip $(CONFIG_MTK_PQ_COLOR_MODE)),"MDP")
 ccflags-y += -DCMDQ_MDP_COLOR
 endif
