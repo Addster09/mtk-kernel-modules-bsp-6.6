@@ -14,6 +14,10 @@ obj-$(CONFIG_COMMON_CLK_MT6771) += clkchk-mt6771.o
 obj-$(CONFIG_COMMON_CLK_MT6771) += pd-chk-mt6771.o
 pd-chk-mt6771-$(CONFIG_COMMON_CLK_MT6771) += mtk-pd-chk-mt6771.o
 obj-$(CONFIG_COMMON_CLK_MT6771) += clk-mt6771-pg.o
+ifeq ($(CONFIG_DEBUG_FS), y)
+obj-$(CONFIG_COMMON_CLK_MT6771) += clkdbg-mt6771.o
+clk-dbg-mt6771-$(CONFIG_COMMON_CLK_MT6771) += clkdbg-mt6771.o
+endif
 endif
 
 ifneq ($(wildcard $(srctree)/$(src)/clk-mt6781.c),)
