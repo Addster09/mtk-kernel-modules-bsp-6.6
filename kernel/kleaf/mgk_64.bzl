@@ -2757,6 +2757,7 @@ def get_overlay_modules_list():
         mgk_64_platform_device_modules.pop("drivers/misc/mediatek/slbc/slbc_mt6899.ko")
         mgk_64_device_modules.append("drivers/misc/mediatek/leakage_table_v2/mediatek_static_power.ko")
 
+        mgk_64_device_modules.append("sound/soc/codecs/aw883xx/snd-soc-aw883xx.ko")
         mgk_64_device_modules.remove("sound/soc/codecs/snd-soc-mt6338.ko")
         mgk_64_device_modules.remove("sound/soc/codecs/snd-soc-mt6368.ko")
         mgk_64_device_modules.remove("sound/soc/codecs/mt6357-accdet.ko")
