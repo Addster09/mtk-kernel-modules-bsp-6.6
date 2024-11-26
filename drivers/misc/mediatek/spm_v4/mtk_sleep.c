@@ -32,9 +32,9 @@
 #include <include/pmic.h>
 #endif
 
-#if IS_ENABLED(CONFIG_MTK_SND_SOC_NEW_ARCH)
-#include <mtk-soc-afe-control.h>
-#endif /* CONFIG_MTK_SND_SOC_NEW_ARCH */
+//#if IS_ENABLED(CONFIG_MTK_SND_SOC_NEW_ARCH)
+//#include <mtk-soc-afe-control.h>
+//#endif /* CONFIG_MTK_SND_SOC_NEW_ARCH */
 
 #if !defined(SPM_K414_EARLY_PORTING)
 #include <mtk_mcdi_api.h>
@@ -97,15 +97,26 @@ int slp_dump_golden_setting_type = GS_PMIC;
 int slp_dump_golden_setting_type = 1;
 #endif
 
-bool (*mcdi_task_pause_fun)(bool paused);
-bool (*ConditionEnterSuspendFun)(void);
-
-void ConditionEnterSuspendRegister(void *fun)
+#if IS_ENABLED(CONFIG_MTK_SND_SOC_NEW_ARCH)
+bool (*ConditionEnterSuspendCallBack)(void);
+int RegisterConditionEnterSuspend(bool (*cb)(void))
 {
-	if (fun != NULL)
-		ConditionEnterSuspendFun = fun;
+	ConditionEnterSuspendCallBack = cb;
+	return 0;
 }
-EXPORT_SYMBOL(ConditionEnterSuspendRegister);
+EXPORT_SYMBOL(RegisterConditionEnterSuspend);
+
+static bool ConditionEnterSuspend(void)
+{
+	if (!ConditionEnterSuspendCallBack) {
+		pr_info("name:spm&]NO %s !!!\n", __func__);
+		return true;
+	}
+	return ConditionEnterSuspendCallBack();
+}
+#endif
+
+bool (*mcdi_task_pause_fun)(bool paused);
 
 void mcdi_task_pause_fun_register(void *fun)
 {
@@ -246,14 +257,10 @@ static int slp_suspend_ops_enter(suspend_state_t state)
 #if IS_ENABLED(CONFIG_MTK_SND_SOC_NEW_ARCH)
 	int fm_radio_is_playing = 0;
 
-	if (!ConditionEnterSuspendFun)
+	if (ConditionEnterSuspend() == true)
+		fm_radio_is_playing = 0;
+	else
 		fm_radio_is_playing = 1;
-	else {
-		if (ConditionEnterSuspendFun() == true)
-			fm_radio_is_playing = 0;
-		else
-			fm_radio_is_playing = 1;
-	}
 
 #endif /* CONFIG_MTK_SND_SOC_NEW_ARCH */
 #endif

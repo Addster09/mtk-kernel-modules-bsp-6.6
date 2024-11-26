@@ -55,8 +55,9 @@ extern int soidle3_enter(int cpu);
 extern void mcdi_heart_beat_log_dump(void);
 
 #if IS_ENABLED(CONFIG_MTK_LEGACY_THERMAL)
-extern void mtkTTimer_start_timer(void);
-extern void mtkTTimer_cancel_timer(void);
+//extern void mtkTTimer_start_timer(void);
+//extern void mtkTTimer_cancel_timer(void);
+int mtkTTimer_start_cancel_timer_register(void *start, void *cancel);
 #endif
 
 #if IS_ENABLED(CONFIG_MTK_SPM_V4)

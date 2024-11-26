@@ -37,4 +37,8 @@ extern u32 spm_get_last_wakeup_misc(void);
 extern void spm_suspend_pre_process(struct pwr_ctrl *pwrctrl);
 extern void spm_suspend_post_process(struct pwr_ctrl *pwrctrl);
 extern void spm_set_sysclk_settle(void);
+
+#if IS_ENABLED(CONFIG_MTK_SND_SOC_NEW_ARCH)
+extern int RegisterConditionEnterSuspend(bool (*cb)(void));
+#endif
 #endif

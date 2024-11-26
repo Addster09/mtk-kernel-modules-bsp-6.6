@@ -14,6 +14,7 @@
 #endif
 #include <mtk_spm_resource_req_internal.h>
 #include "mtk_spm_sleep_internal.h"
+#include "mtu3.h"
 
 static int __init mt_spm_init(void)
 {
@@ -27,8 +28,9 @@ static int __init mt_spm_init(void)
 
 	spm_resource_req_init();
 
+	/* usb APIs */
 	register_spm_resource_req_func(&spm_resource_req);
-
+	register_slp_set_infra_on_func(&slp_set_infra_on);
 	return 0;
 }
 

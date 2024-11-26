@@ -35,6 +35,12 @@ ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/power/mt6739/
 ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/mt6739/
 ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/mmdvfs/
 
+ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/gpu/drm/mediatek/mediatek_v2 \
+
+ifneq ($(CONFIG_DEVICE_MODULES_USB_MTU3), )
+ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/usb/mtu3
+endif
+
 ifeq ($(CONFIG_MTK_SND_SOC_NEW_ARCH), y)
 ccflags-y += -I$(DEVICE_MODULES_PATH)/sound/soc/mediatek/mt6739/
 ccflags-y += -I$(DEVICE_MODULES_PATH)/sound/soc/mediatek/common_int/

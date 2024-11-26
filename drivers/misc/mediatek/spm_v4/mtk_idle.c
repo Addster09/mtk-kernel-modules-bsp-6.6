@@ -154,6 +154,36 @@ static unsigned long    rgidle_cnt[NR_CPUS] = {0};
 /* idle_notifier */
 static RAW_NOTIFIER_HEAD(mtk_idle_notifier);
 
+#if IS_ENABLED(CONFIG_MTK_LEGACY_THERMAL)
+void (*mtkTTimer_start_timer_fn)(void);
+void (*mtkTTimer_cancel_timer_fn)(void);
+int mtkTTimer_start_cancel_timer_register(void *start, void *cancel)
+{
+	mtkTTimer_start_timer_fn = start;
+	mtkTTimer_cancel_timer_fn = cancel;
+	return 0;
+}
+EXPORT_SYMBOL(mtkTTimer_start_cancel_timer_register);
+
+static void mtkTTimer_start_timer(void)
+{
+	if (!mtkTTimer_start_timer_fn) {
+		pr_info("NO %s !!!\n", __func__);
+		return ;
+	}
+	return mtkTTimer_start_timer_fn();
+}
+
+static void mtkTTimer_cancel_timer(void)
+{
+	if (!mtkTTimer_cancel_timer_fn) {
+		pr_info("NO %s !!!\n", __func__);
+		return ;
+	}
+	return mtkTTimer_cancel_timer_fn();
+}
+#endif
+
 static u32 clk_buf_bblpm_enter_cond(void)
 {
 	u32 bblpm_cond = 0;
@@ -969,14 +999,14 @@ int mtk_idle_select(int cpu)
 #endif
 
 	/* teei ready */
-//#if !IS_ENABLED(CONFIG_FPGA_EARLY_PORTING)
-//#if IS_ENABLED(CONFIG_MICROTRUST_TEE_SUPPORT)
-//	if (!is_teei_ready()) {
-//		reason = BY_TEE;
-//		goto get_idle_idx;
-//	}
-//#endif
-//#endif
+#if !IS_ENABLED(CONFIG_FPGA_EARLY_PORTING)
+#if IS_ENABLED(CONFIG_MICROTRUST_TEE_SUPPORT)
+	if (!is_teei_ready()) {
+		reason = BY_TEE;
+		goto get_idle_idx;
+	}
+#endif
+#endif
 
 #if !IS_ENABLED(CONFIG_FPGA_EARLY_PORTING)
 	/* cg check */
