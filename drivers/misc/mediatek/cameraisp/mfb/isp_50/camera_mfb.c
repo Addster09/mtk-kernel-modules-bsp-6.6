@@ -30,6 +30,10 @@
 #include <linux/sched/clock.h>
 #include <linux/mm.h>
 #include <linux/seq_file.h>
+#include <linux/pm_runtime.h>
+#include <linux/suspend.h>
+#include <linux/dma-mapping.h>
+#include <linux/dma-buf.h>
 
 /*#include <linux/xlog.h>		 For xlog_printk(). */
 /*  */
@@ -49,11 +53,11 @@
 #include <linux/of_irq.h>
 #include <linux/of_address.h>
 
-// TODO: wait mdp ready -- haipeng
-#define EP_CODE_MARK_CMDQ	// mdp not ready
 #ifndef EP_CODE_MARK_CMDQ
-#include <cmdq_helper_ext.h>
-#include <cmdq_record.h>
+#include <linux/soc/mediatek/mtk-cmdq-ext.h>
+#if IS_ENABLED(CONFIG_MTK_CMDQ_MBOX_EXT)
+#include <cmdq-util.h>
+#endif
 #define MFB_USE_GCE
 #endif
 #include <soc/mediatek/smi.h>
@@ -117,7 +121,6 @@ struct MFB_CLK_STRUCT mfb_clk;
 /* #define EP_NO_CLKMGR */
 #define BYPASS_REG         (0)
 /* #define MFB_WAITIRQ_LOG  */
-/* #define MFB_DEBUG_USE */
 #define DUMMY_MFB	   (0)
 /* #define MFB_MULTIPROCESS_TIMING_ISSUE  */
 /*I can' test the situation in FPGA due to slow FPGA. */
@@ -126,6 +129,7 @@ struct MFB_CLK_STRUCT mfb_clk;
 
 #define log_vrb(format,	args...)    pr_debug(MyTag format, ##args)
 
+#define MFB_DEBUG_USE
 #ifdef MFB_DEBUG_USE
 #define log_dbg(format, args...)    pr_info(MyTag format, ##args)
 #else
@@ -246,6 +250,13 @@ struct MFB_device {
 static struct MFB_device *MFB_devs;
 static int nr_MFB_devs;
 
+#ifdef MFB_USE_GCE
+static struct device 		*MFB_cmdq_dev;
+static struct cmdq_base		*mfb_cmdq_base;
+static struct cmdq_client	*mfb_cmdq_clt;
+static s32 					mfb_done_event_id;
+#endif
+
 /* Get HW modules' base address from device nodes */
 #define MFB_DEV_NODE_IDX 0
 #define IMGSYS_DEV_MODE_IDX 1
@@ -267,6 +278,8 @@ static int nr_MFB_devs;
 
 static unsigned int g_u4EnableClockCount;
 static unsigned int g_u4MfbCnt;
+static unsigned int g_SuspendCnt;
+static bool g_MFB_PMState;
 
 /* maximum number for supporting user to do interrupt operation */
 /* index 0 is for all the user that do not do register irq first */
@@ -1248,8 +1261,7 @@ static signed int ConfigMFBHW(MFB_Config *pMfbConfig)
 #if !BYPASS_REG
 {
 #ifdef MFB_USE_GCE
-		struct cmdqRecStruct *handle;
-		uint64_t engineFlag = (uint64_t)(1LL << CMDQ_ENG_MFB);
+		struct cmdq_pkt *pkt;
 #endif
 
 	if (MFB_DBG_DBGLOG == (MFB_DBG_DBGLOG & MFBInfo.DebugMask)) {
@@ -1301,223 +1313,216 @@ static signed int ConfigMFBHW(MFB_Config *pMfbConfig)
 	mt_kernel_trace_begin("ConfigMFBHW");
 #endif
 
-	cmdqRecCreate(CMDQ_SCENARIO_KERNEL_CONFIG_GENERAL, &handle);
+	pkt = cmdq_pkt_create(mfb_cmdq_clt);
 	/* CMDQ driver dispatches CMDQ HW thread and HW thread's
 	 * priority according to scenario
 	 */
 
-	cmdqRecSetEngine(handle, engineFlag);
-
-	cmdqRecReset(handle);
-
 	/* Use command queue to write register */
 	/* BIT0 for INT_EN, BIT20 for CHROMA_INT_EN, BIT21 for WEIGHT_INT_EN */
-	cmdqRecWrite(handle, MFB_INT_CTL_HW, 0x300001, CMDQ_REG_MASK);
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_INT_CTL_HW, 0x300001, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, MFB_TOP_CFG0_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_TOP_CFG0_HW,
 		pMfbConfig->MFB_TOP_CFG0, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_TOP_CFG2_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_TOP_CFG2_HW,
 		pMfbConfig->MFB_TOP_CFG2, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, MFB_MFBI_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBI_BASE_ADDR_HW,
 		pMfbConfig->MFB_MFBI_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFBI_STRIDE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBI_STRIDE_HW,
 		pMfbConfig->MFB_MFBI_STRIDE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFBI_XSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBI_XSIZE_HW,
 		(pMfbConfig->MFB_MFBI_STRIDE & 0xFFFF)-1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFBI_YSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBI_YSIZE_HW,
 		pMfbConfig->MFB_MFBI_YSIZE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFBI_CON_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBI_CON_HW,
 		0x80000040, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, MFB_MFBI_B_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBI_B_BASE_ADDR_HW,
 		pMfbConfig->MFB_MFBI_B_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFBI_B_STRIDE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBI_B_STRIDE_HW,
 		pMfbConfig->MFB_MFBI_B_STRIDE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFBI_B_XSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBI_B_XSIZE_HW,
 		(pMfbConfig->MFB_MFBI_B_STRIDE & 0xFFFF)-1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFBI_B_YSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBI_B_YSIZE_HW,
 		pMfbConfig->MFB_MFBI_B_YSIZE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFBI_B_CON_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBI_B_CON_HW,
 		0x80000040, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, MFB_MFB2I_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB2I_BASE_ADDR_HW,
 		pMfbConfig->MFB_MFB2I_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB2I_STRIDE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB2I_STRIDE_HW,
 		pMfbConfig->MFB_MFB2I_STRIDE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB2I_XSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB2I_XSIZE_HW,
 		(pMfbConfig->MFB_MFB2I_STRIDE & 0xFFFF)-1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB2I_YSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB2I_YSIZE_HW,
 		pMfbConfig->MFB_MFB2I_YSIZE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB2I_CON_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB2I_CON_HW,
 		0x80000040, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, MFB_MFB2I_B_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB2I_B_BASE_ADDR_HW,
 		pMfbConfig->MFB_MFB2I_B_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB2I_B_STRIDE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB2I_B_STRIDE_HW,
 		pMfbConfig->MFB_MFB2I_B_STRIDE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB2I_B_XSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB2I_B_XSIZE_HW,
 		(pMfbConfig->MFB_MFB2I_B_STRIDE & 0xFFFF)-1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB2I_B_YSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB2I_B_YSIZE_HW,
 		pMfbConfig->MFB_MFB2I_B_YSIZE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB2I_B_CON_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB2I_B_CON_HW,
 		0x80000040, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, MFB_MFB3I_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB3I_BASE_ADDR_HW,
 		pMfbConfig->MFB_MFB3I_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB3I_STRIDE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB3I_STRIDE_HW,
 		pMfbConfig->MFB_MFB3I_STRIDE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB3I_XSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB3I_XSIZE_HW,
 		(pMfbConfig->MFB_MFB3I_STRIDE & 0xFFFF)-1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB3I_YSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB3I_YSIZE_HW,
 		pMfbConfig->MFB_MFB3I_YSIZE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB3I_CON_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB3I_CON_HW,
 		0x80000040, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, MFB_MFB4I_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB4I_BASE_ADDR_HW,
 		pMfbConfig->MFB_MFB4I_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB4I_STRIDE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB4I_STRIDE_HW,
 		pMfbConfig->MFB_MFB4I_STRIDE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB4I_XSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB4I_XSIZE_HW,
 		(pMfbConfig->MFB_MFB4I_STRIDE & 0xFFFF)-1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB4I_YSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB4I_YSIZE_HW,
 		pMfbConfig->MFB_MFB4I_YSIZE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB4I_CON_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB4I_CON_HW,
 		0x80000040, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, MFB_MFBO_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBO_BASE_ADDR_HW,
 		pMfbConfig->MFB_MFBO_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFBO_STRIDE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBO_STRIDE_HW,
 		pMfbConfig->MFB_MFBO_STRIDE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFBO_XSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBO_XSIZE_HW,
 		(pMfbConfig->MFB_MFBO_STRIDE & 0xFFFF)-1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFBO_YSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBO_YSIZE_HW,
 		pMfbConfig->MFB_MFBO_YSIZE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFBO_CON_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBO_CON_HW,
 		0x80000040, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, MFB_MFBO_B_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBO_B_BASE_ADDR_HW,
 		pMfbConfig->MFB_MFBO_B_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFBO_B_STRIDE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBO_B_STRIDE_HW,
 		pMfbConfig->MFB_MFBO_B_STRIDE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFBO_B_XSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBO_B_XSIZE_HW,
 		(pMfbConfig->MFB_MFBO_B_STRIDE & 0xFFFF)-1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFBO_B_YSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBO_B_YSIZE_HW,
 		pMfbConfig->MFB_MFBO_B_YSIZE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFBO_B_CON_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFBO_B_CON_HW,
 		0x80000020, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, MFB_MFB2O_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB2O_BASE_ADDR_HW,
 		pMfbConfig->MFB_MFB2O_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB2O_STRIDE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB2O_STRIDE_HW,
 		pMfbConfig->MFB_MFB2O_STRIDE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB2O_XSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB2O_XSIZE_HW,
 		(pMfbConfig->MFB_MFB2O_STRIDE & 0xFFFF)-1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB2O_YSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB2O_YSIZE_HW,
 		pMfbConfig->MFB_MFB2O_YSIZE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MFB2O_CON_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MFB2O_CON_HW,
 		0x80000020, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, MFB_TDRI_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_TDRI_BASE_ADDR_HW,
 		pMfbConfig->MFB_TDRI_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_TDRI_XSIZE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_TDRI_XSIZE_HW,
 		pMfbConfig->MFB_TDRI_XSIZE, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, SRZ_CONTROL_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, SRZ_CONTROL_HW,
 		pMfbConfig->MFB_SRZ_CTRL, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, SRZ_IN_IMG_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, SRZ_IN_IMG_HW,
 		pMfbConfig->MFB_SRZ_IN_IMG, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, SRZ_OUT_IMG_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, SRZ_OUT_IMG_HW,
 		pMfbConfig->MFB_SRZ_OUT_IMG, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, SRZ_HORI_STEP_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, SRZ_HORI_STEP_HW,
 		pMfbConfig->MFB_SRZ_HORI_STEP, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, SRZ_VERT_STEP_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, SRZ_VERT_STEP_HW,
 		pMfbConfig->MFB_SRZ_VERT_STEP, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, SRZ_HORI_INT_OFST_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, SRZ_HORI_INT_OFST_HW,
 		pMfbConfig->MFB_SRZ_HORI_INT_OFST, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, SRZ_HORI_SUB_OFST_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, SRZ_HORI_SUB_OFST_HW,
 		pMfbConfig->MFB_SRZ_HORI_SUB_OFST, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, SRZ_VERT_INT_OFST_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, SRZ_VERT_INT_OFST_HW,
 		pMfbConfig->MFB_SRZ_VERT_INT_OFST, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, SRZ_VERT_SUB_OFST_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, SRZ_VERT_SUB_OFST_HW,
 		pMfbConfig->MFB_SRZ_VERT_SUB_OFST, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, C02A_CON_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, C02A_CON_HW,
 		pMfbConfig->MFB_C02A_CON, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, C02B_CON_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, C02B_CON_HW,
 		pMfbConfig->MFB_C02B_CON, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, CRSP_CTRL_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, CRSP_CTRL_HW,
 		pMfbConfig->MFB_CRSP_CTRL, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, CRSP_OUT_IMG_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, CRSP_OUT_IMG_HW,
 		pMfbConfig->MFB_CRSP_OUT_IMG, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, CRSP_STEP_OFST_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, CRSP_STEP_OFST_HW,
 		pMfbConfig->MFB_CRSP_STEP_OFST, CMDQ_REG_MASK);
 
 #ifdef MFB_TUNABLE
-	cmdqRecWrite(handle, MFB_CON_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_CON_HW,
 		pMfbConfig->MFB_CON, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_LL_CON1_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_LL_CON1_HW,
 		pMfbConfig->MFB_LL_CON1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_LL_CON2_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_LL_CON2_HW,
 		pMfbConfig->MFB_LL_CON2, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_LL_CON3_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_LL_CON3_HW,
 		pMfbConfig->MFB_LL_CON3, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_LL_CON4_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_LL_CON4_HW,
 		pMfbConfig->MFB_LL_CON4, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_EDGE_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_EDGE_HW,
 		pMfbConfig->MFB_EDGE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_LL_CON5_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_LL_CON5_HW,
 		pMfbConfig->MFB_LL_CON5, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_LL_CON6_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_LL_CON6_HW,
 		pMfbConfig->MFB_LL_CON6, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_LL_CON7_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_LL_CON7_HW,
 		pMfbConfig->MFB_LL_CON7, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_LL_CON8_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_LL_CON8_HW,
 		pMfbConfig->MFB_LL_CON8, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_LL_CON9_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_LL_CON9_HW,
 		pMfbConfig->MFB_LL_CON9, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_LL_CON10_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_LL_CON10_HW,
 		pMfbConfig->MFB_LL_CON10, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MBD_CON0_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MBD_CON0_HW,
 		pMfbConfig->MFB_MBD_CON0, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MBD_CON1_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MBD_CON1_HW,
 		pMfbConfig->MFB_MBD_CON1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MBD_CON2_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MBD_CON2_HW,
 		pMfbConfig->MFB_MBD_CON2, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MBD_CON3_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MBD_CON3_HW,
 		pMfbConfig->MFB_MBD_CON3, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MBD_CON4_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MBD_CON4_HW,
 		pMfbConfig->MFB_MBD_CON4, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MBD_CON5_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MBD_CON5_HW,
 		pMfbConfig->MFB_MBD_CON5, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MBD_CON6_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MBD_CON6_HW,
 		pMfbConfig->MFB_MBD_CON6, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MBD_CON7_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MBD_CON7_HW,
 		pMfbConfig->MFB_MBD_CON7, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MBD_CON8_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MBD_CON8_HW,
 		pMfbConfig->MFB_MBD_CON8, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MBD_CON9_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MBD_CON9_HW,
 		pMfbConfig->MFB_MBD_CON9, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, MFB_MBD_CON10_HW,
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MBD_CON10_HW,
 		pMfbConfig->MFB_MBD_CON10, CMDQ_REG_MASK);
 #endif
 
 	/* Disable MFB DCM if necessary */
-	/* cmdqRecWrite(handle, MFB_MAIN_DCM_DIS_HW, */
+	/* cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_MAIN_DCM_DIS_HW, */
 	/*	0xFFFFFFFF, CMDQ_REG_MASK); */
-	/* cmdqRecWrite(handle, MFB_DMA_DCM_DIS_HW, */
+	/* cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_DMA_DCM_DIS_HW, */
 	/*	0xFFFFFFFF, CMDQ_REG_MASK); */
 
-	cmdqRecWrite(handle, MFB_TOP_CFG1_HW, 0x1, CMDQ_REG_MASK);
-	cmdqRecWait(handle, CMDQ_EVENT_MFB_DONE);
-	cmdqRecWrite(handle, MFB_TOP_CFG1_HW, 0x0, CMDQ_REG_MASK);
-	/* non-blocking API, Please  use cmdqRecFlushAsync() */
-	cmdqRecFlushAsync(handle);
-	cmdqRecReset(handle);	/* if you want to re-use the handle,
-				 * please reset the handle
-				 */
-	cmdqRecDestroy(handle);	/* recycle the memory */
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_TOP_CFG1_HW, 0x1, CMDQ_REG_MASK);
+	cmdq_pkt_wfe(pkt, mfb_done_event_id);
+	cmdq_pkt_write(pkt, mfb_cmdq_base, MFB_TOP_CFG1_HW, 0x0, CMDQ_REG_MASK);
+
+	cmdq_pkt_flush(pkt);
+	cmdq_pkt_destroy(pkt);
 
 #ifdef __MFB_KERNEL_PERFORMANCE_MEASURE__
 	mt_kernel_trace_end();
@@ -1672,88 +1677,28 @@ static inline void MFB_Prepare_Enable_ccf_clock(void)
 	/* must keep this clk open order:
 	 * CG_SCP_SYS_MM0-> CG_MM_SMI_COMMON -> CG_SCP_SYS_ISP -> MFB clk
 	 */
-#ifndef SMI_CLK
-	ret = clk_prepare_enable(mfb_clk.CG_SCP_SYS_MM0);
-	if (ret)
-		log_err("cannot prepare and enable CG_SCP_SYS_MM0 clock\n");
-
-	ret = clk_prepare_enable(mfb_clk.CG_MM_SMI_COMMON);
-	if (ret)
-		log_err("cannot prepare and enable CG_MM_SMI_COMMON clock\n");
-
-	ret = clk_prepare_enable(mfb_clk.CG_MM_SMI_COMMON_2X);
-	if (ret)
-		log_err("cannot prepare and enable CG_MM_SMI_COMMON_2X clock\n");
-
-	ret = clk_prepare_enable(mfb_clk.CG_MM_SMI_COMMON_GALS_M0_2X);
-	if (ret)
-		log_err("cannot prepare and enable CG_MM_SMI_COMMON_GALS_M0_2X clock\n");
-
-	ret = clk_prepare_enable(mfb_clk.CG_MM_SMI_COMMON_GALS_M1_2X);
-	if (ret)
-		log_err("cannot prepare and enable CG_MM_SMI_COMMON_GALS_M1_2X clock\n");
-
-	ret = clk_prepare_enable(mfb_clk.CG_MM_SMI_COMMON_UPSZ0);
-	if (ret)
-		log_err("cannot prepare and enable CG_MM_SMI_COMMON_UPSZ0 clock\n");
-
-	ret = clk_prepare_enable(mfb_clk.CG_MM_SMI_COMMON_UPSZ1);
-	if (ret)
-		log_err("cannot prepare and enable CG_MM_SMI_COMMON_UPSZ1 clock\n");
-
-	ret = clk_prepare_enable(mfb_clk.CG_MM_SMI_COMMON_FIFO0);
-	if (ret)
-		log_err("cannot prepare and enable CG_MM_SMI_COMMON_FIFO0 clock\n");
-
-	ret = clk_prepare_enable(mfb_clk.CG_MM_SMI_COMMON_FIFO1);
-	if (ret)
-		log_err("cannot prepare and enable CG_MM_SMI_COMMON_FIFO1 clock\n");
-
-	ret = clk_prepare_enable(mfb_clk.CG_MM_LARB5);
-	if (ret)
-		log_err("cannot prepare and enable CG_MM_LARB5 clock\n");
-
-	ret = clk_prepare_enable(mfb_clk.CG_SCP_SYS_ISP);
-	if (ret)
-		log_err("cannot prepare and enable CG_SCP_SYS_ISP clock\n");
-
-	ret = clk_prepare_enable(mfb_clk.CG_IMGSYS_LARB);
-	if (ret)
-		log_err("cannot prepare and enable CG_IMGSYS_LARB clock\n");
-#else
-	// TODO: change smi api
-	// smi_bus_prepare_enable(SMI_LARB5, "camera_mfb");
-#endif
+	pm_runtime_resume_and_get(MFB_devs[0].dev);
+	log_inf("MFB_Prepare_Enable_ccf_clock!!");
 
 	ret = clk_prepare_enable(mfb_clk.CG_IMGSYS_MFB);
 	if (ret)
 		log_err("cannot prepare and enable CG_IMGSYS_MFB clock\n");
 
+	/* cmdq enable */
+	cmdq_mbox_enable(mfb_cmdq_clt->chan);
 }
 
 static inline void MFB_Disable_Unprepare_ccf_clock(void)
 {
+	/* cmdq disable */
+	cmdq_mbox_disable(mfb_cmdq_clt->chan);
+
 	/* must keep this clk close order:
 	 * MFB clk -> CG_SCP_SYS_ISP -> CG_MM_SMI_COMMON -> CG_SCP_SYS_MM0
 	 */
 	clk_disable_unprepare(mfb_clk.CG_IMGSYS_MFB);
-#ifndef SMI_CLK
-	clk_disable_unprepare(mfb_clk.CG_IMGSYS_LARB);
-	clk_disable_unprepare(mfb_clk.CG_SCP_SYS_ISP);
-	clk_disable_unprepare(mfb_clk.CG_MM_LARB5);
-	clk_disable_unprepare(mfb_clk.CG_MM_SMI_COMMON_FIFO1);
-	clk_disable_unprepare(mfb_clk.CG_MM_SMI_COMMON_FIFO0);
-	clk_disable_unprepare(mfb_clk.CG_MM_SMI_COMMON_UPSZ1);
-	clk_disable_unprepare(mfb_clk.CG_MM_SMI_COMMON_UPSZ0);
-	clk_disable_unprepare(mfb_clk.CG_MM_SMI_COMMON_GALS_M1_2X);
-	clk_disable_unprepare(mfb_clk.CG_MM_SMI_COMMON_GALS_M0_2X);
-	clk_disable_unprepare(mfb_clk.CG_MM_SMI_COMMON_2X);
-	clk_disable_unprepare(mfb_clk.CG_MM_SMI_COMMON);
-	clk_disable_unprepare(mfb_clk.CG_SCP_SYS_MM0);
-#else
-	// TODO: change smi api
-	// smi_bus_disable_unprepare(SMI_LARB5, "camera_mfb");
-#endif
+
+	pm_runtime_put_sync(MFB_devs[0].dev);
 }
 #endif
 
@@ -2974,6 +2919,7 @@ static signed int MFB_open(struct inode *pInode, struct file *pFile)
 	/* Enable clock */
 	MFB_EnableClock(MTRUE);
 	g_u4MfbCnt = 0;
+	g_SuspendCnt = 0;
 	log_dbg("MFB open g_u4EnableClockCount: %d", g_u4EnableClockCount);
 	/*  */
 
@@ -3127,6 +3073,65 @@ EXIT:
 	return Ret;
 }
 
+static void MFB_add_device_link(struct platform_device *pDev)
+{
+	char mtk_larb_str[32];
+	int i = 0, mtk_larb = 0, mtk_larbs = 0, larb_num = 0;
+	unsigned int larb_id = 0;
+	struct device_node *larb_node;
+	struct device_link *link;
+	struct platform_device *larb_pdev;
+
+	mtk_larb =
+		of_count_phandle_with_args(pDev->dev.of_node, "mediatek,larb", NULL);
+	mtk_larbs =
+		of_count_phandle_with_args(pDev->dev.of_node, "mediatek,larbs", NULL);
+
+	if (mtk_larb > mtk_larbs) {
+		larb_num = mtk_larb;
+		strncpy(mtk_larb_str, "mediatek,larb", 14);
+	} else {
+		larb_num = mtk_larbs;
+		strncpy(mtk_larb_str, "mediatek,larbs", 15);
+	}
+
+	log_inf("larb_num: %d; (%d, %d)\n", larb_num, mtk_larb, mtk_larbs);
+
+	if (larb_num <= 0) {
+		log_inf("%s: find no larb", pDev->dev.of_node->name);
+		return;
+	}
+
+	for (i = 0; i < larb_num; i++) {
+		larb_node = of_parse_phandle(pDev->dev.of_node, mtk_larb_str, i);
+		if (!larb_node) {
+			log_inf("%s: [%d]: failed to get larb from %s\n",
+				pDev->dev.of_node->name, i, mtk_larb_str);
+			continue;
+		}
+		larb_pdev = of_find_device_by_node(larb_node);
+		if (WARN_ON(!larb_pdev)) {
+			of_node_put(larb_node);
+			log_inf("%s: failed to get larb pdev\n", pDev->dev.of_node->name);
+			continue;
+		}
+
+		if (of_property_read_u32(larb_node, "mediatek,larb-id", &larb_id))
+			log_inf("Error: get larb id from DTS fail!!\n");
+		else
+			log_inf("%s gets larb_id=%d\n",
+				pDev->dev.of_node->name, larb_id);
+
+		of_node_put(larb_node);
+
+		link = device_link_add(&pDev->dev, &larb_pdev->dev,
+				DL_FLAG_PM_RUNTIME | DL_FLAG_STATELESS);
+		if (!link)
+			log_inf("%s: [%d]: unable to link smi larb %d\n",
+				pDev->dev.of_node->name, i, larb_id);
+	}
+}
+
 /******************************************************************************
  *
  ******************************************************************************/
@@ -3242,6 +3247,18 @@ static signed int MFB_probe(struct platform_device *pDev)
 
 #endif
 
+	MFB_add_device_link(pDev);
+
+#ifdef MFB_USE_GCE
+	/*init cmdq*/
+	if (nr_MFB_devs == 1) {
+		MFB_cmdq_dev = &pDev->dev;
+		mfb_cmdq_base = cmdq_register_device(MFB_cmdq_dev);
+		mfb_cmdq_clt = cmdq_mbox_create(MFB_cmdq_dev, 0);
+		mfb_done_event_id = cmdq_dev_get_event(MFB_cmdq_dev, "mfb_done");
+	}
+#endif
+
 	/* Only register char driver in the 1st time */
 	if (nr_MFB_devs == 1) {
 
@@ -3253,95 +3270,21 @@ static signed int MFB_probe(struct platform_device *pDev)
 		}
 #ifndef EP_NO_CLKMGR
 #if !IS_ENABLED(CONFIG_MTK_LEGACY) && IS_ENABLED(CONFIG_COMMON_CLK) /*CCF*/
-		    /*CCF: Grab clock pointer (struct clk*) */
-#ifndef SMI_CLK
-		mfb_clk.CG_SCP_SYS_MM0 = devm_clk_get(
-			&pDev->dev, "MFB_SCP_SYS_MM0");
-		mfb_clk.CG_MM_SMI_COMMON = devm_clk_get(
-			&pDev->dev, "MFB_CLK_MM_CG2_B11");
-		mfb_clk.CG_MM_SMI_COMMON_2X = devm_clk_get(
-			&pDev->dev, "MFB_CLK_MM_CG2_B12");
-		mfb_clk.CG_MM_SMI_COMMON_GALS_M0_2X = devm_clk_get(
-			&pDev->dev, "MFB_CLK_MM_CG1_B12");
-		mfb_clk.CG_MM_SMI_COMMON_GALS_M1_2X = devm_clk_get(
-			&pDev->dev, "MFB_CLK_MM_CG1_B13");
-		mfb_clk.CG_MM_SMI_COMMON_UPSZ0 = devm_clk_get(
-			&pDev->dev, "MFB_CLK_MM_CG1_B14");
-		mfb_clk.CG_MM_SMI_COMMON_UPSZ1 = devm_clk_get(
-			&pDev->dev, "MFB_CLK_MM_CG1_B15");
-		mfb_clk.CG_MM_SMI_COMMON_FIFO0 = devm_clk_get(
-			&pDev->dev, "MFB_CLK_MM_CG1_B16");
-		mfb_clk.CG_MM_SMI_COMMON_FIFO1 = devm_clk_get(
-			&pDev->dev, "MFB_CLK_MM_CG1_B17");
-		mfb_clk.CG_MM_LARB5 = devm_clk_get(
-			&pDev->dev, "MFB_CLK_MM_CG1_B10");
-		mfb_clk.CG_SCP_SYS_ISP = devm_clk_get(
-			&pDev->dev, "MFB_SCP_SYS_ISP");
-		mfb_clk.CG_IMGSYS_LARB = devm_clk_get(
-			&pDev->dev, "MFB_CLK_IMG_LARB");
-#endif
+		/*CCF: Grab clock pointer (struct clk*) */
 		mfb_clk.CG_IMGSYS_MFB = devm_clk_get(
 			&pDev->dev, "MFB_CLK_IMG_MFB");
 
-#ifndef SMI_CLK
-		if (IS_ERR(mfb_clk.CG_SCP_SYS_MM0)) {
-			log_err("cannot get CG_SCP_SYS_MM0 clock\n");
-			return PTR_ERR(mfb_clk.CG_SCP_SYS_MM0);
-		}
-		if (IS_ERR(mfb_clk.CG_MM_SMI_COMMON)) {
-			log_err("cannot get CG_MM_SMI_COMMON clock\n");
-			return PTR_ERR(mfb_clk.CG_MM_SMI_COMMON);
-		}
-		if (IS_ERR(mfb_clk.CG_MM_SMI_COMMON_2X)) {
-			log_err("cannot get CG_MM_SMI_COMMON_2X clock\n");
-			return PTR_ERR(mfb_clk.CG_MM_SMI_COMMON_2X);
-		}
-		if (IS_ERR(mfb_clk.CG_MM_SMI_COMMON_GALS_M0_2X)) {
-			log_err(
-			    "cannot get CG_MM_SMI_COMMON_GALS_M0_2X clock\n");
-			return PTR_ERR(mfb_clk.CG_MM_SMI_COMMON_GALS_M0_2X);
-		}
-		if (IS_ERR(mfb_clk.CG_MM_SMI_COMMON_GALS_M1_2X)) {
-			log_err(
-			    "cannot get CG_MM_SMI_COMMON_GALS_M1_2X clock\n");
-			return PTR_ERR(mfb_clk.CG_MM_SMI_COMMON_GALS_M1_2X);
-		}
-		if (IS_ERR(mfb_clk.CG_MM_SMI_COMMON_UPSZ0)) {
-			log_err(
-			    "cannot get CG_MM_SMI_COMMON_UPSZ0 clock\n");
-			return PTR_ERR(mfb_clk.CG_MM_SMI_COMMON_UPSZ0);
-		}
-		if (IS_ERR(mfb_clk.CG_MM_SMI_COMMON_UPSZ1)) {
-			log_err("cannot get CG_MM_SMI_COMMON_UPSZ1 clock\n");
-			return PTR_ERR(mfb_clk.CG_MM_SMI_COMMON_UPSZ1);
-		}
-		if (IS_ERR(mfb_clk.CG_MM_SMI_COMMON_FIFO0)) {
-			log_err("cannot get CG_MM_SMI_COMMON_FIFO0 clock\n");
-			return PTR_ERR(mfb_clk.CG_MM_SMI_COMMON_FIFO0);
-		}
-		if (IS_ERR(mfb_clk.CG_MM_SMI_COMMON_FIFO1)) {
-			log_err("cannot get CG_MM_SMI_COMMON_FIFO1 clock\n");
-			return PTR_ERR(mfb_clk.CG_MM_SMI_COMMON_FIFO1);
-		}
-		if (IS_ERR(mfb_clk.CG_MM_LARB5)) {
-			log_err("cannot get CG_MM_LARB5 clock\n");
-			return PTR_ERR(mfb_clk.CG_MM_LARB5);
-		}
-		if (IS_ERR(mfb_clk.CG_SCP_SYS_ISP)) {
-			log_err("cannot get CG_SCP_SYS_ISP clock\n");
-			return PTR_ERR(mfb_clk.CG_SCP_SYS_ISP);
-		}
-		if (IS_ERR(mfb_clk.CG_IMGSYS_LARB)) {
-			log_err("cannot get CG_IMGSYS_LARB clock\n");
-			return PTR_ERR(mfb_clk.CG_IMGSYS_LARB);
-		}
-#endif
 		if (IS_ERR(mfb_clk.CG_IMGSYS_MFB)) {
 			log_err("cannot get CG_IMGSYS_MFB clock\n");
 			return PTR_ERR(mfb_clk.CG_IMGSYS_MFB);
 		}
 #endif	/* !IS_ENABLED(CONFIG_MTK_LEGACY) && IS_ENABLED(CONFIG_COMMON_CLK)  */
 #endif
+		dma_set_mask_and_coherent(MFB_dev->dev, DMA_BIT_MASK(34));
+
+		pm_runtime_enable(MFB_dev->dev);
+		if (!pm_runtime_enabled(MFB_dev->dev))
+			goto EXIT;
 
 		/* Create class register */
 		pMFBClass = class_create("MFBdrv");
@@ -3378,9 +3321,6 @@ static signed int MFB_probe(struct platform_device *pDev)
 			tasklet_init(MFB_tasklet[i].pMFB_tkt,
 			MFB_tasklet[i].tkt_cb, 0);
 
-
-
-
 		/* Init MFBInfo */
 		spin_lock(&(MFBInfo.SpinLockMFBRef));
 		MFBInfo.UserCount = 0;
@@ -3389,7 +3329,7 @@ static signed int MFB_probe(struct platform_device *pDev)
 		MFBInfo.IrqInfo.Mask[MFB_IRQ_TYPE_INT_MFB_ST] = INT_ST_MASK_MFB;
 
 	}
-
+	g_MFB_PMState = 0;
 EXIT:
 	if (Ret < 0)
 		MFB_UnregCharDev();
@@ -3438,16 +3378,6 @@ static signed int bPass1_On_In_Resume_TG1;
 
 static signed int MFB_suspend(struct platform_device *pDev, pm_message_t Mesg)
 {
-	/*signed int ret = 0;*/
-
-	log_dbg("bPass1_On_In_Resume_TG1(%d)\n", bPass1_On_In_Resume_TG1);
-
-	bPass1_On_In_Resume_TG1 = 0;
-
-	if (g_u4EnableClockCount > 0) {
-		MFB_EnableClock(MFALSE);
-		g_u4MfbCnt++;
-	}
 	return 0;
 }
 
@@ -3456,18 +3386,49 @@ static signed int MFB_suspend(struct platform_device *pDev, pm_message_t Mesg)
  ******************************************************************************/
 static signed int MFB_resume(struct platform_device *pDev)
 {
-	log_dbg("bPass1_On_In_Resume_TG1(%d).\n", bPass1_On_In_Resume_TG1);
-
-	if (g_u4MfbCnt > 0) {
-		MFB_EnableClock(MTRUE);
-		g_u4MfbCnt--;
-	}
 	return 0;
 }
 
 /*---------------------------------------------------------------------------*/
 #if IS_ENABLED(CONFIG_PM)
 /*---------------------------------------------------------------------------*/
+static int mfb_suspend_pm_event(struct notifier_block *notifier,
+			unsigned long pm_event, void *unused)
+{
+	switch (pm_event) {
+	case PM_HIBERNATION_PREPARE:
+		return NOTIFY_DONE;
+	case PM_RESTORE_PREPARE:
+		return NOTIFY_DONE;
+	case PM_POST_HIBERNATION:
+		return NOTIFY_DONE;
+	case PM_SUSPEND_PREPARE: /*enter suspend*/
+		if (g_u4EnableClockCount > 0) {
+			MFB_EnableClock(MFALSE);
+			g_SuspendCnt++;
+		}
+		bPass1_On_In_Resume_TG1 = 0;
+		if (g_MFB_PMState == 0) {
+			log_inf("%s:g_u4EnableClockCount(%d) g_SuspendCnt(%d).\n", __func__,
+			g_u4EnableClockCount, g_SuspendCnt);
+			g_MFB_PMState = 1;
+		}
+		return NOTIFY_DONE;
+	case PM_POST_SUSPEND:    /*after resume*/
+		if (g_SuspendCnt > 0) {
+			MFB_EnableClock(MTRUE);
+			g_SuspendCnt--;
+		}
+		if (g_MFB_PMState == 1) {
+			log_inf("%s:g_u4EnableClockCount(%d) g_SuspendCnt(%d).\n", __func__,
+			g_u4EnableClockCount, g_SuspendCnt);
+			g_MFB_PMState = 0;
+		}
+		return NOTIFY_DONE;
+	}
+	return NOTIFY_OK;
+}
+
 int MFB_pm_suspend(struct device *device)
 {
 	struct platform_device *pdev = to_platform_device(device);
@@ -3560,6 +3521,12 @@ static struct platform_driver MFBDriver = {
 	}
 };
 
+#if IS_ENABLED(CONFIG_PM)
+static struct notifier_block mfb_suspend_pm_notifier_func = {
+	.notifier_call = mfb_suspend_pm_event,
+	.priority = 0,
+};
+#endif
 
 /******************************************************************************
  *
@@ -3609,24 +3576,22 @@ static signed int __init MFB_Init(void)
 
 	int i;
 	/*  */
-	log_dbg("- E.");
+	log_dbg("- Init E.");
 	/*  */
 	Ret = platform_driver_register(&MFBDriver);
 	if (Ret < 0) {
 		log_err("platform_driver_register fail");
 		return Ret;
 	}
+	log_dbg("platform_driver_register done");
 
 
 	/* isr log */
-	if (PAGE_SIZE <
-	    ((MFB_IRQ_TYPE_AMOUNT * NORMAL_STR_LEN * ((
-	    DBG_PAGE + INF_PAGE + ERR_PAGE) + 1)) *
-	     LOG_PPNUM)) {
+	if (PAGE_SIZE < ((MFB_IRQ_TYPE_AMOUNT * NORMAL_STR_LEN *
+		((DBG_PAGE + INF_PAGE + ERR_PAGE) + 1)) * LOG_PPNUM)) {
 		i = 0;
-		while (i <
-		       ((MFB_IRQ_TYPE_AMOUNT * NORMAL_STR_LEN *
-			 ((DBG_PAGE + INF_PAGE + ERR_PAGE) + 1)) * LOG_PPNUM)) {
+		while (i < ((MFB_IRQ_TYPE_AMOUNT * NORMAL_STR_LEN *
+			((DBG_PAGE + INF_PAGE + ERR_PAGE) + 1)) * LOG_PPNUM)) {
 			i += PAGE_SIZE;
 		}
 	} else {
@@ -3664,10 +3629,9 @@ static signed int __init MFB_Init(void)
 		tmp = (void *)((char *)tmp + NORMAL_STR_LEN);
 	}
 
+#if 0
 	/* Cmdq */
 	/* Register MFB callback */
-// TODO: wait mdp ready.
-#ifdef MFB_USE_GCE
 	log_dbg("register mfb callback for CMDQ");
 	cmdqCoreRegisterCB(CMDQ_GROUP_MFB,
 			   MFB_ClockOnCallback,
@@ -3676,7 +3640,15 @@ static signed int __init MFB_Init(void)
 			   MFB_ClockOffCallback);
 #endif
 
-	log_dbg("- X. Ret: %d.", Ret);
+#if IS_ENABLED(CONFIG_PM)
+	Ret = register_pm_notifier(&mfb_suspend_pm_notifier_func);
+	if (Ret) {
+		log_err("[Camera MFB] Failed to register PM notifier.\n");
+		return Ret;
+	}
+#endif
+
+	log_dbg("- Init X. Ret: %d.", Ret);
 	return Ret;
 }
 
@@ -3685,23 +3657,18 @@ static signed int __init MFB_Init(void)
  ******************************************************************************/
 static void __exit MFB_Exit(void)
 {
-	/*int i;*/
-
 	log_dbg("- E.");
 	/*  */
 	platform_driver_unregister(&MFBDriver);
 	/*  */
+
+#if 0
 	/* Cmdq */
 	/* Unregister MFB callback */
-// TODO: wait mdp ready.
-#ifdef MFB_USE_GCE
 	cmdqCoreRegisterCB(CMDQ_GROUP_MFB, NULL, NULL, NULL, NULL);
 #endif
 
-
 	kfree(pLog_kmalloc);
-
-	/*  */
 }
 
 

@@ -23,8 +23,10 @@
 #include <linux/mm.h>
 #include <linux/seq_file.h>
 #include <linux/sched/clock.h>
+#include <linux/dma-mapping.h>
+#include <linux/pm_runtime.h>
+#include <linux/suspend.h>
 #include <soc/mediatek/smi.h>
-#include "linux/soc/mediatek/mtk-cmdq-ext.h"
 
 
 /*#include <linux/xlog.h>		 For xlog_printk(). */
@@ -60,7 +62,9 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 
-// #define DPE_USE_GCE	//TODO haipeng
+#include "linux/soc/mediatek/mtk-cmdq-ext.h"
+
+#define DPE_USE_GCE
 
 #undef CONFIG_COMPAT
 #if IS_ENABLED(CONFIG_COMPAT)
@@ -106,7 +110,6 @@ struct DPE_CLK_STRUCT dpe_clk;
 #define DPE_DEV_NAME                "camera-dpe"
 
 /* #define DPE_WAITIRQ_LOG  */
-/* #define DPE_DEBUG_USE */
 /* #define DPE_MULTIPROCESS_TIMING_ISSUE  */
 /*I can' test the situation in FPGA, because the velocity of FPGA is so slow. */
 #define MyTag "[DPE]"
@@ -114,6 +117,7 @@ struct DPE_CLK_STRUCT dpe_clk;
 
 #define LOG_VRB(format,	args...)    pr_debug(MyTag format, ##args)
 
+#define DPE_DEBUG_USE
 #ifdef DPE_DEBUG_USE
 #define LOG_DBG(format, args...)    pr_info(MyTag format, ##args)
 #else
@@ -253,7 +257,13 @@ static int nr_DPE_devs;
 
 
 static unsigned int g_u4EnableClockCount;
-static unsigned int g_u4DpeCnt;
+static unsigned int g_SuspendCnt;
+static bool g_DPE_PMState;
+
+static struct cmdq_base       *dpe_cmdq_base;
+static struct cmdq_client     *dpe_cmdq_clt;
+static s32                    dpe_cmdq_event_id;
+
 /* maximum number for supporting user to do interrupt operation */
 /* index 0 is for all the user that do not do register irq first */
 #define IRQ_USER_NUM_MAX 32
@@ -1218,8 +1228,7 @@ static bool UpdateDVE(unsigned int DpeDveSta0, pid_t *ProcessID)
 static signed int __maybe_unused ConfigDVEHW(struct DPE_DVEConfig *pDveConfig)
 {
 #ifdef DPE_USE_GCE
-		struct cmdqRecStruct *handle;
-		uint64_t engineFlag = (uint64_t)(1LL << CMDQ_ENG_DPE);
+	struct cmdq_pkt *pkt;
 #endif
 
 	if (DPE_DBG_DBGLOG == (DPE_DBG_DBGLOG & DPEInfo.DebugMask)) {
@@ -1314,220 +1323,209 @@ static signed int __maybe_unused ConfigDVEHW(struct DPE_DVEConfig *pDveConfig)
 	mt_kernel_trace_begin("ConfigDVEHW");
 #endif
 
-
-	cmdqRecCreate(CMDQ_SCENARIO_KERNEL_CONFIG_GENERAL, &handle);
-	/* CMDQ driver dispatches CMDQ HW thread and HW thread's priority
-	 * according to scenario
-	 */
-
-	cmdqRecSetEngine(handle, engineFlag);
-
-	cmdqRecReset(handle);
+	pkt = cmdq_pkt_create(dpe_cmdq_clt);
 
 	/* Use command queue to write register */
-	cmdqRecWrite(handle,
+	cmdq_pkt_write(pkt, dpe_cmdq_base,
 		     DPE_INT_CTL_HW,
 		     0x1,
 		     CMDQ_REG_MASK);	/* DPE Interrupt read-clear mode */
-	cmdqRecWrite(handle,
+	cmdq_pkt_write(pkt, dpe_cmdq_base,
 		     DPE_DVE_INT_CTRL_HW,
 		     0x1,
 		     CMDQ_REG_MASK);	/* DVE Interrupt read-clear mode */
 
 
-	cmdqRecWrite(handle, DPE_DVE_CTRL_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_CTRL_HW,
 		pDveConfig->DPE_DVE_CTRL, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, DPE_DVE_ORG_L_HORZ_BBOX_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORG_L_HORZ_BBOX_HW,
 		(pDveConfig->DPE_DVE_ORG_L_HORZ_BBOX), CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORG_L_VERT_BBOX_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORG_L_VERT_BBOX_HW,
 		(pDveConfig->DPE_DVE_ORG_L_VERT_BBOX), CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORG_R_HORZ_BBOX_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORG_R_HORZ_BBOX_HW,
 		(pDveConfig->DPE_DVE_ORG_R_HORZ_BBOX), CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORG_R_VERT_BBOX_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORG_R_VERT_BBOX_HW,
 		(pDveConfig->DPE_DVE_ORG_R_VERT_BBOX), CMDQ_REG_MASK);
 
 
-	cmdqRecWrite(handle, DPE_DVE_ORG_SIZE_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORG_SIZE_HW,
 		pDveConfig->DPE_DVE_ORG_SIZE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORG_SR_0_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORG_SR_0_HW,
 		pDveConfig->DPE_DVE_ORG_SR_0, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORG_SR_1_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORG_SR_1_HW,
 		pDveConfig->DPE_DVE_ORG_SR_1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORG_SV_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORG_SV_HW,
 		pDveConfig->DPE_DVE_ORG_SV, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, DPE_DVE_CAND_NUM_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_CAND_NUM_HW,
 		pDveConfig->DPE_DVE_CAND_NUM, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_CAND_SEL_0_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_CAND_SEL_0_HW,
 		pDveConfig->DPE_DVE_CAND_SEL_0, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_CAND_SEL_1_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_CAND_SEL_1_HW,
 		pDveConfig->DPE_DVE_CAND_SEL_1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_CAND_SEL_2_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_CAND_SEL_2_HW,
 		pDveConfig->DPE_DVE_CAND_SEL_2, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_CAND_TYPE_0_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_CAND_TYPE_0_HW,
 		pDveConfig->DPE_DVE_CAND_TYPE_0, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_CAND_TYPE_1_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_CAND_TYPE_1_HW,
 		pDveConfig->DPE_DVE_CAND_TYPE_1, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, DPE_DVE_RAND_LUT_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_RAND_LUT_HW,
 		pDveConfig->DPE_DVE_RAND_LUT, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_GMV_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_GMV_HW,
 		pDveConfig->DPE_DVE_GMV, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_DV_INI_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_DV_INI_HW,
 		pDveConfig->DPE_DVE_DV_INI, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_BLK_VAR_CTRL_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_BLK_VAR_CTRL_HW,
 		pDveConfig->DPE_DVE_BLK_VAR_CTRL, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_SMTH_LUMA_CTRL_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_SMTH_LUMA_CTRL_HW,
 		pDveConfig->DPE_DVE_SMTH_LUMA_CTRL, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_SMTH_DV_CTRL_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_SMTH_DV_CTRL_HW,
 		pDveConfig->DPE_DVE_SMTH_DV_CTRL, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_CTRL_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_CTRL_HW,
 		pDveConfig->DPE_DVE_ORD_CTRL_0, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_CTRL_1_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_CTRL_1_HW,
 		pDveConfig->DPE_DVE_ORD_CTRL_1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_TYPE_CTRL_0_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_TYPE_CTRL_0_HW,
 		pDveConfig->DPE_DVE_TYPE_CTRL_0, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_TYPE_CTRL_1_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_TYPE_CTRL_1_HW,
 		pDveConfig->DPE_DVE_TYPE_CTRL_1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_TYPE_CTRL_2_HW, 0x20A0, CMDQ_REG_MASK);
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_TYPE_CTRL_2_HW,
+		0x20A0, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, DPE_DVE_ORD_AS_MASK_0_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_AS_MASK_0_HW,
 		pDveConfig->DPE_DVE_ORD_AS_MASK_0, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_AS_MASK_1_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_AS_MASK_1_HW,
 		pDveConfig->DPE_DVE_ORD_AS_MASK_1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_AS_MASK_2_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_AS_MASK_2_HW,
 		pDveConfig->DPE_DVE_ORD_AS_MASK_2, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_AS_MASK_3_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_AS_MASK_3_HW,
 		pDveConfig->DPE_DVE_ORD_AS_MASK_3, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_A_0_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_A_0_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_A_0, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_A_1_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_A_1_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_A_1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_A_2_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_A_2_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_A_2, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_A_3_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_A_3_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_A_3, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_A_4_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_A_4_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_A_4, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_A_5_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_A_5_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_A_5, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_A_6_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_A_6_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_A_6, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_B_0_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_B_0_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_B_0, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_B_1_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_B_1_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_B_1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_B_2_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_B_2_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_B_2, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_B_3_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_B_3_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_B_3, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_B_4_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_B_4_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_B_4, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_B_5_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_B_5_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_B_5, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_B_6_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_B_6_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_B_6, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_C_0_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_C_0_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_C_0, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_C_1_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_C_1_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_C_1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_C_2_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_C_2_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_C_2, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_C_3_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_C_3_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_C_3, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_C_4_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_C_4_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_C_4, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_C_5_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_C_5_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_C_5, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_C_6_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_C_6_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_C_6, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_D_0_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_D_0_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_D_0, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_D_1_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_D_1_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_D_1, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_D_2_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_D_2_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_D_2, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_D_3_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_D_3_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_D_3, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_D_4_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_D_4_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_D_4, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_D_5_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_D_5_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_D_5, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_ORD_REF_MASK_D_6_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_ORD_REF_MASK_D_6_HW,
 		pDveConfig->DPE_DVE_ORD_REF_MASK_D_6, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, DPE_DVE_IMGI_L_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_IMGI_L_BASE_ADDR_HW,
 		pDveConfig->DPE_DVE_IMGI_L_BASE_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_IMGI_L_STRIDE_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_IMGI_L_STRIDE_HW,
 		pDveConfig->DPE_DVE_IMGI_L_STRIDE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_IMGI_R_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_IMGI_R_BASE_ADDR_HW,
 		pDveConfig->DPE_DVE_IMGI_R_BASE_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_IMGI_R_STRIDE_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_IMGI_R_STRIDE_HW,
 		pDveConfig->DPE_DVE_IMGI_R_STRIDE, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, DPE_DVE_DVI_L_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_DVI_L_BASE_ADDR_HW,
 		pDveConfig->DPE_DVE_DVI_L_BASE_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_DVI_L_STRIDE_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_DVI_L_STRIDE_HW,
 		pDveConfig->DPE_DVE_DVI_L_STRIDE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_DVI_R_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_DVI_R_BASE_ADDR_HW,
 		pDveConfig->DPE_DVE_DVI_R_BASE_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_DVI_R_STRIDE_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_DVI_R_STRIDE_HW,
 		pDveConfig->DPE_DVE_DVI_R_STRIDE, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, DPE_DVE_MASKI_L_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_MASKI_L_BASE_ADDR_HW,
 		pDveConfig->DPE_DVE_MASKI_L_BASE_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_MASKI_L_STRIDE_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_MASKI_L_STRIDE_HW,
 		pDveConfig->DPE_DVE_MASKI_L_STRIDE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_MASKI_R_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_MASKI_R_BASE_ADDR_HW,
 		pDveConfig->DPE_DVE_MASKI_R_BASE_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_MASKI_R_STRIDE_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_MASKI_R_STRIDE_HW,
 		pDveConfig->DPE_DVE_MASKI_R_STRIDE, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, DPE_DVE_DVO_L_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_DVO_L_BASE_ADDR_HW,
 		pDveConfig->DPE_DVE_DVO_L_BASE_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_DVO_L_STRIDE_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_DVO_L_STRIDE_HW,
 		pDveConfig->DPE_DVE_DVO_L_STRIDE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_DVO_R_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_DVO_R_BASE_ADDR_HW,
 		pDveConfig->DPE_DVE_DVO_R_BASE_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_DVO_R_STRIDE_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_DVO_R_STRIDE_HW,
 		pDveConfig->DPE_DVE_DVO_R_STRIDE, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, DPE_DVE_CONFO_L_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_CONFO_L_BASE_ADDR_HW,
 		pDveConfig->DPE_DVE_CONFO_L_BASE_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_CONFO_L_STRIDE_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_CONFO_L_STRIDE_HW,
 		pDveConfig->DPE_DVE_CONFO_L_STRIDE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_CONFO_R_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_CONFO_R_BASE_ADDR_HW,
 		pDveConfig->DPE_DVE_CONFO_R_BASE_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_CONFO_R_STRIDE_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_CONFO_R_STRIDE_HW,
 		pDveConfig->DPE_DVE_CONFO_R_STRIDE, CMDQ_REG_MASK);
 
-	cmdqRecWrite(handle, DPE_DVE_RESPO_L_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_RESPO_L_BASE_ADDR_HW,
 		pDveConfig->DPE_DVE_RESPO_L_BASE_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_RESPO_L_STRIDE_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_RESPO_L_STRIDE_HW,
 		pDveConfig->DPE_DVE_RESPO_L_STRIDE, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_RESPO_R_BASE_ADDR_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_RESPO_R_BASE_ADDR_HW,
 		pDveConfig->DPE_DVE_RESPO_R_BASE_ADDR, CMDQ_REG_MASK);
-	cmdqRecWrite(handle, DPE_DVE_RESPO_R_STRIDE_HW,
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_RESPO_R_STRIDE_HW,
 		pDveConfig->DPE_DVE_RESPO_R_STRIDE, CMDQ_REG_MASK);
 
 	/* DPE Interrupt read-clear mode */
-	cmdqRecWrite(handle, DPE_DVE_START_HW, 0x1, CMDQ_REG_MASK);
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_START_HW, 0x1, CMDQ_REG_MASK);
 
-	cmdqRecWait(handle, CMDQ_EVENT_DVE_EOF);
+	cmdq_pkt_wfe(pkt, dpe_cmdq_event_id);
 	/* DPE Interrupt read-clear mode */
-	cmdqRecWrite(handle, DPE_DVE_START_HW, 0x0, CMDQ_REG_MASK);
+	cmdq_pkt_write(pkt, dpe_cmdq_base, DPE_DVE_START_HW, 0x0, CMDQ_REG_MASK);
 
-	/* non-blocking API, Please  use cmdqRecFlushAsync() */
-	cmdqRecFlushAsync(handle);
-	cmdqRecReset(handle);	/* if you want to re-use the handle,
-				 * please reset the handle
-				 */
-	cmdqRecDestroy(handle);	/* recycle the memory */
+	cmdq_pkt_flush(pkt);
+	cmdq_pkt_destroy(pkt);
 
 #ifdef __DPE_KERNEL_PERFORMANCE_MEASURE__
 	mt_kernel_trace_end();
@@ -3241,7 +3239,8 @@ static signed int DPE_open(struct inode *pInode, struct file *pFile)
 	__pm_stay_awake(dpe_wake_lock);
 #endif
 	DPE_EnableClock(MTRUE);
-	g_u4DpeCnt = 0;
+	cmdq_mbox_enable(dpe_cmdq_clt->chan);
+	g_SuspendCnt = 0;
 #if IS_ENABLED(CONFIG_PM_SLEEP)
 	__pm_relax(dpe_wake_lock);
 #endif
@@ -3322,6 +3321,7 @@ static signed int DPE_release(struct inode *pInode, struct file *pFile)
 #if IS_ENABLED(CONFIG_PM_SLEEP)
 	__pm_stay_awake(dpe_wake_lock);
 #endif
+	cmdq_mbox_disable(dpe_cmdq_clt->chan);
 	DPE_EnableClock(MFALSE);
 #if IS_ENABLED(CONFIG_PM_SLEEP)
 	__pm_relax(dpe_wake_lock);
@@ -3417,6 +3417,63 @@ EXIT:
 /******************************************************************************
  *
  ******************************************************************************/
+static void DPE_add_device_link(struct platform_device *pDev)
+{
+	char mtk_larb_str[32];
+	int i = 0, mtk_larb = 0, mtk_larbs = 0, larb_num = 0;
+	unsigned int larb_id = 0;
+	struct device_node *larb_node;
+	struct device_link *link;
+	struct platform_device *larb_pdev;
+
+	mtk_larb = of_count_phandle_with_args(pDev->dev.of_node, "mediatek,larb", NULL);
+	mtk_larbs = of_count_phandle_with_args(pDev->dev.of_node, "mediatek,larbs", NULL);
+
+	if (mtk_larb > mtk_larbs) {
+		larb_num = mtk_larb;
+		strncpy(mtk_larb_str, "mediatek,larb", 14);
+	} else {
+		larb_num = mtk_larbs;
+		strncpy(mtk_larb_str, "mediatek,larbs", 15);
+	}
+
+	LOG_INF("larb_num: %d; (%d, %d)\n", larb_num, mtk_larb, mtk_larbs);
+
+	if (larb_num <= 0) {
+		LOG_INF("%s: find no larb", pDev->dev.of_node->name);
+		return;
+	}
+
+	for (i = 0; i < larb_num; i++) {
+		larb_node = of_parse_phandle(pDev->dev.of_node, mtk_larb_str, i);
+		if (!larb_node) {
+			LOG_INF("%s: [%d]: failed to get larb from %s\n",
+				pDev->dev.of_node->name, i, mtk_larb_str);
+			continue;
+		}
+		larb_pdev = of_find_device_by_node(larb_node);
+		if (WARN_ON(!larb_pdev)) {
+			of_node_put(larb_node);
+			LOG_INF("%s: failed to get larb pdev\n", pDev->dev.of_node->name);
+			continue;
+		}
+
+		if (of_property_read_u32(larb_node, "mediatek,larb-id", &larb_id))
+			LOG_INF("Error: get larb id from DTS fail!!\n");
+		else
+			LOG_INF("%s gets larb_id=%d\n",
+				pDev->dev.of_node->name, larb_id);
+
+		of_node_put(larb_node);
+
+		link = device_link_add(&pDev->dev, &larb_pdev->dev,
+				DL_FLAG_PM_RUNTIME | DL_FLAG_STATELESS);
+		if (!link)
+			LOG_INF("%s: [%d]: unable to link smi larb %d\n",
+				pDev->dev.of_node->name, i, larb_id);
+	}
+}
+
 static signed int DPE_probe(struct platform_device *pDev)
 {
 	signed int Ret = 0;
@@ -3467,6 +3524,22 @@ static signed int DPE_probe(struct platform_device *pDev)
 
 	LOG_INF("nr_DPE_devs=%d, devnode(%s), map_addr=0x%lx\n", nr_DPE_devs,
 		pDev->dev.of_node->name, (unsigned long)DPE_dev->regs);
+
+	DPE_add_device_link(pDev);
+
+	if (nr_DPE_devs == 1) {
+		/* register device by node */
+		dpe_cmdq_base = NULL;
+		dpe_cmdq_base = cmdq_register_device(&pDev->dev);
+
+		/* request thread by index (in dts) 0 */
+		dpe_cmdq_clt = cmdq_mbox_create(&pDev->dev, 0);
+		LOG_INF("[Debug]cmdq_mbox_create 0x%lx\n", (unsigned long)dpe_cmdq_clt);
+
+		/* parse hardware event */
+		dpe_cmdq_event_id = cmdq_dev_get_event(&pDev->dev, "dve_eof");
+		LOG_INF("[Debug]dpe_cmdq_event_id=%d\n", dpe_cmdq_event_id);
+	}
 
 	/* get IRQ ID and request IRQ */
 	DPE_dev->irq = irq_of_parse_and_map(pDev->dev.of_node, 0);
@@ -3526,6 +3599,19 @@ static signed int DPE_probe(struct platform_device *pDev)
 	}
 
 
+#endif
+	pm_runtime_enable(DPE_dev->dev);
+	if (!pm_runtime_enabled(DPE_dev->dev))
+		goto EXIT;
+
+#if IS_ENABLED(CONFIG_ARM64)
+	if (dma_set_mask_and_coherent(DPE_dev->dev, DMA_BIT_MASK(34)))
+		dev_info(DPE_dev->dev, "%s: arm64: No suitable DMA available, DMA_BIT_MASK(34)\n",
+			pDev->dev.of_node->name);
+#else
+	if (dma_set_mask_and_coherent(DPE_dev->dev, DMA_BIT_MASK(31)))
+		dev_info(DPE_dev->dev, "%s: arm: No suitable DMA available, DMA_BIT_MASK(31)\n",
+			pDev->dev.of_node->name);
 #endif
 
 	/* Only register char driver in the 1st time */
@@ -3599,6 +3685,7 @@ static signed int DPE_probe(struct platform_device *pDev)
 			DPE_IRQ_TYPE_INT_DPE_ST] = INT_ST_MASK_DPE;
 
 	}
+	g_DPE_PMState = 0;
 
 EXIT:
 	if (Ret < 0)
@@ -3644,21 +3731,8 @@ static signed int DPE_remove(struct platform_device *pDev)
 /******************************************************************************
  *
  ******************************************************************************/
-static signed int bPass1_On_In_Resume_TG1;
-
 static signed int DPE_suspend(struct platform_device *pDev, pm_message_t Mesg)
 {
-	/*signed int ret = 0;*/
-
-	LOG_DBG("bPass1_On_In_Resume_TG1(%d)\n", bPass1_On_In_Resume_TG1);
-
-	bPass1_On_In_Resume_TG1 = 0;
-
-	if (g_u4EnableClockCount > 0) {
-		DPE_EnableClock(MFALSE);
-		g_u4DpeCnt++;
-	}
-
 	return 0;
 }
 
@@ -3667,12 +3741,6 @@ static signed int DPE_suspend(struct platform_device *pDev, pm_message_t Mesg)
  ******************************************************************************/
 static signed int DPE_resume(struct platform_device *pDev)
 {
-	LOG_DBG("bPass1_On_In_Resume_TG1(%d).\n", bPass1_On_In_Resume_TG1);
-
-	if (g_u4DpeCnt > 0) {
-		DPE_EnableClock(MTRUE);
-		g_u4DpeCnt--;
-	}
 	return 0;
 }
 
@@ -3680,6 +3748,47 @@ static signed int DPE_resume(struct platform_device *pDev)
 /*---------------------------------------------------------------------------*/
 #if IS_ENABLED(CONFIG_PM)
 /*---------------------------------------------------------------------------*/
+static signed int bPass1_On_In_Resume_TG1;
+static int dpe_suspend_pm_event(struct notifier_block *notifier,
+			unsigned long pm_event, void *unused)
+{
+	switch (pm_event) {
+	case PM_HIBERNATION_PREPARE:
+		return NOTIFY_DONE;
+	case PM_RESTORE_PREPARE:
+		return NOTIFY_DONE;
+	case PM_POST_HIBERNATION:
+		return NOTIFY_DONE;
+	case PM_SUSPEND_PREPARE: /*enter suspend*/
+		if (g_u4EnableClockCount > 0) {
+			DPE_EnableClock(MFALSE);
+			g_SuspendCnt++;
+		}
+		bPass1_On_In_Resume_TG1 = 0;
+		if (g_DPE_PMState == 0) {
+			LOG_INF("%s:g_u4EnableClockCount(%d) g_SuspendCnt(%d).\n", __func__,
+				g_u4EnableClockCount,
+				g_SuspendCnt);
+			g_DPE_PMState = 1;
+		}
+		return NOTIFY_DONE;
+	case PM_POST_SUSPEND:    /*after resume*/
+		if (g_SuspendCnt > 0) {
+			DPE_EnableClock(MTRUE);
+			g_SuspendCnt--;
+		}
+		if (g_DPE_PMState == 1) {
+			LOG_INF("%s:g_u4EnableClockCount(%d) g_SuspendCnt(%d).\n", __func__,
+				g_u4EnableClockCount,
+				g_SuspendCnt);
+			g_DPE_PMState = 0;
+		}
+		return NOTIFY_DONE;
+	}
+
+	return NOTIFY_OK;
+}
+
 int DPE_pm_suspend(struct device *device)
 {
 	struct platform_device *pdev = to_platform_device(device);
@@ -3687,8 +3796,6 @@ int DPE_pm_suspend(struct device *device)
 	WARN_ON(pdev == NULL);
 
 	/* pr_debug("calling %s()\n", __func__); */
-	LOG_INF("DPE suspend g_u4EnableClockCount: %d, g_u4DpeCnt: %d",
-		g_u4EnableClockCount, g_u4DpeCnt);
 
 	return DPE_suspend(pdev, PMSG_SUSPEND);
 }
@@ -3700,8 +3807,6 @@ int DPE_pm_resume(struct device *device)
 	WARN_ON(pdev == NULL);
 
 	/* pr_debug("calling %s()\n", __func__); */
-	LOG_INF("DPE resume g_u4EnableClockCount: %d, g_u4DpeCnt: %d",
-		g_u4EnableClockCount, g_u4DpeCnt);
 
 	return DPE_resume(pdev);
 }
@@ -3771,6 +3876,12 @@ static struct platform_driver DPEDriver = {
 	}
 };
 
+#if IS_ENABLED(CONFIG_PM)
+static struct notifier_block dpe_suspend_pm_notifier_func = {
+	.notifier_call = dpe_suspend_pm_event,
+	.priority = 0,
+};
+#endif
 
 static int dpe_dump_read(struct seq_file *m, void *v)
 {
@@ -4101,7 +4212,6 @@ static signed int __init DPE_Init(void)
 		return Ret;
 	}
 
-
 	/* isr log */
 	if (PAGE_SIZE <
 	    ((DPE_IRQ_TYPE_AMOUNT * NORMAL_STR_LEN *
@@ -4160,6 +4270,14 @@ static signed int __init DPE_Init(void)
 			   DPE_DumpCallback,
 			   DPE_ResetCallback,
 			   DPE_ClockOffCallback);
+#endif
+
+#if IS_ENABLED(CONFIG_PM)
+	Ret = register_pm_notifier(&dpe_suspend_pm_notifier_func);
+	if (Ret) {
+		pr_debug("[Camera DPE] Failed to register PM notifier.\n");
+		return Ret;
+	}
 #endif
 
 	LOG_DBG("- X. Ret: %d.", Ret);

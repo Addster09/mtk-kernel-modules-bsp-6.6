@@ -30,6 +30,10 @@
 #include <linux/sched/clock.h>
 #include <linux/seq_file.h>
 #include <linux/uaccess.h>
+#include <linux/pm_runtime.h>
+#include <linux/dma-mapping.h>
+#include <linux/dma-buf.h>
+#include <linux/suspend.h>
 
 /*#include <linux/xlog.h>		 For xlog_printk(). */
 /*  */
@@ -117,7 +121,6 @@ struct RSC_CLK_STRUCT rsc_clk;
 #define RSC_DEV_NAME "camera-rsc"
 /*#define EP_NO_CLKMGR*/
 #define BYPASS_REG (0)
-/*#define RSC_DEBUG_USE*/
 #define DUMMY_RSC (0)
 /*I can' test the situation in FPGA due to slow FPGA. */
 #define MyTag "[RSC]"
@@ -125,6 +128,7 @@ struct RSC_CLK_STRUCT rsc_clk;
 
 #define LOG_VRB(format, args...) pr_debug(MyTag format, ##args)
 
+#define RSC_DEBUG_USE
 #ifdef RSC_DEBUG_USE
 #define LOG_DBG(format, args...) pr_debug(MyTag format, ##args)
 #else
@@ -1244,24 +1248,18 @@ static inline void RSC_Prepare_Enable_ccf_clock(void)
 {
 	int ret;
 	/* open order:CG_SCP_SYS_MM0>CG_MM_SMI_COMMON>CG_SCP_SYS_ISP>RSC clk */
-#ifdef SMI_CLK
-	// TODO: smi api changed -- haipeng
-	// smi_bus_prepare_enable(SMI_LARB5, "camera_rsc");
-#endif
+	pm_runtime_get_sync(RSC_devs->dev);
+
 	ret = clk_prepare_enable(rsc_clk.CG_IMGSYS_RSC);
 	if (ret)
 		LOG_ERR("cannot prepare and enable CG_IMGSYS_RSC clock\n");
-
 }
 
 static inline void RSC_Disable_Unprepare_ccf_clock(void)
 {
 	/* close order:RSC clk>CG_SCP_SYS_ISP>CG_MM_SMI_COMMON>CG_SCP_SYS_MM0 */
 	clk_disable_unprepare(rsc_clk.CG_IMGSYS_RSC);
-#ifdef SMI_CLK
-	// TODO: smi api changed -- haipeng
-	// smi_bus_disable_unprepare(SMI_LARB5, "camera_rsc");
-#endif
+	pm_runtime_put_sync(RSC_devs->dev);
 }
 #endif
 
@@ -2567,12 +2565,7 @@ static signed int RSC_open(struct inode *pInode, struct file *pFile)
 	register_requests(&rsc_reqs, sizeof(struct RSC_Config));
 	set_engine_ops(&rsc_reqs, &rsc_ops);
 
-
 EXIT:
-
-
-
-
 	LOG_DBG("- X. Ret: %d. UserCount: %d.", Ret, RSCInfo.UserCount);
 	return Ret;
 
@@ -2747,6 +2740,63 @@ EXIT:
 	return Ret;
 }
 
+static void RSC_add_device_link(struct platform_device *pDev)
+{
+	char mtk_larb_str[32];
+	int i = 0, mtk_larb = 0, mtk_larbs = 0, larb_num = 0;
+	unsigned int larb_id = 0;
+	struct device_node *larb_node;
+	struct device_link *link;
+	struct platform_device *larb_pdev;
+
+	mtk_larb = of_count_phandle_with_args(pDev->dev.of_node, "mediatek,larb", NULL);
+	mtk_larbs = of_count_phandle_with_args(pDev->dev.of_node, "mediatek,larbs", NULL);
+
+	if (mtk_larb > mtk_larbs) {
+		larb_num = mtk_larb;
+		strncpy(mtk_larb_str, "mediatek,larb", 14);
+	} else {
+		larb_num = mtk_larbs;
+		strncpy(mtk_larb_str, "mediatek,larbs", 15);
+	}
+
+	LOG_INF("larb_num: %d; (%d, %d)\n", larb_num, mtk_larb, mtk_larbs);
+
+	if (larb_num <= 0) {
+		LOG_INF("%s: find no larb", pDev->dev.of_node->name);
+		return;
+	}
+
+	for (i = 0; i < larb_num; i++) {
+		larb_node = of_parse_phandle(pDev->dev.of_node, mtk_larb_str, i);
+		if (!larb_node) {
+			LOG_INF("%s: [%d]: failed to get larb from %s\n",
+				pDev->dev.of_node->name, i, mtk_larb_str);
+			continue;
+		}
+		larb_pdev = of_find_device_by_node(larb_node);
+		if (WARN_ON(!larb_pdev)) {
+			of_node_put(larb_node);
+			LOG_INF("%s: failed to get larb pdev\n", pDev->dev.of_node->name);
+			continue;
+		}
+
+		if (of_property_read_u32(larb_node, "mediatek,larb-id", &larb_id))
+			LOG_INF("Error: get larb id from DTS fail!!\n");
+		else
+			LOG_INF("%s gets larb_id=%d\n",
+				pDev->dev.of_node->name, larb_id);
+
+		of_node_put(larb_node);
+
+		link = device_link_add(&pDev->dev, &larb_pdev->dev,
+				DL_FLAG_PM_RUNTIME | DL_FLAG_STATELESS);
+		if (!link)
+			LOG_INF("%s: [%d]: unable to link smi larb %d\n",
+				pDev->dev.of_node->name, i, larb_id);
+	}
+}
+
 /*******************************************************************************
  *
  ******************************************************************************/
@@ -2786,6 +2836,8 @@ static signed int RSC_probe(struct platform_device *pDev)
 
 	RSC_dev = &(RSC_devs[nr_RSC_devs - 1]);
 	RSC_dev->dev = &pDev->dev;
+
+	dma_set_mask_and_coherent(RSC_devs->dev, DMA_BIT_MASK(34));
 
 	/* iomap registers */
 	RSC_dev->regs = of_iomap(pDev->dev.of_node, 0);
@@ -2937,6 +2989,8 @@ static signed int RSC_probe(struct platform_device *pDev)
 		cmdq_base = cmdq_register_device(&pDev->dev);
 		cmdq_clt = cmdq_mbox_create(&pDev->dev, 0);
 		cmdq_event_id = cmdq_dev_get_event(&pDev->dev, "rsc_eof");
+
+		RSC_add_device_link(pDev);
 	}
 
 EXIT:
@@ -2996,17 +3050,6 @@ static signed int bPass1_On_In_Resume_TG1;
 
 static signed int RSC_suspend(struct platform_device *pDev, pm_message_t Mesg)
 {
-	/*signed int ret = 0;*/
-
-	LOG_DBG("bPass1_On_In_Resume_TG1(%d)\n", bPass1_On_In_Resume_TG1);
-	if (g_u4EnableClockCount > 0) {
-		RSC_EnableClock(MFALSE);
-		g_SuspendCnt++;
-	}
-	bPass1_On_In_Resume_TG1 = 0;
-	LOG_INF("%s:g_u4EnableClockCount(%d) g_SuspendCnt(%d).\n", __func__,
-				g_u4EnableClockCount, g_SuspendCnt);
-
 	return 0;
 }
 
@@ -3015,19 +3058,46 @@ static signed int RSC_suspend(struct platform_device *pDev, pm_message_t Mesg)
  ******************************************************************************/
 static signed int RSC_resume(struct platform_device *pDev)
 {
-	LOG_DBG("bPass1_On_In_Resume_TG1(%d).\n", bPass1_On_In_Resume_TG1);
-	if (g_SuspendCnt > 0) {
-		RSC_EnableClock(MTRUE);
-		g_SuspendCnt--;
-	}
-	LOG_INF("%s:g_u4EnableClockCount(%d) g_SuspendCnt(%d).\n", __func__,
-				g_u4EnableClockCount, g_SuspendCnt);
 	return 0;
 }
 
 /*---------------------------------------------------------------------------*/
 #if IS_ENABLED(CONFIG_PM)
 /*---------------------------------------------------------------------------*/
+static int rsc_suspend_pm_event(struct notifier_block *notifier,
+			unsigned long pm_event, void *unused)
+{
+	switch (pm_event) {
+	case PM_HIBERNATION_PREPARE:
+		return NOTIFY_DONE;
+	case PM_RESTORE_PREPARE:
+		return NOTIFY_DONE;
+	case PM_POST_HIBERNATION:
+		return NOTIFY_DONE;
+	case PM_SUSPEND_PREPARE: /*enter suspend*/
+		LOG_DBG("bPass1_On_In_Resume_TG1(%d)\n", bPass1_On_In_Resume_TG1);
+		if (g_u4EnableClockCount > 0) {
+			RSC_EnableClock(MFALSE);
+			g_SuspendCnt++;
+		}
+		bPass1_On_In_Resume_TG1 = 0;
+		LOG_INF("%s:g_u4EnableClockCount(%d) g_SuspendCnt(%d).\n", __func__,
+					g_u4EnableClockCount, g_SuspendCnt);
+		return NOTIFY_DONE;
+	case PM_POST_SUSPEND:    /*after resume*/
+		LOG_DBG("bPass1_On_In_Resume_TG1(%d).\n", bPass1_On_In_Resume_TG1);
+		if (g_SuspendCnt > 0) {
+			RSC_EnableClock(MTRUE);
+			g_SuspendCnt--;
+		}
+		LOG_INF("%s:g_u4EnableClockCount(%d) g_SuspendCnt(%d).\n", __func__,
+					g_u4EnableClockCount, g_SuspendCnt);
+		return NOTIFY_DONE;
+	}
+
+	return NOTIFY_OK;
+}
+
 int RSC_pm_suspend(struct device *device)
 {
 	struct platform_device *pdev = to_platform_device(device);
@@ -3114,6 +3184,13 @@ static struct platform_driver RSCDriver = {
 #endif
 		}
 };
+
+#if IS_ENABLED(CONFIG_PM)
+static struct notifier_block rsc_suspend_pm_notifier_func = {
+	.notifier_call = rsc_suspend_pm_event,
+	.priority = 0,
+};
+#endif
 
 #ifdef RSC_PROCFS
 static int rsc_dump_read(struct seq_file *m, void *v)
@@ -3401,7 +3478,6 @@ static signed int __init RSC_Init(void)
 		return Ret;
 	}
 
-
 #ifdef RSC_PROCFS
 	isp_rsc_dir = proc_mkdir("rsc", NULL);
 	if (!isp_rsc_dir) {
@@ -3461,6 +3537,14 @@ static signed int __init RSC_Init(void)
 			   RSC_ClockOnCallback,
 			   RSC_DumpCallback, RSC_ResetCallback,
 							RSC_ClockOffCallback);
+#endif
+
+#if IS_ENABLED(CONFIG_PM)
+	Ret = register_pm_notifier(&rsc_suspend_pm_notifier_func);
+	if (Ret) {
+		pr_debug("[Camera RSC] Failed to register PM notifier.\n");
+		return Ret;
+	}
 #endif
 
 	LOG_DBG("- X. Ret: %d.", Ret);

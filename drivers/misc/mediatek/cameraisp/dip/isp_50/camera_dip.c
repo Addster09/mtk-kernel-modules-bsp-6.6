@@ -32,6 +32,9 @@
 #include <linux/vmalloc.h>
 #include <linux/seq_file.h>
 #include <linux/pm_runtime.h>
+#include <linux/suspend.h>
+#include <linux/dma-mapping.h>
+#include <linux/dma-buf.h>
 
 /*#include <mach/irqs.h>*/
 /* For clock mgr APIS. enable_clock()/disable_clock(). */
@@ -62,9 +65,7 @@
 
 #define EP_CODE_MARK_KERNEL414
 
-// #ifndef EP_CODE_MARK_SMI
-// #include <smi_public.h>
-// #endif
+// #define DIP_GET_SMI_NODE
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -100,17 +101,6 @@
 #include <mt-plat/met_drv.h>
 #endif
 
-
-#define CAMSV_DBG
-#ifdef CAMSV_DBG
-#define CAM_TAG "CAM:"
-#define CAMSV_TAG "SV1:"
-#define CAMSV2_TAG "SV2:"
-#else
-#define CAMSV_TAG ""
-#define CAMSV2_TAG ""
-#define CAM_TAG ""
-#endif
 
 #include "camera_dip.h"
 
@@ -160,6 +150,8 @@ pr_info(MyTag "[%s] " format, __func__, ##args)
 pr_info(MyTag "[%s] " format, __func__, ##args)
 #define LOG_AST(format, args...) \
 pr_debug(MyTag "[%s] " format, __func__, ##args)
+
+bool g_DIP_PMState;
 
 /**************************************************************
  *
@@ -403,6 +395,7 @@ struct dip_device {
 	void __iomem *regs;
 	struct device *dev;
 	int irq;
+	struct device *larb5;
 };
 
 static struct dip_device *dip_devs;
@@ -1837,12 +1830,17 @@ static signed int DIP_DumpDIPReg(void)
 static inline void Prepare_Enable_ccf_clock(void)
 {
 	int ret;
+
+	LOG_INF("%s cnt(%d)\n", __func__, G_u4DipEnClkCnt);
 	/* enable through smi API */
-// #ifndef EP_CODE_MARK_SMI
-// 	smi_bus_prepare_enable(SMI_LARB5, DIP_DEV_NAME);
-// #endif
-	// TODO: modify smi api -- haipeng
-	pm_runtime_get_sync(dip_devs->dev);
+#ifdef DIP_GET_SMI_NODE
+	LOG_INF("larb5: %p\n", dip_devs->larb5);
+	ret = mtk_smi_larb_get(dip_devs->larb5);
+	if (ret)
+		LOG_ERR("mtk_smi_larb_get larb5 fail %d\n", ret);
+#endif
+	pm_runtime_resume_and_get(dip_devs->dev);
+
 	ret = clk_prepare_enable(dip_clk.DIP_IMG_LARB5);
 	if (ret)
 		LOG_ERR("cannot prepare and enable DIP_IMG_LARB5 clock\n");
@@ -1850,17 +1848,17 @@ static inline void Prepare_Enable_ccf_clock(void)
 	ret = clk_prepare_enable(dip_clk.DIP_IMG_DIP);
 	if (ret)
 		LOG_ERR("cannot prepare and enable DIP_IMG_DIP clock\n");
-
 }
 
 static inline void Disable_Unprepare_ccf_clock(void)
 {
+	LOG_INF("%s cnt(%d)\n", __func__, G_u4DipEnClkCnt);
+
 	clk_disable_unprepare(dip_clk.DIP_IMG_DIP);
 	clk_disable_unprepare(dip_clk.DIP_IMG_LARB5);
-// #ifndef EP_CODE_MARK_SMI
-// 	smi_bus_disable_unprepare(SMI_LARB5, DIP_DEV_NAME);
-// #endif
-	// TODO: modify smi api -- haipeng
+#ifdef DIP_GET_SMI_NODE
+	mtk_smi_larb_put(dip_devs->larb5);
+#endif
 	pm_runtime_put_sync(dip_devs->dev);
 }
 
@@ -4510,6 +4508,65 @@ EXIT:
 	LOG_DBG("- X.\n");
 	return Ret;
 }
+/*
+ * mtk_smi_larb_put/mtk_smi_larb_get was removed, use pm_runtime + device link instead.
+ */
+static void DIP_add_device_link(struct platform_device *pDev)
+{
+	char mtk_larb_str[32];
+	int i = 0, mtk_larb = 0, mtk_larbs = 0, larb_num = 0;
+	unsigned int larb_id = 0;
+	struct device_node *larb_node;
+	struct device_link *link;
+	struct platform_device *larb_pdev;
+
+	mtk_larb = of_count_phandle_with_args(pDev->dev.of_node, "mediatek,larb", NULL);
+	mtk_larbs = of_count_phandle_with_args(pDev->dev.of_node, "mediatek,larbs", NULL);
+
+	if (mtk_larb > mtk_larbs) {
+		larb_num = mtk_larb;
+		strncpy(mtk_larb_str, "mediatek,larb", 14);
+	} else {
+		larb_num = mtk_larbs;
+		strncpy(mtk_larb_str, "mediatek,larbs", 15);
+	}
+
+	LOG_INF("DIP larb_num: %d; (%d, %d)\n", larb_num, mtk_larb, mtk_larbs);
+
+	if (larb_num <= 0) {
+		LOG_ERR("DIP %s: find no larb", pDev->dev.of_node->name);
+		return;
+	}
+
+	for (i = 0; i < larb_num; i++) {
+		larb_node = of_parse_phandle(pDev->dev.of_node, mtk_larb_str, i);
+
+		if (!larb_node) {
+			LOG_ERR("DIP %s: [%d]: failed to get larb from %s\n", pDev->dev.of_node->name, i, mtk_larb_str);
+			continue;
+		}
+
+		larb_pdev = of_find_device_by_node(larb_node);
+
+		if (WARN_ON(!larb_pdev)) {
+			of_node_put(larb_node);
+			LOG_ERR("DIP %s: failed to get larb pdev\n", pDev->dev.of_node->name);
+			continue;
+		}
+
+		if (of_property_read_u32(larb_node, "mediatek,larb-id", &larb_id))
+			LOG_INF(" DIP Error: get larb id from DTS fail!!\n");
+		else
+			LOG_INF("DIP %s gets larb_id=%d\n", pDev->dev.of_node->name, larb_id);
+
+		of_node_put(larb_node);
+
+		link = device_link_add(&pDev->dev, &larb_pdev->dev, DL_FLAG_PM_RUNTIME | DL_FLAG_STATELESS);
+
+		if (!link)
+			LOG_INF("DIP %s: [%d]: unable to link smi larb %d\n", pDev->dev.of_node->name, i, larb_id);
+	}
+}
 
 /**************************************************************
  *
@@ -4517,7 +4574,6 @@ EXIT:
 static signed int DIP_probe(struct platform_device *pDev)
 {
 	signed int Ret = 0;
-	/*    struct resource *pRes = NULL;*/
 	signed int i = 0, j = 0;
 	unsigned char n;
 	unsigned int irq_info[3]; /* Record interrupts info from device tree */
@@ -4526,6 +4582,10 @@ static signed int DIP_probe(struct platform_device *pDev)
 #if IS_ENABLED(CONFIG_OF)
 	struct dip_device *dip_dev;
 	struct device *dev = NULL;
+#ifdef DIP_GET_SMI_NODE
+	struct device_node *node_larb5;
+	struct platform_device *pdev_larb5;
+#endif
 #endif
 
 	LOG_INF("- E. DIP driver probe.\n");
@@ -4560,6 +4620,28 @@ static signed int DIP_probe(struct platform_device *pDev)
 			nr_dip_devs, pDev->dev.of_node->name);
 		return -ENOMEM;
 	}
+
+	if (nr_dip_devs == 1) {
+		// TODO: pm_runtime api -- haipeng
+		pm_runtime_enable(dip_devs->dev);
+		/* parse larb node*/
+#ifdef DIP_GET_SMI_NODE
+		node_larb5 = of_parse_phandle(pDev->dev.of_node, "mediatek,larb", 0);
+
+		if (!node_larb5)
+			LOG_INF("no get node_larb5\n");
+
+		pdev_larb5 = of_find_device_by_node(node_larb5);
+		if (WARN_ON(!pdev_larb5)) {
+			of_node_put(node_larb5);
+			return -EINVAL;
+		}
+		of_node_put(node_larb5);
+		dip_devs->larb5 = &pdev_larb5->dev;
+#endif
+	}
+
+	dma_set_mask_and_coherent(dip_devs->dev, DMA_BIT_MASK(34));
 
 	LOG_INF("nr_dip_devs=%d, devnode(%s), map_addr=0x%lx\n",
 		nr_dip_devs,
@@ -4622,7 +4704,7 @@ static signed int DIP_probe(struct platform_device *pDev)
 			nr_dip_devs, pDev->dev.of_node->name, dip_dev->irq);
 	}
 
-
+	DIP_add_device_link(pDev);
 
 	/* Only register char driver in the 1st time */
 	if (nr_dip_devs == 1) {
@@ -4735,7 +4817,7 @@ static signed int DIP_probe(struct platform_device *pDev)
 			IspInfo.IrqCntInfo.m_int_usec[i] = 0;
 		}
 
-
+		g_DIP_PMState = 0;
 EXIT:
 		if (Ret < 0)
 			DIP_UnregCharDev();
@@ -4783,11 +4865,6 @@ static signed int DIP_suspend(
 	pm_message_t            Mesg
 )
 {
-	if (G_u4DipEnClkCnt > 0) {
-		DIP_EnableClock(MFALSE);
-		g_u4DipCnt++;
-	}
-
 	return 0;
 }
 
@@ -4796,18 +4873,52 @@ static signed int DIP_suspend(
  **************************************************************/
 static signed int DIP_resume(struct platform_device *pDev)
 {
-	if (g_u4DipCnt > 0) {
-		DIP_EnableClock(MTRUE);
-		if (G_u4DipEnClkCnt == 1)
-			DIP_Load_InitialSettings();
-		g_u4DipCnt--;
-	}
 	return 0;
 }
 
 /*------------------------------------------------------------*/
 #if IS_ENABLED(CONFIG_PM)
 /*------------------------------------------------------------*/
+static int dip_suspend_pm_event(struct notifier_block *notifier, unsigned long pm_event, void *unused)
+{
+	switch (pm_event) {
+	case PM_HIBERNATION_PREPARE:
+		return NOTIFY_DONE;
+	case PM_RESTORE_PREPARE:
+		return NOTIFY_DONE;
+	case PM_POST_HIBERNATION:
+		return NOTIFY_DONE;
+	case PM_SUSPEND_PREPARE: /*enter suspend*/
+		if (G_u4DipEnClkCnt > 0) {
+			DIP_EnableClock(MFALSE);
+			g_u4DipCnt++;
+		}
+		if (g_DIP_PMState == 0) {
+			LOG_INF("DIP suspend G_u4DipEnClkCnt: %d, g_u4DipCnt: %d",
+				G_u4DipEnClkCnt,
+				g_u4DipCnt);
+			g_DIP_PMState = 1;
+		}
+		return NOTIFY_DONE;
+	case PM_POST_SUSPEND:    /*after resume*/
+		if (g_u4DipCnt > 0) {
+			DIP_EnableClock(MTRUE);
+			if (G_u4DipEnClkCnt == 1)
+				DIP_Load_InitialSettings();
+			g_u4DipCnt--;
+		}
+		if (g_DIP_PMState == 1) {
+			LOG_INF("DIP resume G_u4DipEnClkCnt: %d, g_u4DipCnt: %d",
+				G_u4DipEnClkCnt,
+				g_u4DipCnt);
+			g_DIP_PMState = 0;
+		}
+		return NOTIFY_DONE;
+	}
+
+	return NOTIFY_OK;
+}
+
 int DIP_pm_suspend(struct device *device)
 {
 	struct platform_device *pdev = to_platform_device(device);
@@ -4884,6 +4995,13 @@ static struct platform_driver DipDriver = {
 #endif
 	}
 };
+
+#if IS_ENABLED(CONFIG_PM)
+static struct notifier_block dip_suspend_pm_notifier_func = {
+	.notifier_call = dip_suspend_pm_event,
+	.priority = 0,
+};
+#endif
 
 /**************************************************************
  *
@@ -5186,9 +5304,7 @@ static signed int __init DIP_Init(void)
 {
 	signed int Ret = 0, j;
 	void *tmp;
-//#if 0
-//	struct device_node *node = NULL;
-//#endif
+
 	struct proc_dir_entry __maybe_unused  *proc_entry;
 	struct proc_dir_entry __maybe_unused  *dip_p2_dir;
 
@@ -5223,7 +5339,6 @@ static signed int __init DIP_Init(void)
 			break;
 		}
 	}
-
 
 	/* isr log */
 	if (PAGE_SIZE < ((DIP_IRQ_TYPE_AMOUNT * NORMAL_STR_LEN *
@@ -5263,14 +5378,13 @@ static signed int __init DIP_Init(void)
 				SetPageReserved(
 				virt_to_page(
 				((unsigned long)pTbl_RTBuf[j]) + i));
-
-	}
+		}
 	}
 
 #ifndef EP_CODE_MARK_CMDQ
 	/* Register DIP callback */
 	LOG_DBG("register dip callback for MDP");
-	cmdqCoreRegisterCB(CMDQ_GROUP_ISP,
+	cmdqCoreRegisterCB(mdp_get_group_isp(),
 			   DIP_MDPClockOnCallback,
 			   DIP_MDPDumpCallback,
 			   DIP_MDPResetCallback,
@@ -5281,6 +5395,14 @@ static signed int __init DIP_Init(void)
 		(DIP_BeginGCECallback, DIP_EndGCECallback);
 #endif
 	/* m4u_enable_tf(M4U_PORT_CAM_IMGI, 0);*/
+
+#if IS_ENABLED(CONFIG_PM)
+	Ret = register_pm_notifier(&dip_suspend_pm_notifier_func);
+	if (Ret) {
+		LOG_ERR("[Camera DIP] Failed to register PM notifier.\n");
+		return Ret;
+	}
+#endif
 
 	LOG_DBG("- X. Ret: %d.", Ret);
 	return Ret;
@@ -5299,7 +5421,7 @@ static void __exit DIP_Exit(void)
 	/*  */
 #ifndef EP_CODE_MARK_CMDQ
 	/* Unregister DIP callback */
-	cmdqCoreRegisterCB(CMDQ_GROUP_ISP,
+	cmdqCoreRegisterCB(mdp_get_group_isp(),
 			   NULL,
 			   NULL,
 			   NULL,
@@ -5308,7 +5430,6 @@ static void __exit DIP_Exit(void)
 	LOG_DBG("Un-register dip callback for GCE");
 	cmdqCoreRegisterDebugRegDumpCB(NULL, NULL);
 #endif
-
 
 	for (j = 0; j < DIP_IRQ_TYPE_AMOUNT; j++) {
 		if (pTbl_RTBuf[j] != NULL) {
@@ -5321,13 +5442,11 @@ static void __exit DIP_Exit(void)
 
 		/* free the memory areas */
 		kfree(pBuf_kmalloc[j]);
-	}
+		}
 	}
 
 	/* free the memory areas */
 	kfree(pLog_kmalloc);
-
-	/*  */
 }
 
 int32_t DIP_MDPClockOnCallback(uint64_t engineFlag)
