@@ -659,18 +659,11 @@ static int audio_dpd_set(struct snd_kcontrol *kcontrol,
 }
 
 #ifdef AUDIO_DL2_ISR_COPY_SUPPORT
-
 static int Audio_DL2_DataTransfer(struct snd_kcontrol *kcontrol,
 				  struct snd_ctl_elem_value *ucontrol)
 {
-#if IS_ENABLED(CONFIG_COMPAT)
-	void *addr = compat_ptr(ucontrol->value.integer.value[0]);
-#else
 	void *addr = (void *)ucontrol->value.integer.value[0];
-#endif
-
 	unsigned int size = ucontrol->value.integer.value[1];
-
 
 	mtk_dl2_copy2buffer(addr, size);
 	return 0;
