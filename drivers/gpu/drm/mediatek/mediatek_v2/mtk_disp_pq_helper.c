@@ -682,12 +682,12 @@ int mtk_drm_ioctl_pq_frame_config(struct drm_device *dev, void *data,
 		return -1;
 	}
 
-	ret = disp_pq_helper_frame_config(crtc, NULL, data, true);
+	ret = disp_pq_helper_frame_config(crtc, NULL, data, true, false);
 	return ret;
 }
 
 int disp_pq_helper_frame_config(struct drm_crtc *crtc, struct cmdq_pkt *cmdq_handle,
-	void *data, bool user_lock)
+	void *data, bool user_lock, bool is_kernel_data)
 {
 	struct mtk_drm_pq_config_ctl *params = data;
 	unsigned int cmds_len = params->len;
@@ -714,7 +714,10 @@ int disp_pq_helper_frame_config(struct drm_crtc *crtc, struct cmdq_pkt *cmdq_han
 		return -1;
 	}
 
-	if (copy_from_user(&requests, params->data, sizeof(struct mtk_drm_pq_param) * cmds_len)) {
+	if (is_kernel_data)
+		memcpy(&requests, params->data, sizeof(struct mtk_drm_pq_param) * cmds_len);
+	else if (copy_from_user(&requests,
+			params->data, sizeof(struct mtk_drm_pq_param) * cmds_len)) {
 		mtk_drm_trace_end();
 
 		return -1;
@@ -989,7 +992,7 @@ int mtk_drm_ioctl_pq_frame_config_compat(struct file *file, unsigned int cmd,
 	}
 	data.data = &requests;
 
-	ret = disp_pq_helper_frame_config(crtc, NULL, &data, true);
+	ret = disp_pq_helper_frame_config(crtc, NULL, &data, true, true);
 	if (ret)
 		return ret;
 
