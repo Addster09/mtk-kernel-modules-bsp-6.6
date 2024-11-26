@@ -248,6 +248,29 @@
 		};
 	};
 
+	mt6358_clkbuf: mt6358-clkbuf {
+		compatible = "mediatek,mt6358-clkbuf";
+		XO-SOC {
+			xo-id = <0>;
+		};
+		XO-WCN {
+			xo-id = <1>;
+		};
+		XO-NFC {
+			xo-id = <2>;
+		};
+		XO-CEL {
+			xo-id = <3>;
+		};
+		XO-RSV2 {
+			xo-id = <5>;
+		};
+		XO-EXT {
+			perms = <0x3ffff>;
+			xo-id = <6>;
+		};
+	};
+
 	pmic_efuse: mt6358-efuse {
 		compatible = "mediatek,mt6358-efuse";
 		#address-cells = <1>;
