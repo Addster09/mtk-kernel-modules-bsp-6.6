@@ -5382,7 +5382,7 @@ static int mtk_oddmr_sum_hrt(struct mtk_ddp_comp *comp, enum CHANNEL_TYPE type, 
 	}
 	sum = sum * res_ratio / 1000;
 	ODDMRAPI_LOG("type:%d, od %d dmr %d dbi %d sum %d res_ratio %llu\n",
-			type, oddmr_data->od_enable, oddmr_data->dmr_enable,
+			(int)type, oddmr_data->od_enable, oddmr_data->dmr_enable,
 			oddmr_data->dbi_enable, sum, res_ratio);
 
 	if (oddmr_hrt)
@@ -5623,7 +5623,7 @@ int mtk_oddmr_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
 			bw_base = mtk_drm_primary_frame_bw(&comp->mtk_crtc->base);
 			data->bw = bw_base * weight / 400;
 			DDPINFO("%s, oddmr comp:%d, larb:%d, type:%d, bw:%d, weight:%d\n",
-				__func__, comp->id, data->larb_id, data->type, data->bw, weight);
+				__func__, comp->id, data->larb_id, (int)data->type, data->bw, weight);
 		}
 		break;
 	}
