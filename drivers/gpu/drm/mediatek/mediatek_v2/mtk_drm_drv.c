@@ -9428,6 +9428,7 @@ static int mtk_drm_pm_notifier(struct notifier_block *notifier, unsigned long pm
 			&& priv->data->mmsys_id != MMSYS_MT6781
 			&& priv->data->mmsys_id != MMSYS_MT6761
 			&& priv->data->mmsys_id != MMSYS_MT6768
+			&& priv->data->mmsys_id != MMSYS_MT6771
 			&& priv->data->mmsys_id != MMSYS_MT6877
 			&& priv->data->mmsys_id != MMSYS_MT6833
 			&& priv->data->mmsys_id != MMSYS_MT6853
