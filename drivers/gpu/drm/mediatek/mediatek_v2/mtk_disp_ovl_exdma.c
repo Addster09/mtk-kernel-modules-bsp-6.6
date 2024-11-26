@@ -3264,7 +3264,7 @@ static void mtk_ovl_exdma_addon_config(struct mtk_ddp_comp *comp,
 		mtk_ovl_exdma_addon_rsz_config(comp, prev, next, src, dst, handle);
 	}
 
-	if (((addon_config->config_type.module == OVL_RSZ_2)) &&
+	if (((addon_config->config_type.module == OVL_RSZ_2) || (addon_config->config_type.module == OVL_RSZ_3)) &&
 		addon_config->config_type.type == ADDON_BEFORE) {
 		struct mtk_addon_rsz_config *config =
 			&addon_config->addon_rsz_config;
