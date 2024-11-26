@@ -587,6 +587,37 @@ unsigned int mtk_ovl_sys_mapping_MT6991(struct mtk_ddp_comp *comp)
 	}
 }
 
+bool is_right_ovl_comp_MT6991(struct mtk_ddp_comp *comp)
+{
+	switch (comp->id) {
+	case DDP_COMPONENT_OVL_EXDMA0:
+	case DDP_COMPONENT_OVL_EXDMA1:
+	case DDP_COMPONENT_OVL_EXDMA2:
+	case DDP_COMPONENT_OVL_EXDMA3:
+	case DDP_COMPONENT_OVL_EXDMA4:
+	case DDP_COMPONENT_OVL_EXDMA5:
+	case DDP_COMPONENT_OVL_EXDMA6:
+	case DDP_COMPONENT_OVL_EXDMA7:
+	case DDP_COMPONENT_OVL_EXDMA8:
+	case DDP_COMPONENT_OVL_EXDMA9:
+		return false;
+	case DDP_COMPONENT_OVL1_EXDMA0:
+	case DDP_COMPONENT_OVL1_EXDMA1:
+	case DDP_COMPONENT_OVL1_EXDMA2:
+	case DDP_COMPONENT_OVL1_EXDMA3:
+	case DDP_COMPONENT_OVL1_EXDMA4:
+	case DDP_COMPONENT_OVL1_EXDMA5:
+	case DDP_COMPONENT_OVL1_EXDMA6:
+	case DDP_COMPONENT_OVL1_EXDMA7:
+	case DDP_COMPONENT_OVL1_EXDMA8:
+	case DDP_COMPONENT_OVL1_EXDMA9:
+		return true;
+	default:
+		DDPDBG("%s invalid ovl module=%d\n", __func__, comp->id);
+		return false;
+	}
+}
+
 unsigned int mtk_ovl_aid_sel_MT6991(struct mtk_ddp_comp *comp)
 {
 	switch (comp->id) {
@@ -5195,7 +5226,7 @@ static const struct mtk_disp_ovl_exdma_data mt6991_ovl_exdma_driver_data = {
 	.aid_per_layer_setting = true,
 	.mmsys_mapping = &mtk_ovl_mmsys_mapping_MT6991,
 	.source_bpc = 10,
-	//.is_right_ovl_comp = &is_right_ovl_comp_MT6985,
+	.is_right_ovl_comp = &is_right_ovl_comp_MT6991,
 	.ovlsys_mapping = &mtk_ovl_sys_mapping_MT6991,
 	.ovl_phy_mapping = &mtk_ovl_phy_mapping_MT6991,
 };

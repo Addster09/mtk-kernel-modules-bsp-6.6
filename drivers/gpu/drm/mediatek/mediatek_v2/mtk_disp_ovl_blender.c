@@ -415,6 +415,38 @@ int mtk_ovl_blender_analysis(struct mtk_ddp_comp *comp)
 	return 0;
 }
 
+
+static bool is_right_ovl_comp_MT6991(struct mtk_ddp_comp *comp)
+{
+	switch (comp->id) {
+	case DDP_COMPONENT_OVL0_BLENDER0:
+	case DDP_COMPONENT_OVL0_BLENDER1:
+	case DDP_COMPONENT_OVL0_BLENDER2:
+	case DDP_COMPONENT_OVL0_BLENDER3:
+	case DDP_COMPONENT_OVL0_BLENDER4:
+	case DDP_COMPONENT_OVL0_BLENDER5:
+	case DDP_COMPONENT_OVL0_BLENDER6:
+	case DDP_COMPONENT_OVL0_BLENDER7:
+	case DDP_COMPONENT_OVL0_BLENDER8:
+	case DDP_COMPONENT_OVL0_BLENDER9:
+		return false;
+	case DDP_COMPONENT_OVL1_BLENDER0:
+	case DDP_COMPONENT_OVL1_BLENDER1:
+	case DDP_COMPONENT_OVL1_BLENDER2:
+	case DDP_COMPONENT_OVL1_BLENDER3:
+	case DDP_COMPONENT_OVL1_BLENDER4:
+	case DDP_COMPONENT_OVL1_BLENDER5:
+	case DDP_COMPONENT_OVL1_BLENDER6:
+	case DDP_COMPONENT_OVL1_BLENDER7:
+	case DDP_COMPONENT_OVL1_BLENDER8:
+	case DDP_COMPONENT_OVL1_BLENDER9:
+		return true;
+	default:
+		DDPDBG("%s invalid ovl module=%d\n", __func__, comp->id);
+		return false;
+	}
+}
+
 static void _store_bg_roi(struct mtk_ddp_comp *comp, int h, int w)
 {
 	struct mtk_disp_ovl_blender *ovl = comp_to_ovl_blender(comp);
@@ -465,11 +497,25 @@ static void mtk_ovl_blender_config(struct mtk_ddp_comp *comp,
 			   struct mtk_ddp_config *cfg, struct cmdq_pkt *handle)
 {
 	struct mtk_disp_ovl_blender *ovl = comp_to_ovl_blender(comp);
+	struct mtk_drm_crtc *mtk_crtc = comp->mtk_crtc;
+	struct drm_crtc *crtc = &mtk_crtc->base;
 	unsigned int width = 0, height = 0;
 
-	if (comp->mtk_crtc->is_dual_pipe)
-		width = cfg->w / 2;
-	else
+	if (comp->mtk_crtc->is_dual_pipe) {
+		if (cfg->tile_overhead.is_support) {
+			if (ovl->data->is_right_ovl_comp && ovl->data->is_right_ovl_comp(comp))
+				width = cfg->tile_overhead.right_in_width;
+			else
+				width = cfg->tile_overhead.left_in_width;
+		} else
+			width = cfg->w / 2;
+		if (drm_crtc_index(crtc) == 2 && (width % 2)) {
+			if (ovl->data->is_right_ovl_comp && ovl->data->is_right_ovl_comp(comp))
+				width += 1;
+			else
+				width -= 1;
+		}
+	} else
 		width = cfg->w;
 
 	if (ovl->set_partial_update != 1)
@@ -1353,6 +1399,7 @@ static const struct mtk_disp_ovl_blender_data mt6991_ovl_bldner_driver_data = {
 	.support_shadow = false,
 	.need_bypass_shadow = true,
 	.greq_num_dl = 0xFFFF,
+	.is_right_ovl_comp = &is_right_ovl_comp_MT6991,
 //	.is_support_34bits = true,
 //	.aid_sel_mapping = &mtk_ovl_aid_sel_MT6991,
 //	.aid_per_layer_setting = true,
