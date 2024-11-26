@@ -9424,16 +9424,7 @@ static int mtk_drm_pm_notifier(struct notifier_block *notifier, unsigned long pm
 
 	switch (pm_event) {
 	case PM_SUSPEND_PREPARE:
-		if ((priv->data->mmsys_id != MMSYS_MT6765
-			&& priv->data->mmsys_id != MMSYS_MT6781
-			&& priv->data->mmsys_id != MMSYS_MT6761
-			&& priv->data->mmsys_id != MMSYS_MT6768
-			&& priv->data->mmsys_id != MMSYS_MT6771
-			&& priv->data->mmsys_id != MMSYS_MT6877
-			&& priv->data->mmsys_id != MMSYS_MT6833
-			&& priv->data->mmsys_id != MMSYS_MT6853
-			&& priv->data->mmsys_id != MMSYS_MT6885)
-			&& (atomic_read(&priv->kernel_pm.wakelock_cnt) != 0)) {
+		if (atomic_read(&priv->kernel_pm.wakelock_cnt) != 0) {
 			DDPMSG("%s PM_SUSPEND_PREPARE but wakelock is held, interrupt the suspend flow\n", __func__);
 			return NOTIFY_BAD;
 		}
@@ -12154,7 +12145,7 @@ SKIP_OVLSYS_CONFIG:
 		of_node_put(infra_node);
 	}
 
-	atomic_set(&private->kernel_pm.wakelock_cnt, 0);
+	atomic_set(&private->kernel_pm.wakelock_cnt, -1);
 	atomic_set(&private->kernel_pm.status, KERNEL_PM_RESUME);
 	init_waitqueue_head(&private->kernel_pm.wq);
 	/* The priority must be higher than VCP to have the opportunity to interrupt its suspend flow */
