@@ -58,7 +58,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.linelength = 6024,	/* record different mode's linelength */
 		.framelength = 2108, /* record different mode's framelength */
 		.startx = 172, /* record different mode's startx of grabwindow */
-		.starty = 131, /* record different mode's starty of grabwindow */
+		.starty = 132, /* record different mode's starty of grabwindow */
 
 		/* record different mode's width of grabwindow */
 		.grabwindow_width = 2328,
@@ -220,7 +220,7 @@ static struct imgsensor_struct imgsensor = {
 /* Sensor output window information */
 static struct SENSOR_WINSIZE_INFO_STRUCT imgsensor_winsize_info[5] = {
 {5344, 4016, 0, 0, 5344, 4016, 2672, 2008,
-0000, 0000, 2672, 2008, 172, 131, 2328, 1746},		/* Preview */
+0000, 0000, 2672, 2008, 172, 132, 2328, 1746},		/* Preview */
 
 {5344, 4016, 0, 0, 5344, 4016, 5344, 4016,
 0000, 0000, 5344, 4016, 344, 262, 4656, 3492},		/* capture */
