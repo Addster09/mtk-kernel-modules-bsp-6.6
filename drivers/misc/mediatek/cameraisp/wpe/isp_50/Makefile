@@ -19,6 +19,7 @@ ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/staging/android/ion \
              -I$(DEVICE_MODULES_PATH)/drivers/staging/android/ion/mtk
 ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/smi/
 ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/mdp/
+ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/include/
 
 obj-$(CONFIG_MTK_CAMERA_WPE_ISP50) += camera_wpe_isp50.o
 camera_wpe_isp50-objs += camera_wpe.o

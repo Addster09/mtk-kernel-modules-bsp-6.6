@@ -54,11 +54,8 @@
 
 #include "linux/soc/mediatek/mtk-cmdq-ext.h"
 
-// TODO: wait mdp ready -- haipeng
-#define EP_CODE_MARK_CMDQ	// mdp not ready
 #ifndef EP_CODE_MARK_CMDQ
 #include <cmdq_helper_ext.h>
-#include <cmdq_record.h>
 #endif
 #include <soc/mediatek/smi.h>
 

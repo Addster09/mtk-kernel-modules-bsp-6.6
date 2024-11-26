@@ -57,7 +57,6 @@
 #endif
 #endif
 
-#define EP_CODE_MARK_CMDQ	// mdp not ready
 #ifndef EP_CODE_MARK_CMDQ
 #include <cmdq_helper_ext.h>
 #include <cmdq-util.h>
