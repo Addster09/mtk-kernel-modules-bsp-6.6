@@ -17,6 +17,7 @@
 #include "mtk_dump.h"
 #include "mtk_mipi_tx.h"
 #include "platform/mtk_drm_platform.h"
+#include <linux/pm_domain.h>
 
 #define MIPITX_DSI_CON 0x00
 #define RG_DSI_LDOCORE_EN BIT(0)
@@ -7162,6 +7163,28 @@ static const struct phy_ops mtk_mipi_tx_ops = {
 	.owner = THIS_MODULE,
 };
 
+static struct notifier_block nb;
+static int mipi_tx_genpd_event_notifier(struct notifier_block *nb,
+			  unsigned long event, void *data)
+{
+	switch (event) {
+	case GENPD_NOTIFY_PRE_ON:
+		mtk_set_aod_scp_semaphore(1);
+		break;
+	case GENPD_NOTIFY_OFF:
+		if (mtk_aod_scp_vdisp_sema_check() == 0)
+			mtk_set_aod_scp_semaphore(0);
+		break;
+	case GENPD_NOTIFY_ON:
+	case GENPD_NOTIFY_PRE_OFF:
+	default:
+		break;
+	}
+
+	return 0;
+}
+
+
 static int mtk_mipi_tx_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -7260,6 +7283,11 @@ static int mtk_mipi_tx_probe(struct platform_device *pdev)
 #ifdef MTK_FILL_MIPI_IMPEDANCE
 	mipi_tx->driver_data->backup_mipitx_impedance(mipi_tx);
 #endif
+
+	nb.notifier_call = mipi_tx_genpd_event_notifier;
+	ret = dev_pm_genpd_add_notifier(dev, &nb);
+	if (ret)
+		DDPMSG("mipi_tx_genpd_event_notifier register fail!\n");
 
 	DDPINFO("%s-\n", __func__);
 
