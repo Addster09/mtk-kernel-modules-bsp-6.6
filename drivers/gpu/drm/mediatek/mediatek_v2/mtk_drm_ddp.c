@@ -173,6 +173,11 @@
 #define MT6771_DISP_MUTEX0_MOD0 0x30
 #define MT6771_DISP_MUTEX0_SOF 0x2C
 
+#define MT6771_MUTEX_SOF_SINGLE_MODE 0
+#define MT6771_MUTEX_SOF_DSI0 1
+#define MT6771_MUTEX_EOF_DSI0 (MT6771_MUTEX_SOF_DSI0 << 6)
+#define MT6771_MUTEX_SOF_DPI0 3
+
 #define MT6771_DISP_REG_CONFIG_DISP_OVL0_MOUT_EN 0xF00
 	#define OVL0_MOUT_EN_PATH0 BIT(0)
 #define MT6771_DISP_REG_CONFIG_DISP_OVL0_2L_MOUT_EN 0XF04
@@ -7650,9 +7655,9 @@ static const unsigned int mt8173_mutex_sof[DDP_MUTEX_SOF_MAX] = {
 };
 
 static const unsigned int mt6771_mutex_sof[DDP_MUTEX_SOF_MAX] = {
-	[DDP_MUTEX_SOF_SINGLE_MODE] = MUTEX_SOF_SINGLE_MODE,
-	[DDP_MUTEX_SOF_DSI0] = MUTEX_SOF_DSI0,
-	[DDP_MUTEX_SOF_DPI0] = MUTEX_SOF_DPI0,
+	[DDP_MUTEX_SOF_SINGLE_MODE] = MT6771_MUTEX_SOF_SINGLE_MODE,
+	[DDP_MUTEX_SOF_DSI0] = MT6771_MUTEX_SOF_DSI0 | MT6771_MUTEX_EOF_DSI0,
+	[DDP_MUTEX_SOF_DPI0] = MT6771_MUTEX_SOF_DPI0,
 };
 
 static const unsigned int mt6779_mutex_sof[DDP_MUTEX_SOF_MAX] = {
@@ -27413,16 +27418,14 @@ void mtk_ddp_add_comp_to_path(struct mtk_drm_crtc *mtk_crtc,
 					(unsigned int)value;
 			writel_relaxed(reg, config_regs + addr);
 		}
+
 		value = mtk_ddp_sout_sel_MT6771(cur, next, &addr);
-		if (value >= 0) {
-			reg = readl_relaxed(config_regs + addr) | value;
-			writel_relaxed(reg, config_regs + addr);
-		}
+		if (value >= 0)
+			writel_relaxed(value, config_regs + addr);
+
 		value = mtk_ddp_sel_in_MT6771(cur, next, &addr);
-		if (value >= 0) {
-			reg = readl_relaxed(config_regs + addr) | value;
-			writel_relaxed(reg, config_regs + addr);
-		}
+		if (value >= 0)
+			writel_relaxed(value, config_regs + addr);
 		break;
 	case MMSYS_MT8173:
 		break;
