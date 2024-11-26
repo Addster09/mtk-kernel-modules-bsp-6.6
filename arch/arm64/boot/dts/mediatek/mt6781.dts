@@ -4896,9 +4896,14 @@
 		reg = <0 0x0e700000 0 0x100000>;
 	};
 
+	mgm: mgm {
+		compatible = "arm,physical-memory-group-manager";
+	};
+
 	mali: mali@13000000 {
 		compatible = "mediatek,mali", "arm,mali-valhall";
 		reg = <0 0x13000000 0 0x4000>;
+		physical-memory-group-manager = <&mgm>;
 		interrupts =
 			<GIC_SPI 274 IRQ_TYPE_LEVEL_HIGH 0>,
 			<GIC_SPI 275 IRQ_TYPE_LEVEL_HIGH 0>,
@@ -4912,6 +4917,12 @@
 			"EVENT",
 			"PWR";
 		ged-supply = <&ged>;
+		gpu-frame-base-optimize = <1>;
+	};
+
+	gpu_dvfs_prefence: gpu-prefence {
+		compatible = "mediatek,gpu_prefence";
+		dvfs-prefence-enable = <1>;
 	};
 
 	gpufreq: gpufreq {
