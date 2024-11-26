@@ -1097,6 +1097,9 @@ def get_overlay_modules_list():
     if "79xx.config" in DEFCONFIG_OVERLAYS:
         mgk_64_device_modules.append("sound/soc/codecs/richtek/rt9123/snd-soc-rt9123.ko")
 
+    if "tb8768p1_64_bsp_overlay.config" in DEFCONFIG_OVERLAYS:
+        mgk_64_device_modules.append("drivers/misc/mediatek/flashlight/flashlights-sywt78.ko")
+
     if "fpga.config" in DEFCONFIG_OVERLAYS:
         mgk_64_kleaf_modules.remove("//vendor/mediatek/kernel_modules/fpsgo_cus:fpsgo_cus")
         mgk_64_kleaf_modules.remove("//vendor/mediatek/kernel_modules/fpsgo_int:fpsgo_int")
