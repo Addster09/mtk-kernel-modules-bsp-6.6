@@ -60,6 +60,15 @@ config SND_SOC_FS16XX
 	  multi-band DRC, equalizer function. It would be set to yes if device with FS18xx on it.
 	  Select this if your FS16xx is connected via an I2S bus.
 
+config SND_SOC_AW883XX
+	tristate "SoC Audio for awinic AW883XX Smart K PA"
+	depends on I2C
+	help
+	  Config of AW883XX. It is a Smart power amplifier which contain speaker protection.
+	  This option enables support for AW883XX Smart K PA.
+	  It would be set to yes if device with AW883XX on it.
+	  Select this if your AW883XX is connected via an I2S bus.
+
 config SND_SOC_TFA9874
 	tristate "NXP TFA9874 speaker amplifier"
 	depends on I2C

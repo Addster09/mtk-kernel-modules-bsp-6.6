@@ -525,10 +525,18 @@ SND_SOC_DAILINK_DEFS(ext_headphone_multimedia,
 	DAILINK_COMP_ARRAY(COMP_DUMMY()),
 	DAILINK_COMP_ARRAY(COMP_DUMMY()),
 	DAILINK_COMP_ARRAY(COMP_DUMMY()));
+#if IS_ENABLED(CONFIG_SND_SOC_AW883XX)
+SND_SOC_DAILINK_DEFS(ext_speaker_multimedia,
+	DAILINK_COMP_ARRAY(COMP_CPU(MT_SOC_I2SSPKDAI_NAME)),
+	DAILINK_COMP_ARRAY(COMP_CODEC("aw883xx_smartpa.4-0037","aw883xx-aif-4-37"),
+			COMP_CODEC("aw883xx_smartpa.6-0034","aw883xx-aif-6-34")),
+	DAILINK_COMP_ARRAY(COMP_DUMMY()));
+#else
 SND_SOC_DAILINK_DEFS(ext_speaker_multimedia,
 	DAILINK_COMP_ARRAY(COMP_CPU(MT_SOC_I2SSPKDAI_NAME)),
 	DAILINK_COMP_ARRAY(COMP_DUMMY()),
 	DAILINK_COMP_ARRAY(COMP_DUMMY()));
+#endif
 SND_SOC_DAILINK_DEFS(i2s1_awb_capture,
 	DAILINK_COMP_ARRAY(COMP_CPU(MT_SOC_I2S2ADC2DAI_NAME)),
 	DAILINK_COMP_ARRAY(COMP_DUMMY()),
@@ -796,14 +804,14 @@ static int mt_soc_snd_probe(struct platform_device *pdev)
 #endif
 	int ret;
 	int daiLinkNum = 0;
-
+#if !IS_ENABLED(CONFIG_SND_SOC_AW883XX)
 	ret = mtk_spk_update_dai_link(mt_soc_extspk_dai, pdev);
 	if (ret) {
 		dev_err(&pdev->dev, "%s(), mtk_spk_update_dai_link error\n",
 			__func__);
 		return -EINVAL;
 	}
-
+#endif
 	/* get_ext_dai_codec_name(); */
 	pr_debug("%s(), dai_link = %p\n",
 		 __func__, mt_snd_soc_card_mt.dai_link);

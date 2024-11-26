@@ -47,3 +47,4 @@ obj-$(CONFIG_SND_SOC_HFDA80X)	+= hfda80x/
 obj-$(CONFIG_DEVICE_MODULES_SND_SOC_MT6366)	+= snd-soc-mt6366.o
 obj-$(CONFIG_SND_SOC_FS16XX)    += fs18xx/
 obj-$(CONFIG_SND_SOC_RT9123)	+= richtek/rt9123/
+obj-$(CONFIG_SND_SOC_AW883XX)   += aw883xx/
