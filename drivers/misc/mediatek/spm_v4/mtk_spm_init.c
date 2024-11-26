@@ -14,7 +14,10 @@
 #endif
 #include <mtk_spm_resource_req_internal.h>
 #include "mtk_spm_sleep_internal.h"
+
+#if IS_ENABLED(CONFIG_DEVICE_MODULES_USB_MTU3)
 #include "mtu3.h"
+#endif
 
 static int __init mt_spm_init(void)
 {
@@ -29,8 +32,11 @@ static int __init mt_spm_init(void)
 	spm_resource_req_init();
 
 	/* usb APIs */
+#if IS_ENABLED(CONFIG_DEVICE_MODULES_USB_MTU3)
 	register_spm_resource_req_func(&spm_resource_req);
 	register_slp_set_infra_on_func(&slp_set_infra_on);
+#endif
+
 	return 0;
 }
 

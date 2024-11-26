@@ -66,6 +66,10 @@ ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/include/cpuidle_v3/
 ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/cpufreq_v2/src/mach/mt6739/
 ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/mmc/host/
 
+ifneq ($(CONFIG_DEVICE_MODULES_USB_MTU3), )
+ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/usb/mtu3
+endif
+
 obj-$(CONFIG_MTK_SPM_V4) += MTK_INTERNAL_SPM.o
 MTK_INTERNAL_SPM-y += mtk_idle.o
 MTK_INTERNAL_SPM-y += mtk_sleep.o

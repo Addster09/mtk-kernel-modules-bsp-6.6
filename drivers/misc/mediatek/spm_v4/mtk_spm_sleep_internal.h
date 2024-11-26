@@ -51,15 +51,5 @@ enum spm_suspend_step {
 
 bool spm_resource_req(unsigned int user, unsigned int req_mask);
 
-__weak void register_spm_resource_req_func(bool (*spm_resource_req_func)(unsigned int user, unsigned int req_mask))
-{
-	pr_warn("%s USB register API not ready, use weak.\n", __func__);
-}
-
-__weak void register_slp_set_infra_on_func(void (*slp_set_infra_on_func)(bool infra_on))
-{
-	pr_warn("%s USB register API not ready, use weak.\n", __func__);
-}
-
 extern int rtc_clock_enable(int enable);
 #endif /* __MTK_SPM_SLEEP_INTERNAL_H__ */
