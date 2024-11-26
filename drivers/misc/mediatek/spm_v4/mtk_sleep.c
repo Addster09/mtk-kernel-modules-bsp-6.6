@@ -98,6 +98,14 @@ int slp_dump_golden_setting_type = 1;
 #endif
 
 bool (*mcdi_task_pause_fun)(bool paused);
+bool (*ConditionEnterSuspendFun)(void);
+
+void ConditionEnterSuspendRegister(void *fun)
+{
+	if (fun != NULL)
+		ConditionEnterSuspendFun = fun;
+}
+EXPORT_SYMBOL(ConditionEnterSuspendRegister);
 
 void mcdi_task_pause_fun_register(void *fun)
 {
@@ -238,10 +246,15 @@ static int slp_suspend_ops_enter(suspend_state_t state)
 #if IS_ENABLED(CONFIG_MTK_SND_SOC_NEW_ARCH)
 	int fm_radio_is_playing = 0;
 
-	if (ConditionEnterSuspend() == true)
-		fm_radio_is_playing = 0;
-	else
+	if (!ConditionEnterSuspendFun)
 		fm_radio_is_playing = 1;
+	else {
+		if (ConditionEnterSuspendFun() == true)
+			fm_radio_is_playing = 0;
+		else
+			fm_radio_is_playing = 1;
+	}
+
 #endif /* CONFIG_MTK_SND_SOC_NEW_ARCH */
 #endif
 
@@ -288,7 +301,10 @@ static int slp_suspend_ops_enter(suspend_state_t state)
 #endif /* CONFIG_FPGA_EARLY_PORTING */
 
 #if !defined(SPM_K414_EARLY_PORTING)
-	//mcdi_task_pause(true);
+	if (mcdi_task_pause_fun)
+		mcdi_task_pause_fun(true); //mcdi_task_pause(true);
+	else
+		pr_info("mcdi task pause fail");
 #endif
 
 #if SLP_SLEEP_DPIDLE_EN
@@ -307,7 +323,10 @@ static int slp_suspend_ops_enter(suspend_state_t state)
 		slp_wake_reason =
 			spm_go_to_sleep(slp_spm_flags, slp_spm_flags1);
 #if !defined(SPM_K414_EARLY_PORTING)
-	//mcdi_task_pause(false);
+	if (mcdi_task_pause_fun)
+		mcdi_task_pause_fun(true); //mcdi_task_pause(false);
+	else
+		pr_info("mcdi task revert pause fail");
 #endif
 
 LEAVE_SLEEP:

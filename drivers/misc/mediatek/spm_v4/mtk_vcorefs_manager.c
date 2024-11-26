@@ -357,7 +357,7 @@ void vcorefs_drv_init(int plat_init_opp)
 	pwrctrl->init_done = true;
 	feature_en = true;
 
-#if IS_ENABLED(CONFIG_MTK_QOS_SUPPORT)
+#if IS_ENABLED(CONFIG_MTK_DVFSRC_V1)
 		pwrctrl->kr_req_mask = (1 << NUM_KICKER) - 1;
 #endif
 

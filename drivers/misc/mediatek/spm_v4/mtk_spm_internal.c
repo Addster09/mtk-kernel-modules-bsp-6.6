@@ -306,13 +306,13 @@ long spm_get_current_time_ms(void)
 	return div_s64(((now.tv_sec & 0xFFF) * 1000000 + (now.tv_nsec/1000)), 1000);
 }
 
-//__weak int get_dynamic_period(int first_use,
-//					      int first_wakeup_time,
-//					      int battery_capacity_level)
-//{
-//	/* printk_deferred("[name:spm&]NO %s !!!\n", __func__); */
-//	return 5401;
-//}
+__weak int get_dynamic_period(int first_use,
+					      int first_wakeup_time,
+					      int battery_capacity_level)
+{
+	/* spm_crit2("[name:spm&]NO %s !!!\n", __func__); */
+	return 5401;
+}
 
 u32 _spm_get_wake_period(int pwake_time, unsigned int last_wr)
 {
@@ -320,8 +320,8 @@ u32 _spm_get_wake_period(int pwake_time, unsigned int last_wr)
 
 	if (pwake_time < 0) {
 		/* use FG to get the period of 1% battery decrease */
-		//period = get_dynamic_period(last_wr != WR_PCM_TIMER ? 1 : 0,
-					    //SPM_WAKE_PERIOD, 1);
+		period = get_dynamic_period(last_wr != WR_PCM_TIMER ? 1 : 0,
+					    SPM_WAKE_PERIOD, 1);
 		if (period <= 0) {
 			spm_warn("CANNOT GET PERIOD FROM FUEL GAUGE\n");
 			period = SPM_WAKE_PERIOD;

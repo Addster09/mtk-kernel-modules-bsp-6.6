@@ -486,12 +486,11 @@ static void __spm_check_dram_type(void)
 	pr_info("[name:spm&]#@# %s(%d) __spmfw_idx 0x%x\n",
 		__func__, __LINE__, __spmfw_idx);
 };
-#elif IS_ENABLED(CONFIG_MTK_PLAT_POWER_MT8788)
+#elif IS_ENABLED(CONFIG_MTK_PLAT_POWER_MT6771)
 static void __spm_check_dram_type(void)
 {
-	/* ddr api changed on mt8788 */
-	int ddr_type = mtk_dramc_get_ddr_type();     // int ddr_type = get_ddr_type();
-	int ddr_hz = mtk_dramc_get_steps_freq(0);    // int ddr_hz = dram_steps_freq(0);
+	int ddr_type = get_ddr_type();
+	int ddr_hz = dram_steps_freq(0);
 
 	if (ddr_type == TYPE_LPDDR4X && ddr_hz == 3600)
 		__spmfw_idx = SPMFW_LP4X_2CH_3733;
@@ -514,6 +513,28 @@ static void __spm_check_dram_type(void)
 	__spmfw_idx = 0;
 }
 #endif /* CONFIG_MTK_DRAMC */
+#elif IS_ENABLED(CONFIG_MTK_PLAT_POWER_MT8788) && IS_ENABLED(CONFIG_MTK_DRAMC) //DRAMC NEW ARCHITECTURE on MT8788
+static void __spm_check_dram_type(void)
+{
+	/* ddr api changed on mt8788 */
+	int ddr_type = mtk_dramc_get_ddr_type();
+	int ddr_hz = mtk_dramc_get_steps_freq(0);
+
+	if (ddr_type == TYPE_LPDDR4X && ddr_hz == 3600)
+		__spmfw_idx = SPMFW_LP4X_2CH_3733;
+	else if (ddr_type == TYPE_LPDDR4X && ddr_hz == 3200)
+		__spmfw_idx = SPMFW_LP4X_2CH_3200;
+	else if (ddr_type == TYPE_LPDDR4 && ddr_hz == 3600)
+		__spmfw_idx = SPMFW_LP4X_2CH_3733;
+	else if (ddr_type == TYPE_LPDDR4 && ddr_hz == 3200)
+		__spmfw_idx = SPMFW_LP4X_2CH_3200;
+	else if (ddr_type == TYPE_LPDDR3 && ddr_hz == 1866)
+		__spmfw_idx = SPMFW_LP3_1CH_1866;
+	else if (ddr_type == TYPE_LPDDR4 && ddr_hz == 2400)
+		__spmfw_idx = SPMFW_LP4_2CH_2400;
+	pr_info("[name:spm&]#@# %s(%d) __spmfw_idx 0x%x (type:%d freq:%d)\n",
+		__func__, __LINE__, __spmfw_idx, ddr_type, ddr_hz);
+};
 #else
 static void __spm_check_dram_type(void)
 {

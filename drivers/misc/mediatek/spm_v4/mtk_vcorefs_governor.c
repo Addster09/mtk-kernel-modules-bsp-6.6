@@ -375,12 +375,12 @@ static int uv_opp[4] = {
 };
 #endif
 
-static int hz_opp[4] = {
-	1333000,
-	1066000,
-	1066000,
-	1066000
-};
+//static int hz_opp[4] = {
+//	1333000,
+//	1066000,
+//	1066000,
+//	1066000
+//};
 
 int vcorefs_get_vcore_by_steps(u32 opp)
 {
@@ -398,12 +398,15 @@ EXPORT_SYMBOL(vcorefs_get_vcore_by_steps);
 
 int vcorefs_get_ddr_by_steps(u32 opp)
 {
-	//int ddr_khz;
-
-	//ddr_khz = dram_steps_freq(opp) * 1000;
-
-	//return ddr_khz;
-	return hz_opp[opp];
+	int ddr_khz;
+#if IS_ENABLED(CONFIG_MTK_DRAMC_LEGACY)
+	ddr_khz = dram_steps_freq(opp) * 1000;
+#endif
+#if IS_ENABLED(CONFIG_MTK_DRAMC)
+	ddr_khz = mtk_dramc_get_steps_freq(opp) * 1000;
+#endif
+	return ddr_khz;
+	//return hz_opp[opp];
 }
 EXPORT_SYMBOL(vcorefs_get_ddr_by_steps);
 
@@ -756,6 +759,7 @@ int dvfsrc_get_bw(int type)
 
 	return ret;
 }
+EXPORT_SYMBOL(dvfsrc_get_bw);
 #endif
 
 #if IS_ENABLED(CONFIG_MTK_PLAT_POWER_MT6775)
