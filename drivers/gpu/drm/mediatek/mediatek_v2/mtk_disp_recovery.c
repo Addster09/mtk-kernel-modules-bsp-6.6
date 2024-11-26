@@ -736,6 +736,7 @@ static int mtk_drm_esd_check_worker_kthread(void *data)
 					esd_ctx->chk_mode == READ_EINT));
 			if (ret < 0) {
 				DDPINFO("[ESD]check thread waked up accidently\n");
+				del_timer_sync(&esd_ctx->esd_timer);
 				continue;
 			}
 			CRTC_MMP_MARK(index, esd_check, 0x57A7, esd_ctx->chk_retry);
