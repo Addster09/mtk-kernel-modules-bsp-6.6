@@ -2734,6 +2734,13 @@ def get_overlay_modules_list():
         mgk_64_device_modules.append("drivers/misc/mediatek/imgsensor/src/isp5_syl/imgsensor_isp5_syl.ko")
         mgk_64_device_modules.remove("drivers/misc/mediatek/cam_cal/src/custom/camera_eeprom.ko")
         mgk_64_device_modules.append("drivers/misc/mediatek/cam_cal/src/isp5_syl/camera_eeprom_isp5_syl.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/cameraisp/dip/isp_50/camera_dip_isp50.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/cameraisp/dpe/camera_dpe_isp50.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/cameraisp/fdvt/camera_fdvt_isp40.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/cameraisp/mfb/camera_mfb_isp50.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/cameraisp/rsc/camera_rsc_isp50.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/cameraisp/wpe/isp_50/camera_wpe_isp50.ko")
+
         mgk_64_device_modules.remove("drivers/memory/mediatek/emi.ko")
         mgk_64_device_modules.remove("drivers/memory/mediatek/emi-fake-eng.ko")
         mgk_64_device_modules.remove("drivers/memory/mediatek/emi-mpu.ko")
