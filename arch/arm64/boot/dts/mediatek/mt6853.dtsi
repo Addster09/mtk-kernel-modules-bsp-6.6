@@ -2591,9 +2591,14 @@
 			clock-names = "source", "hclk", "source_cg";
 		};
 
+	mgm: mgm {
+		compatible = "arm,physical-memory-group-manager";
+	};
+
 		mali: mali@13000000 {
 			compatible = "mediatek,mali", "arm,mali-valhall";
 			reg = <0 0x13000000 0 0x4000>;
+			physical-memory-group-manager = <&mgm>;
 			interrupts =
 				<GIC_SPI 364 IRQ_TYPE_LEVEL_HIGH 0>,
 				<GIC_SPI 365 IRQ_TYPE_LEVEL_HIGH 0>,
