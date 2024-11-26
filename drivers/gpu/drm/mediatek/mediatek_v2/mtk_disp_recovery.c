@@ -131,13 +131,7 @@ static inline int need_wait_esd_eof(struct drm_crtc *crtc,
 {
 	int ret = 1;
 
-	/*
-	 * 1.vdo mode
-	 * 2.cmd mode te
-	 */
-	if (!mtk_crtc_is_frame_trigger_mode(crtc))
-		ret = 0;
-
+	/* cmd mode te */
 	if (panel_ext->params->cust_esd_check == 0)
 		ret = 0;
 
@@ -240,6 +234,8 @@ int _mtk_esd_check_read(struct drm_crtc *crtc)
 		else
 			mtk_crtc_wait_frame_done(mtk_crtc, cmdq_handle, DDP_FIRST_PATH,
 						 (mtk_crtc->is_mml || mtk_crtc->is_mml_dl) ? 0 : 1);
+		cmdq_pkt_wfe(cmdq_handle,
+				mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
 
 		if (mtk_crtc->msync2.msync_on) {
 			u32 vfp_early_stop = 1;
@@ -264,6 +260,8 @@ int _mtk_esd_check_read(struct drm_crtc *crtc)
 		mtk_disp_mutex_trigger(mtk_crtc->mutex[0], cmdq_handle);
 		mtk_ddp_comp_io_cmd(output_comp, cmdq_handle, COMP_REG_START,
 				    NULL);
+		cmdq_pkt_set_event(cmdq_handle,
+				mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
 		if (atomic_read(&esd_ctx->target_time) == 0) {
 			if (esd_ctx->chk_retry < ESD_CHK_TRY_CNT) {
 				esd_ctx->chk_retry++;
@@ -293,9 +291,13 @@ int _mtk_esd_check_read(struct drm_crtc *crtc)
 			mtk_crtc_pkt_create(&cmdq_handle2, crtc,
 				mtk_crtc->gce_obj.client[CLIENT_CFG]);
 
-			cmdq_pkt_set_event(
-				cmdq_handle2,
-				mtk_crtc->gce_obj.event[EVENT_CABC_EOF]);
+			if (mtk_dsi_is_cmd_mode(output_comp))
+				cmdq_pkt_set_event(cmdq_handle2,
+					mtk_crtc->gce_obj.event[EVENT_CABC_EOF]);
+			else
+				cmdq_pkt_set_event(cmdq_handle2,
+					mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
+
 			cmdq_pkt_flush(cmdq_handle2);
 			cmdq_pkt_destroy(cmdq_handle2);
 		}
