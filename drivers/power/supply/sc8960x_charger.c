@@ -1,7 +1,10 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
-* Copyright (c) 2024 Mediatek Inc.
-*/
+ * Copyright (c) 2022 Southchip Semiconductor Technology(Shanghai) Co., Ltd.
+ */
+/*
+ * Copyright (c) 2024 Mediatek Inc.
+ */
 
 #define pr_fmt(fmt)	"[sc8960x]:%s: " fmt, __func__
 
