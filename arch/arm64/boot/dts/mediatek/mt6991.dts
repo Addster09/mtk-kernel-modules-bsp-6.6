@@ -115,6 +115,7 @@
 			y2r0 = &disp_y2r0;
 			mdp-rdma0 = &disp_mdp_rdma0;
 			mutex0 = &disp1_mutex0;
+			merge0 = &disp_merge0;
 			wdma10 = &ovl_wdma0;
 			wdma11 = &ovl_wdma1;
 			wdma12 = &ovl1_wdma0;
@@ -7183,6 +7184,14 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 			mmqos-supply = <&mmqos>;
 		};
 
+		disp_merge0: disp-merge0@324d0000 {
+			compatible = "mediatek,disp_merge0",
+				"mediatek,mt6991-disp-merge";
+			reg = <0 0x324d0000 0 0x1000>;
+			clocks = <&dispsys1_config_clk CLK_MM1_DISP_MERGE0_DISP>;
+			status = "disabled";
+		};
+
 		disp1_splitter0: disp1-splitter0@32550000 {
 			compatible = "mediatek,disp1_splitter0", "mediatek,mt6991-disp-splitter";
 			reg = <0 0x32550000 0 0x1000>;
@@ -8496,7 +8505,7 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 //				<&dispsys_config_clk CLK_MM_DISP_DLI_ASYNC2_DISP>,
 //				<&dispsys_config_clk CLK_MM_DISP_DLI_ASYNC3_DISP>,
 //				<&dispsys_config_clk CLK_MM_DISP_DLI_ASYNC4_DISP>,
-//				<&dispsys_config_clk CLK_MM_DISP_DLI_ASYNC5_DISP>,
+				<&dispsys_config_clk CLK_MM_DISP_DLI_ASYNC5_DISP>,
 //				<&dispsys_config_clk CLK_MM_DISP_DLI_ASYNC6_DISP>,
 //				<&dispsys_config_clk CLK_MM_DISP_DLI_ASYNC7_DISP>,
 				<&dispsys_config_clk CLK_MM_DISP_DLI_ASYNC8_DISP>,
@@ -8510,8 +8519,8 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				<&dispsys_config_clk CLK_MM_DISP_DLO_ASYNC0_DISP>,
 				<&dispsys_config_clk CLK_MM_DISP_DLO_ASYNC1_DISP>,
 				<&dispsys_config_clk CLK_MM_DISP_DLO_ASYNC2_DISP>,
-//				<&dispsys_config_clk CLK_MM_DISP_DLO_ASYNC3_DISP>,
-//				<&dispsys_config_clk CLK_MM_DISP_DLO_ASYNC4_DISP>,
+				<&dispsys_config_clk CLK_MM_DISP_DLO_ASYNC3_DISP>,
+				<&dispsys_config_clk CLK_MM_DISP_DLO_ASYNC4_DISP>,
 //				<&dispsys_config_clk CLK_MM_DISP_DLO_ASYNC5_DISP>,
 				<&dispsys_config_clk CLK_MM_DISP_DLO_ASYNC6_DISP>,
 //				<&dispsys_config_clk CLK_MM_DISP_DLO_ASYNC7_DISP>,
@@ -8523,8 +8532,8 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				<&dispsys1_config_clk CLK_MM1_DISP_DLI_ASYNC20_DISP>,
 				<&dispsys1_config_clk CLK_MM1_DISP_DLI_ASYNC21_DISP>,
 				<&dispsys1_config_clk CLK_MM1_DISP_DLI_ASYNC22_DISP>,
-//				<&dispsys1_config_clk CLK_MM1_DISP_DLI_ASYNC23_DISP>,
-//				<&dispsys1_config_clk CLK_MM1_DISP_DLI_ASYNC24_DISP>,
+				<&dispsys1_config_clk CLK_MM1_DISP_DLI_ASYNC23_DISP>,
+				<&dispsys1_config_clk CLK_MM1_DISP_DLI_ASYNC24_DISP>,
 //				<&dispsys1_config_clk CLK_MM1_DISP_DLI_ASYNC25_DISP>,
 				<&dispsys1_config_clk CLK_MM1_DISP_DLI_ASYNC26_DISP>,
 //				<&dispsys1_config_clk CLK_MM1_DISP_DLI_ASYNC27_DISP>,
@@ -8568,7 +8577,7 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 //				<&ovlsys_config_clk CLK_OVL_DLO7_DISP>,
 //				<&ovlsys_config_clk CLK_OVL_DLO8_DISP>,
 //				<&ovlsys_config_clk CLK_OVL_DLO9_DISP>,
-//				<&ovlsys_config_clk CLK_OVL_DLO10_DISP>,
+				<&ovlsys_config_clk CLK_OVL_DLO10_DISP>,
 //				<&ovlsys_config_clk CLK_OVL_DLO11_DISP>,
 //				<&ovlsys_config_clk CLK_OVL_DLO12_DISP>,
 //				<&ovlsys_config_clk CLK_OVLSYS_RELAY0_DISP>,
