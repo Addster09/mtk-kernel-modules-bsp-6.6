@@ -53,6 +53,13 @@ config DRM_MTK_R2Y
 	  from RGB to YUV, which is essential for display and
 	  imaging applications.
 
+config LEDS_MTK_MODULE
+	bool "backlight notify Support for AAL and PQ"
+	help
+	  Choose this option if you need leds to notify backlight.
+	  If this value is y, leds will notify backlight to PQ and AAL.
+	  This feature requires the cowork of AAL and PQ user-space process.
+
 config MTK_AAL_SUPPORT
 	bool "Support MTK ambient-light adaptive luma (AAL)"
 	help
