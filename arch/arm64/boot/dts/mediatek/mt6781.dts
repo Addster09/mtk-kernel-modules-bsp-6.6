@@ -891,7 +891,7 @@
 		vsram_chk_gpio = <&pio 200 0x0>;
 
 		pmic = <&main_pmic>;
-		dvfsrc-opp-num = <4>;
+		dvfsrc-opp-num = <5>;
 		dvfs-opp =
 			/* vcore    vsram   uv       rc  spm    freq    mux */
 			< 600000    850000  0xff    0x0 0x8     125     0>,
@@ -907,9 +907,10 @@
 		gpio-feature = "gpio-mode";
 		gpio-feature-cfg = <1>;
 		gpio-mode-reg = <0x410 0x7 24 1>;
-		/*dvfsrc-vscp-supply = <&dvfsrc_vscp>;*/
+		dvfsrc-vscp-supply = <&dvfsrc_vscp>;
 		sshub-vcore-supply = <&mt_pmic_vcore_buck_reg>;
 		sshub-vsram-supply = <&mt_pmic_vsram_others_ldo_reg>;
+		legacy-support-v2;
 	};
 
 	iocfg_lt: iocfg_lt@10002000 {
