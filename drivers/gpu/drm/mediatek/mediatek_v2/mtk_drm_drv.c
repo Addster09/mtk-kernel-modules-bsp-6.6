@@ -9724,6 +9724,10 @@ static int mtk_drm_kms_init(struct drm_device *drm)
 			np = private->comp_node[private->data->ext_path_data
 						->path[DDP_MAJOR][0][0]];
 	}
+
+#ifdef CONFIG_MTK_DISP_NO_LK
+	np = private->comp_node[DDP_COMPONENT_OVL_EXDMA3];
+#endif
 	pdev = of_find_device_by_node(np);
 	if (!pdev) {
 		ret = -ENODEV;
@@ -10066,7 +10070,7 @@ static int mtk_drm_set_ovl_layer(struct drm_device *dev, void *data,
 	}
 
 	state->comp_state.comp_id = comp->id;
-	// state->comp_state.lye_id = to_crtc_plane_index(layer_info->layer_id);
+	state->comp_state.lye_id = 0;
 
 #ifdef CONFIG_MTK_ULTRARVC_SUPPORT
 		/*{ultrarvc +*/
