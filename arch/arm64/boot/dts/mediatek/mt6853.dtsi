@@ -2609,6 +2609,12 @@
 			operating-points-v2 = <&gpu_mali_opp>;
 			ged-supply = <&ged>;
 			#cooling-cells = <2>;
+			gpu-frame-base-optimize = <1>;
+		};
+
+		gpu_dvfs_prefence: gpu-prefence {
+			compatible = "mediatek,gpu_prefence";
+			dvfs-prefence-enable = <1>;
 		};
 
 		gpu_mali_opp: opp-table0 {
