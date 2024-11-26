@@ -51,6 +51,7 @@ static int (*sub_init[])(struct clkbuf_dts *array, struct device *dev) = {
 };
 
 static const struct of_device_id clkbuf_of_match[] = {
+	{ .compatible = "mediatek,mt6771-clkbuf" },
 	{ .compatible = "mediatek,mt6761-clkbuf" },
 	{ .compatible = "mediatek,mt6765-clkbuf" },
 	{ .compatible = "mediatek,mt6768-clkbuf" },
@@ -68,6 +69,7 @@ static const struct of_device_id clkbuf_of_match[] = {
 	{ .compatible = "mediatek,mt8791-clkbuf" },
 	{ .compatible = "mediatek,mt8792-clkbuf" },
 	{ .compatible = "mediatek,mt8768-clkbuf" },
+	{ .compatible = "mediatek,mt8788-clkbuf" },
 	{}
 };
 
