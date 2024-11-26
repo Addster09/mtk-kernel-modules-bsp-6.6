@@ -3411,6 +3411,8 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) = 1346200;
 		else if (IS_MT6833(g_platform_id))
 			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) = 1087000;
+		else if (IS_MT6853(g_platform_id))
+			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) = 1263600;
 		break;
 	case SENSOR_FEATURE_GET_PERIOD:
 		*feature_return_para_16++ = imgsensor.line_length;
