@@ -4212,6 +4212,8 @@ static int __init mtk_charger_init(void)
 }
 #if IS_BUILTIN(CONFIG_MTK_CHARGER)
 late_initcall(mtk_charger_init);
+#elif IS_BUILTIN(CONFIG_CHARGER_TYPE_MT6357)
+late_initcall(mtk_charger_init);
 #else
 module_init(mtk_charger_init);
 #endif
