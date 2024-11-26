@@ -20,9 +20,10 @@
 #include "mtk-pm-qos.h"
 #include "helio-dvfsrc.h"
 #include "helio-dvfsrc-opp.h"
-#include "mtk_dvfsrc_reg_common.h"
+//#include "mtk_dvfsrc_reg_common.h"
 #include "mtk_spm_vcore_dvfs_common.h"
 #include "mtk_spm_vcore_dvfs_ipi_common.h"
+#include "mtk_helio_dvfsrc_reg_mt6771.h"
 
 #if IS_ENABLED(CONFIG_MTK_TINYSYS_SSPM_SUPPORT) && IS_ENABLED(CONFIG_MTK_TINYSYS_SSPM_V1)
 #include "sspm_ipi.h"

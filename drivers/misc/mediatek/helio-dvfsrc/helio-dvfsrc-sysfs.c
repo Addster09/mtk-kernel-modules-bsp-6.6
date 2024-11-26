@@ -14,12 +14,7 @@
 #endif
 
 // #include "mt-plat/upmu_common.h"
-#if IS_ENABLED(CONFIG_MTK_PLAT_POWER_MT8788)
-#include "mtk_dvfsrc_reg_common.h"
-#else
-#include "mtk_dvfsrc_reg_mt6771.h"
-#endif
-
+#include "mtk_helio_dvfsrc_reg_mt6771.h"
 
 #include "helio-dvfsrc-opp.h"
 #include "mtk_vcorefs_governor.h"
