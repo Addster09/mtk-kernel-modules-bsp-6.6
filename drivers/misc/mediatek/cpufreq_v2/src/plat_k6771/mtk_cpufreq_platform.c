@@ -559,6 +559,10 @@ int mt_cpufreq_dts_map(void)
 #define CPUFREQ_SEG_CODE_IDX_0 7
 #define CPUFREQ_BIN_CODE_IDX_0 120
 
+#define CPUFREQ_EFUSE_OFFSET_0 0x0c8
+#define CPUFREQ_SEG_CODE_OFFSET_0 0x01c
+#define CPUFREQ_BIN_CODE_OFFSET_0 0x1e0
+
 unsigned int _mt_cpufreq_get_cpu_level(void)
 {
 	unsigned int lv = CPU_LEVEL_0;
@@ -599,30 +603,30 @@ unsigned int _mt_cpufreq_get_cpu_level(void)
 		return -ENODEV;
 	}
 
-	ret = nvmem_device_read(nvmem_dev, CPUFREQ_EFUSE_IDX_0, sizeof(__u32), &temp);
+	ret = nvmem_device_read(nvmem_dev, CPUFREQ_EFUSE_OFFSET_0, sizeof(__u32), &temp);
 	if (ret < 0) {
 		pr_info("%s failed to read efuse data\n", __func__);
 		goto fail;
 	}
-	ret = nvmem_device_read(nvmem_dev, CPUFREQ_SEG_CODE_IDX_0, sizeof(__u32), &segcode);
+	ret = nvmem_device_read(nvmem_dev, CPUFREQ_SEG_CODE_OFFSET_0, sizeof(__u32), &segcode);
 	if (ret < 0) {
 		pr_info("%s failed to read efuse data\n", __func__);
 		goto fail;
 	}
 	segcode = (segcode >> 5) & 0x1;
-	ret = nvmem_device_read(nvmem_dev, CPUFREQ_BIN_CODE_IDX_0, sizeof(__u32), &bincode);
+	ret = nvmem_device_read(nvmem_dev, CPUFREQ_BIN_CODE_OFFSET_0, sizeof(__u32), &bincode);
 	if (ret < 0) {
 		pr_info("%s failed to read efuse data\n", __func__);
 		goto fail;
 	}
 	bincode = (bincode >> 4) & 0x7;
-	ret = nvmem_device_read(nvmem_dev, CPUFREQ_SEG_CODE_IDX_0, sizeof(__u32), &turbocode);
+	ret = nvmem_device_read(nvmem_dev, CPUFREQ_SEG_CODE_OFFSET_0, sizeof(__u32), &turbocode);
 	if (ret < 0) {
 		pr_info("%s failed to read efuse data\n", __func__);
 		goto fail;
 	}
 	turbocode = (turbocode >> 3) & 0x1;
-	ret = nvmem_device_read(nvmem_dev, CPUFREQ_SEG_CODE_IDX_0, sizeof(__u32), &a_code);
+	ret = nvmem_device_read(nvmem_dev, CPUFREQ_SEG_CODE_OFFSET_0, sizeof(__u32), &a_code);
 	if (ret < 0) {
 		pr_info("%s failed to read efuse data\n", __func__);
 		goto fail;
