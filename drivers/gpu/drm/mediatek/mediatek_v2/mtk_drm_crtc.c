@@ -408,9 +408,15 @@ static unsigned int dual_comp_blender_map_mt6991(unsigned int comp_id)
 	case DDP_COMPONENT_OVL1_EXDMA8:
 		ret = DDP_COMPONENT_OVL1_BLENDER7;
 		break;
+#if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+	case DDP_COMPONENT_OVL1_EXDMA9:
+		ret = DDP_COMPONENT_OVL1_BLENDER9;
+		break;
+#else
 	case DDP_COMPONENT_OVL1_EXDMA9:
 		ret = DDP_COMPONENT_OVL1_BLENDER8;
 		break;
+#endif
 	default:
 		DDPMSG("unknown comp %u for %s\n", comp_id, __func__);
 	}
@@ -3142,6 +3148,10 @@ bool mtk_crtc_is_dual_pipe(struct drm_crtc *crtc)
 	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
 
 	if (drm_crtc_index(crtc) == 1) {
+#if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+		if (priv->data->mmsys_id == MMSYS_MT6991)
+			return true;
+#endif
 		if (priv->data->mmsys_id == MMSYS_MT6989 ||
 			priv->data->mmsys_id == MMSYS_MT6899 ||
 			priv->data->mmsys_id == MMSYS_MT6991)
@@ -4502,8 +4512,11 @@ static void mtk_crtc_update_ovl_hrt_usage(struct drm_crtc *crtc)
 	/* For Assert layer */
 	if (mtk_crtc && mtk_drm_dal_enable()) {
 		DDPINFO("%s: need handle dal layer\n", __func__);
-		if (priv && priv->data->mmsys_id == MMSYS_MT6991)
+		if (priv && priv->data->mmsys_id == MMSYS_MT6991) {
 			mtk_crtc->usage_ovl_fmt[6] = 2;
+			if (mtk_crtc->is_dual_pipe)
+				mtk_crtc->usage_ovl_fmt[DISP_PMQOS_OVL1_EXDMA8] = 2;
+		}
 		if (priv && (priv->data->mmsys_id == MMSYS_MT6989 ||
 			priv->data->mmsys_id == MMSYS_MT6899))
 			mtk_crtc->usage_ovl_fmt[5] = 2;
@@ -5543,6 +5556,10 @@ static unsigned int dual_comp_map_mt6991(unsigned int comp_id)
 		break;
 	case DDP_COMPONENT_OVL_EXDMA8:
 		ret = DDP_COMPONENT_OVL1_EXDMA8;
+		break;
+	case DDP_COMPONENT_OVL_EXDMA9:
+		ret = DDP_COMPONENT_OVL1_EXDMA9;
+		break;
 #else
 	case DDP_COMPONENT_OVL1_EXDMA6:
 		ret = DDP_COMPONENT_OVL1_EXDMA7;

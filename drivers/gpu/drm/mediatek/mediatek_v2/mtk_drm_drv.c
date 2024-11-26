@@ -3600,6 +3600,40 @@ static const enum mtk_ddp_comp_id mt6991_mtk_ddp_mem_dp_wo_tdshp[] = {
 	DDP_COMPONENT_OVLSYS_WDMA2,
 };
 
+#if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+static const enum mtk_ddp_comp_id mt6991_mtk_ddp_ext_dp[] = {
+	DDP_COMPONENT_OVL_EXDMA9,
+	DDP_COMPONENT_OVL0_BLENDER9,
+	DDP_COMPONENT_OVL0_OUTPROC3,
+	DDP_COMPONENT_OVLSYS_DLO_ASYNC10,
+	DDP_COMPONENT_DLI_ASYNC5,
+	DDP_COMPONENT_PQ0_IN_CB5,
+	DDP_COMPONENT_PQ0_OUT_CB8,
+	DDP_COMPONENT_PANEL0_COMP_OUT_CB3,
+	DDP_COMPONENT_DLO_ASYNC3, DDP_COMPONENT_DLI_ASYNC23,
+	DDP_COMPONENT_SPLITTER0_IN_CB3,
+	DDP_COMPONENT_SPLITTER0_OUT_CB11,
+	DDP_COMPONENT_COMP0_OUT_CB8,
+	DDP_COMPONENT_MERGE0,
+	DDP_COMPONENT_DP_INTF0,
+};
+
+static const enum mtk_ddp_comp_id mt6991_mtk_ddp_dual_ext_dp[] = {
+	DDP_COMPONENT_OVL1_EXDMA9,
+	DDP_COMPONENT_OVL1_BLENDER9,
+	DDP_COMPONENT_OVL1_OUTPROC3,
+	DDP_COMPONENT_OVLSYS1_DLO_ASYNC10,
+	DDP_COMPONENT_DLI_ASYNC13,
+	DDP_COMPONENT_PQ0_IN_CB13,
+	DDP_COMPONENT_PQ0_OUT_CB9,
+	DDP_COMPONENT_PANEL0_COMP_OUT_CB4,
+	DDP_COMPONENT_DLO_ASYNC4, DDP_COMPONENT_DLI_ASYNC24,
+	DDP_COMPONENT_SPLITTER0_IN_CB4,
+	DDP_COMPONENT_SPLITTER0_OUT_CB12,
+	DDP_COMPONENT_COMP0_OUT_CB9,
+	DDP_COMPONENT_MERGE0_OUT_CB12,
+};
+#else
 /* CRTC1 */
 static const enum mtk_ddp_comp_id mt6991_mtk_ddp_ext_dp[] = {
 	DDP_COMPONENT_OVL1_EXDMA6,
@@ -3623,6 +3657,7 @@ static const enum mtk_ddp_comp_id mt6991_mtk_ddp_ext_dp[] = {
 	DDP_COMPONENT_MERGE0_OUT_CB7,
 	DDP_COMPONENT_DP_INTF0,
 };
+#endif
 
 /* CRTC3 */
 static const enum mtk_ddp_comp_id mt6991_mtk_ddp_secondary[] = {
@@ -5776,9 +5811,15 @@ static const struct mtk_crtc_path_data mt6991_mtk_ext_path_data = {
 	.path[DDP_MAJOR][0] = mt6991_mtk_ddp_ext_dp,
 	.path_len[DDP_MAJOR][0] = ARRAY_SIZE(mt6991_mtk_ddp_ext_dp),
 	.path_req_hrt[DDP_MAJOR][0] = true,
+#if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+	.dual_path[0] = mt6991_mtk_ddp_dual_ext_dp,
+	.dual_path_len[0] = ARRAY_SIZE(mt6991_mtk_ddp_dual_ext_dp),
+#endif
 	.addon_data = mt6991_addon_ext,
 #if !IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO)
+#if !IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
 	.is_exdma_dual_layer = true,
+#endif
 #endif
 };
 

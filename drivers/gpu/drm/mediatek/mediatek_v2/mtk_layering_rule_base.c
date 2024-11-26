@@ -3095,8 +3095,16 @@ static int mtk_lye_get_exdma_comp_id(int disp_idx, int layer_idx,
 			return DDP_COMPONENT_OVL4_2L;
 		else if (priv->data->mmsys_id == MMSYS_MT6991) {
 			int exdma_comp = 0;
+			struct drm_crtc *crtc = priv->crtc[disp_idx];
+			struct mtk_drm_crtc *mtk_crtc;
 
+			if (!crtc)
+				return DDP_COMPONENT_OVL_EXDMA3;
+
+			mtk_crtc = to_mtk_crtc(crtc);
 			exdma_comp = DDP_COMPONENT_OVL1_EXDMA6  + ((layer_idx - fun_lye) * 2);
+			if (mtk_crtc->is_dual_pipe)
+				exdma_comp = DDP_COMPONENT_OVL_EXDMA9;
 
 			return exdma_comp;
 		}

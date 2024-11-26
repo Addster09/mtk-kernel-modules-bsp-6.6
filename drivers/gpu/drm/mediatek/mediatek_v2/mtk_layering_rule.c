@@ -57,7 +57,11 @@ static uint16_t layer_mapping_table[HRT_TB_NUM] = {
 #if IS_ENABLED(CONFIG_MTK_LCM_DUAL_PORT_SUPPORT)
 	0x0003, 0x007C, 0x007A, 0x0001
 #else
+#if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+	0x0001, 0x007E, 0x007A, 0x0001
+#else
 	0x0003, 0x007E, 0x007A, 0x0001
+#endif
 #endif
 };
 #else

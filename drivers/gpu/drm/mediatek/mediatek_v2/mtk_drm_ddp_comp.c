@@ -3367,6 +3367,16 @@ void mt6991_mtk_sodi_config(struct drm_device *drm, enum mtk_ddp_comp_id id,
 
 #if !IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO)
 	if (handle == NULL) {
+#if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+		if (priv->ovlsys1_regs) {
+			writel_relaxed(0x40, priv->ovlsys0_regs + OVLSYS_EXRDMA_ULTRA_SEL1);
+			writel_relaxed(0x40, priv->ovlsys0_regs + OVLSYS_EXRDMA_PREULTRA_SEL1);
+
+			writel_relaxed(0x40, priv->ovlsys1_regs + OVLSYS_EXRDMA_ULTRA_SEL1);
+			writel_relaxed(0x40, priv->ovlsys1_regs + OVLSYS_EXRDMA_PREULTRA_SEL1);
+
+		}
+#else
 		if (priv->ovlsys1_regs) {
 			val = 0;
 			SET_VAL_MASK(val, val_mask, 4, OVL_EXDMA6_SEL);
@@ -3380,7 +3390,24 @@ void mt6991_mtk_sodi_config(struct drm_device *drm, enum mtk_ddp_comp_id id,
 			writel_relaxed(0x44, priv->ovlsys1_regs + OVLSYS_EXRDMA_ULTRA_SEL1);
 			writel_relaxed(0x44, priv->ovlsys1_regs + OVLSYS_EXRDMA_PREULTRA_SEL1);
 		}
+#endif
 	} else {
+#if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+		if (priv->ovlsys1_regs) {
+			val = 0;
+			SET_VAL_MASK(val, val_mask, 4, OVL_EXDMA9_SEL);
+
+			cmdq_pkt_write(handle, NULL, priv->ovlsys0_regs_pa +
+				OVLSYS_EXRDMA_ULTRA_SEL1, val, ~0);
+			cmdq_pkt_write(handle, NULL, priv->ovlsys0_regs_pa +
+				OVLSYS_EXRDMA_PREULTRA_SEL1, val, ~0);
+
+			cmdq_pkt_write(handle, NULL, priv->ovlsys1_regs_pa +
+				OVLSYS_EXRDMA_ULTRA_SEL1, val, ~0);
+			cmdq_pkt_write(handle, NULL, priv->ovlsys1_regs_pa +
+				OVLSYS_EXRDMA_PREULTRA_SEL1, val, ~0);
+		}
+#else
 		if (priv->ovlsys1_regs) {
 			val = 0;
 			SET_VAL_MASK(val, val_mask, 4, OVL_EXDMA6_SEL);
@@ -3400,6 +3427,7 @@ void mt6991_mtk_sodi_config(struct drm_device *drm, enum mtk_ddp_comp_id id,
 			cmdq_pkt_write(handle, NULL, priv->ovlsys1_regs_pa +
 				OVLSYS_EXRDMA_PREULTRA_SEL1, val, ~0);
 		}
+#endif
 	}
 #else
 	if (priv->ovlsys1_regs) {

@@ -30637,6 +30637,17 @@ static void mtk_ddp_ext_insert_dual_pipe_MT6897(struct mtk_drm_crtc *mtk_crtc,
 	writel_relaxed(reg, ovlsys1_regs + addr);
 }
 
+static void mtk_ddp_ext_insert_dual_pipe_MT6991(struct mtk_drm_crtc *mtk_crtc,
+	struct mtk_disp_mutex *mutex)
+{
+	unsigned int addr, value, reg;
+	void __iomem *side_config_regs = mtk_crtc->side_config_regs;
+
+	addr = MT6991_MERGE_OUT_CB12_MOUT_EN;
+	value = 0;
+	writel_relaxed(value, side_config_regs + addr);
+}
+
 struct mtk_ddp_comp *mtk_ddp_get_path_addon_dsc_comp(struct mtk_drm_crtc *mtk_crtc)
 {
 	struct mtk_ddp_comp *comp;
@@ -30931,6 +30942,9 @@ static void mtk_ddp_ext_insert_dual_pipe(struct mtk_drm_crtc *mtk_crtc,
 		break;
 	case MMSYS_MT6895:
 		mtk_ddp_ext_insert_dual_pipe_MT6895(mtk_crtc, mutex);
+		break;
+	case MMSYS_MT6991:
+		mtk_ddp_ext_insert_dual_pipe_MT6991(mtk_crtc, mutex);
 		break;
 	default:
 		DDPINFO("%s mtk drm not support mmsys id %x\n",
@@ -39092,25 +39106,35 @@ int mtk_ddp_exdma_mout_reset_MT6991(enum mtk_ddp_comp_type type, int *offset,
 	if (crtc_id == 0) {
 		if (type == MTK_OVL_EXDMA) {
 			*addr_begin = MT6991_OVL_EXDMA_OUT_CROSSBAR0_MOUT_EN;
-			*addr_end = MT6991_OVL_EXDMA_OUT_CROSSBAR10_MOUT_EN;
+			*addr_end = MT6991_OVL_EXDMA_OUT_CROSSBAR9_MOUT_EN;
 			*offset = 8;
 		}
 
 		if (type ==  MTK_OVL_BLENDER) {
 			*addr_begin = MT6991_OVL_BLENDER_OUT_CROSSBAR0_MOUT_EN;
-			*addr_end = MT6991_OVL_BLENDER_OUT_CROSSBAR9_MOUT_EN;
+			*addr_end = MT6991_OVL_BLENDER_OUT_CROSSBAR6_MOUT_EN;
 			*offset = 4;
 		}
 	} else if (crtc_id == 1) {
 		if (type == MTK_OVL_EXDMA) {
+#if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+			*addr_begin = MT6991_OVL_EXDMA_OUT_CROSSBAR10_MOUT_EN;
+			*addr_end = MT6991_OVL_EXDMA_OUT_CROSSBAR10_MOUT_EN;
+#else
 			*addr_begin = MT6991_OVL_EXDMA_OUT_CROSSBAR7_MOUT_EN;
 			*addr_end = MT6991_OVL_EXDMA_OUT_CROSSBAR10_MOUT_EN;
+#endif
 			*offset = 8;
 		}
 
 		if (type ==  MTK_OVL_BLENDER) {
+#if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+			*addr_begin = MT6991_OVL_BLENDER_OUT_CROSSBAR9_MOUT_EN;
+			*addr_end = MT6991_OVL_BLENDER_OUT_CROSSBAR9_MOUT_EN;
+#else
 			*addr_begin = MT6991_OVL_BLENDER_OUT_CROSSBAR5_MOUT_EN;
 			*addr_end = MT6991_OVL_BLENDER_OUT_CROSSBAR6_MOUT_EN;
+#endif
 			*offset = 4;
 		}
 	} else if (crtc_id == 2) {
