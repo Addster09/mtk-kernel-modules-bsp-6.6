@@ -4581,6 +4581,9 @@ static void check_is_mml_layer(const int disp_idx,
 		u32 cnt = hweight32(mml_ovl_layers);
 		enum MTK_LAYERING_CAPS dc_cap = MTK_MML_DISP_DECOUPLE_LAYER;
 
+		if (kref_read(&mtk_crtc->mml_ir_sram.ref) ||
+			(mtk_crtc->mml_link_state == MML_IR_IDLE))
+			dc_cap = query_transition_mode(mml_decouple2);
 		while (cnt--) {
 			i = __builtin_ffs(mml_ovl_layers) - 1;
 			mml_ovl_layers &= ~(1 << i);
