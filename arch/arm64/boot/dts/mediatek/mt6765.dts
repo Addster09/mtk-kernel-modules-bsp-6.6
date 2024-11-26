@@ -3496,6 +3496,12 @@ pwrap: pwrap@1000d000 {
 		interrupt-names = "RGX";
 		clock-frequency = <570000000>;
 		ged-supply = <&ged>;
+		gpu-frame-base-optimize = <1>;
+	};
+
+	gpu_dvfs_prefence: gpu-prefence {
+		compatible = "mediatek,gpu_prefence";
+		dvfs-prefence-enable = <1>;
 	};
 
 	mfg_cfg: mfg_cfg@13ffe000 {
