@@ -2654,13 +2654,15 @@
 			compatible = "mediatek,mt6781-vcodec-dec";
 			mediatek,platform = "platform:mt6781";
 			mediatek,ipm = <1>;
-			reg = <0 0x1602f000 0 0x1000>,		/* VDEC_SYS */
+			reg = <0 0x16000000 0 0x1000>,		/* VDEC_BASE */
+				<0 0x1602f000 0 0x1000>,		/* VDEC_SYS */
 				<0 0x16029800 0 0x400>,                /* VDEC_UFO */
 				<0 0x16020000 0 0x400>,		/* VDEC_VLD */
 				<0 0x16021000 0 0x1000>,               /* VDEC_MC */
 				<0 0x16023000 0 0x1000>,               /* VDEC_MV */
 				<0 0x16025000 0 0x1000>;		/* VDEC_MISC */
 			reg-names =
+				"VDEC_BASE",
 				"VDEC_SYS",
 				"VDEC_UFO",
 				"VDEC_VLD",
