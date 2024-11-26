@@ -617,4 +617,7 @@
 		apply-lpsd-solution;
 		dcxo-switch;
 	};
+	mt63xx_debug {
+		compatible = "mediatek,mt63xx-debug";
+	};
 };/* End of main_pmic */
