@@ -5825,7 +5825,9 @@ static void mtk_crtc_get_plane_comp_state(struct drm_crtc *crtc,
 			for_each_comp_in_cur_crtc_path(
 				comp, mtk_crtc, j,
 				k) {
-				if (comp->id != comp_state->comp_id)
+				if (comp->id != comp_state->comp_id ||
+				    (mtk_ddp_comp_get_type(comp->id) != MTK_DISP_OVL &&
+				    mtk_ddp_comp_get_type(comp->id) != MTK_OVL_EXDMA))
 					continue;
 
 				mtk_ddp_comp_layer_off(
