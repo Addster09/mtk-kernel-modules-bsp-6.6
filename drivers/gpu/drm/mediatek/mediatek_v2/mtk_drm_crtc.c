@@ -2501,6 +2501,7 @@ int mtk_drm_setbacklight(struct drm_crtc *crtc, unsigned int level,
 		if (lock)
 			DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
 		CRTC_MMP_EVENT_END(index, backlight, 0, 1);
+		kfree(cb_data);
 		return -EINVAL;
 	}
 
@@ -8355,6 +8356,7 @@ void mtk_crtc_dc_prim_path_update(struct drm_crtc *crtc)
 	if (!cmdq_handle) {
 		DDPPR_ERR("%s:%d NULL cmdq handle\n", __func__, __LINE__);
 		DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
+		kfree(cb_data);
 		return;
 	}
 
@@ -12335,6 +12337,7 @@ void mtk_crtc_clr_set_dirty(struct mtk_drm_crtc *mtk_crtc)
 
 	if (!cmdq_handle) {
 		DDPPR_ERR("%s:%d NULL cmdq handle\n", __func__, __LINE__);
+		kfree(cb_data);
 		return;
 	}
 
@@ -12385,6 +12388,7 @@ void mtk_crtc_set_dirty(struct mtk_drm_crtc *mtk_crtc)
 
 	if (!cmdq_handle) {
 		DDPPR_ERR("%s:%d NULL cmdq handle\n", __func__, __LINE__);
+		kfree(cb_data);
 		return;
 	}
 
@@ -18206,6 +18210,7 @@ int mtk_crtc_gce_flush(struct drm_crtc *crtc, void *gce_cb,
 
 		if (!handle) {
 			DDPPR_ERR("%s:%d NULL handle\n", __func__, __LINE__);
+			kfree(wb_cb_data);
 			return -EINVAL;
 		}
 
@@ -20352,6 +20357,7 @@ static void mtk_drm_cwb_give_buf(struct drm_crtc *crtc)
 	if (!handle) {
 		DDPPR_ERR("%s:%d NULL cmdq handle\n", __func__, __LINE__);
 		DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
+		kfree(cb_data);
 		return;
 	}
 
