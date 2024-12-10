@@ -33,9 +33,14 @@ ifeq ($(CONFIG_MTK_SND_SOC_NEW_ARCH),y)
 # MENU Governor Predict(low power)
 subdir-ccflags-y += -Werror -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/base/power/mcdi/include/
 subdir-ccflags-y += -Werror -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/mcdi/include
-
+ifdef CONFIG_SND_SOC_MT6771
+# spm v4
+subdir-ccflags-y += -Werror -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/include/spm_v4
+else
 # spm
 subdir-ccflags-y += -Werror -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/include/spm
+endif
+
 # Common object
 obj-$(CONFIG_MTK_SND_SOC_NEW_ARCH_COMMON) += mtk-soc-speaker-amp.o
 # To handle circular dependency between common_int and mt6765 APIS
