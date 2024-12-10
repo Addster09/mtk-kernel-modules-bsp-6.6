@@ -50,7 +50,7 @@
 
 #if IS_ENABLED(CONFIG_MTK_PMQOS)
 #include "mtk-pm-qos.h"
-//#include "mmdvfs_pmqos.h"
+#include "mmdvfs_pmqos.h"
 #endif
 
 #ifndef CONFIG_MTK_CLKMGR
@@ -292,7 +292,6 @@ static unsigned int vcodecDebugMode;
 #define RAISE_PERCENTAGE    85
 #define MONITOR_DURATION_MS 4000
 #define DVFS_UNREQUEST (-1)
-#define MAX_FREQ_STEP 64
 #define DVFS_LOW     MMDVFS_VOLTAGE_LOW
 #define DVFS_HIGH    MMDVFS_VOLTAGE_HIGH
 #define DVFS_DEFAULT MMDVFS_VOLTAGE_HIGH
@@ -3789,7 +3788,7 @@ static int vcodec_probe(struct platform_device *dev)
 	dec_step_size = 1;
 	enc_step_size = 1;
 
-#ifdef YUGANG
+#if IS_ENABLED(CONFIG_MTK_PMQOS)
 	ret = mmdvfs_qos_get_freq_steps(MTK_PM_QOS_VDEC_FREQ,
 			&g_dec_freq_steps[0], &dec_step_size);
 	if (ret < 0)

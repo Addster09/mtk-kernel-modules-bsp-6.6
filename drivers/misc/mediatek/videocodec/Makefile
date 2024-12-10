@@ -47,6 +47,7 @@ ccflags-y += \
 	-I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/include/mt-plat   \
 	-I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/smi \
 	-I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/mmdvfs \
+	-I$(DEVICE_MODULES_PATH)/drivers/soc/mediatek \
 	-I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/helio-dvfsrc
 obj-$(CONFIG_MTK_VIDEOCODEC_DRIVER) += vcodec_kernel_driver-v1.o
 vcodec_kernel_driver-v1-$(CONFIG_MTK_VIDEOCODEC_DRIVER) +=  v2/videocodec_kernel_drv.o   \
