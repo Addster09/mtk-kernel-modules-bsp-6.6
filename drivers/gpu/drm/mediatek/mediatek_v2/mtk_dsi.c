@@ -645,6 +645,8 @@ int mtk_drm_dummy_cmd_on_ioctl(struct drm_device *dev, void *data,
 	return 0;
 }
 
+static unsigned int mtk_get_dsi_buf_bpp(struct mtk_dsi *dsi);
+
 static void mtk_dsi_dphy_timconfig_v2(struct mtk_dsi *dsi, void *handle)
 {
 	struct mtk_dsi_phy_timcon *phy_timcon = NULL;
@@ -657,6 +659,7 @@ static void mtk_dsi_dphy_timconfig_v2(struct mtk_dsi *dsi, void *handle)
 	u32 ui = 0, cycle_time = 0;
 	u32 value = 0;
 	u32 hs_trail_m = 1, hs_trail_n = 0;
+	u32 dsi_buf_bpp;
 	struct mtk_ddp_comp *comp = &dsi->ddp_comp;
 	struct mtk_drm_private *priv = dsi->is_slave ?
 		dsi->master_dsi->ddp_comp.mtk_crtc->base.dev->dev_private
@@ -852,6 +855,21 @@ CONFIG_REG:
 		}
 	}
 	dsi->data_phy_cycle = lpx + da_hs_exit + hs_prpr + hs_zero + 2;
+
+	dsi_buf_bpp = mtk_get_dsi_buf_bpp(dsi);
+	if (dsi->ext && !dsi->ext->params->vdo_per_frame_lp_enable &&
+		!(dsi->mode_flags & MIPI_DSI_CLOCK_NON_CONTINUOUS))
+		dsi->hfp_minimum_dphy = DIV_ROUND_UP(2 + 4 + (da_hs_trail + 1 + (lpx + da_hs_exit +
+				da_hs_prep + da_hs_zero + 2)) * dsi->lanes + 4, dsi_buf_bpp);
+	else if (dsi->ext && !dsi->ext->params->vdo_per_frame_lp_enable &&
+		(dsi->mode_flags & MIPI_DSI_CLOCK_NON_CONTINUOUS))
+		dsi->hfp_minimum_dphy = DIV_ROUND_UP(2 + 4 + (da_hs_trail + 1 + clk_hs_post + 1 +
+						clk_hs_trail + clk_hs_exit + 1 + lpx + clk_hs_prep +
+						clk_hs_zero + (lpx + da_hs_exit + da_hs_prep +
+						da_hs_zero + 2)) * dsi->lanes + 4, dsi_buf_bpp);
+	else
+		dsi->hfp_minimum_dphy = DIV_ROUND_UP(2 + 4 + 2 + 2, dsi_buf_bpp);
+
 	value = REG_FLD_VAL(FLD_LPX, lpx)
 		| REG_FLD_VAL(FLD_HS_PREP, da_hs_prep)
 		| REG_FLD_VAL(FLD_HS_ZERO, da_hs_zero)
@@ -3228,20 +3246,17 @@ static void mtk_dsi_calc_vdo_timing(struct mtk_dsi *dsi)
 				t_hbp * dsi_tmp_buf_bpp -
 				12 * dsi->lanes - 26, 2);
 
-		if (t_hfp * dsi_tmp_buf_bpp < 8 * dsi->lanes + 28 +
-			2 * dsi->data_phy_cycle * dsi->lanes + 9)
-			horizontal_frontporch_byte = 8;
-		else if ((t_hfp * dsi_tmp_buf_bpp > 8 * dsi->lanes + 28 +
-			2 * dsi->data_phy_cycle * dsi->lanes + 8) &&
-			(t_hfp * dsi_tmp_buf_bpp < 8 * dsi->lanes + 28 +
+		if (t_hfp * dsi_tmp_buf_bpp < 10 * dsi->lanes + 28 +
 			2 * dsi->data_phy_cycle * dsi->lanes +
-			2 * (32 + 1) * dsi->lanes - 6 * dsi->lanes - 14))
+			2 * (32 + 1) * dsi->lanes - 6 * dsi->lanes - 14)
 			horizontal_frontporch_byte = 2*(32 + 1)*dsi->lanes -
 				6*dsi->lanes - 14;
 		else
 			horizontal_frontporch_byte = t_hfp * dsi_tmp_buf_bpp -
-				8 * dsi->lanes - 28 -
+				10 * dsi->lanes - 28 -
 				2 * dsi->data_phy_cycle * dsi->lanes;
+		if (horizontal_frontporch_byte < 8)
+			horizontal_frontporch_byte = 8;
 
 		/* Check CPHY HFP minimum limitation */
 		if (dsi->mode_flags & MIPI_DSI_CLOCK_NON_CONTINUOUS) {
@@ -3283,6 +3298,10 @@ static void mtk_dsi_calc_vdo_timing(struct mtk_dsi *dsi)
 		else
 			horizontal_frontporch_byte =
 				ALIGN_TO((t_hfp * dsi_tmp_buf_bpp - 12), 4);
+		/* Check DPHY HFP minimum limitation */
+		if (dsi->driver_data->n_verion >= VER_N4 && t_hfp < dsi->hfp_minimum_dphy)
+			DDPPR_ERR("%s HFP:%u < DPHY HFP minimum limitation:%u\n",
+					__func__, t_hfp, dsi->hfp_minimum_dphy);
 	}
 	dsi->vfp = t_vfp;
 	dsi->vbp = t_vbp;
@@ -3789,7 +3808,6 @@ static void mtk_dsi_ulps_exit_end(struct mtk_dsi *dsi)
 	/* reset related setting */
 	mtk_dsi_mask(dsi, DSI_INTEN, SLEEPOUT_DONE_INT_FLAG, 0);
 	mtk_dsi_mask(dsi, DSI_PHY_LD0CON(dsi->driver_data), LDX_ULPM_AS_L0, 0);
-	mtk_dsi_mask(dsi, DSI_PHY_LD0CON(dsi->driver_data), 0xffffffff, 0x00000008);
 	mtk_dsi_mask(dsi, DSI_MODE_CTRL(dsi->driver_data), SLEEP_MODE, 0);
 	mtk_dsi_mask(dsi, DSI_START, SLEEPOUT_START, 0);
 
@@ -4576,7 +4594,10 @@ static void mtk_dsi_exit_ulps(struct mtk_dsi *dsi, bool async)
 		DDPPR_ERR("%s:%d NULL Pointer\n", __func__, __LINE__);
 		return;
 	}
-	wake_up_prd = (dsi->data_rate * 1000) / (1024 * 8) + 1; /* 1 ms */
+	if (dsi->ext && dsi->ext->params->is_cphy)
+		wake_up_prd = (dsi->data_rate * 1000) / (1024 * 7) + 1; /* 1 ms */
+	else
+		wake_up_prd = (dsi->data_rate * 1000) / (1024 * 8) + 1; /* 1 ms */
 
 	mtk_crtc = dsi->is_slave ?
 		dsi->master_dsi->ddp_comp.mtk_crtc
@@ -4972,7 +4993,7 @@ static int DSI_MIPI_deskew(struct mtk_dsi *dsi)
 	}
 
 	phy_syncon = readl(dsi->regs + DSI_PHY_SYNCON(dsi->driver_data));
-	writel(0x00aaffff, dsi->regs + DSI_PHY_SYNCON(dsi->driver_data));
+	writel(0x00aa00ff, dsi->regs + DSI_PHY_SYNCON(dsi->driver_data));
 
 	SET_VAL_MASK(value, mask, 6, FLD_SKEWCAL_PRD);
 	mtk_dsi_mask(dsi, DSI_TIME_CON0(dsi->driver_data), mask, value);
@@ -11028,6 +11049,7 @@ unsigned int mtk_dsi_get_line_time(struct mtk_drm_crtc *mtk_crtc,
 	u32 lpx = 0, hs_prpr = 0, hs_zero = 0, hs_trail = 0, da_hs_exit = 0;
 	u32 ui = 0, cycle_time = 0;
 	struct mtk_dsi_phy_timcon *phy_timcon = NULL;
+	u32 data_phy_cycle = 0, da_hs_prep =0, da_hs_zero = 0, da_hs_trail = 0;
 	struct mtk_panel_params *panel_params = NULL;
 
 	//for FPS change,update dsi->ext
@@ -11095,6 +11117,27 @@ unsigned int mtk_dsi_get_line_time(struct mtk_drm_crtc *mtk_crtc,
 		hs_trail = CHK_SWITCH(phy_timcon->hs_trail, hs_trail);
 		da_hs_exit = CHK_SWITCH(phy_timcon->da_hs_exit, da_hs_exit);
 
+		if (dsi->driver_data->n_verion >= VER_N3) {
+			u32 cphy_progseq_cycle = 2;
+
+			lpx = (dsi->data_rate * 80) / 7000 + 1;
+			lpx = (lpx % 2) ? lpx + 1 : lpx;  //lpx must be even
+			da_hs_prep = (dsi->data_rate * 50) / 7000 + 1;
+			da_hs_prep = (da_hs_prep % 2) ? da_hs_prep + 1 : da_hs_prep;  //da_hs_prep must be even
+			da_hs_zero = 48;
+			da_hs_trail = 32;
+			da_hs_exit = (dsi->data_rate * 118) / 7000 + 1;
+			da_hs_exit = (da_hs_exit % 2) ? da_hs_exit + 2 : da_hs_exit + 1;  //da_hs_exit must be odd
+
+			lpx = CHK_SWITCH(phy_timcon->lpx, lpx);
+			da_hs_prep = CHK_SWITCH(phy_timcon->hs_prpr, da_hs_prep);
+			da_hs_zero = CHK_SWITCH(phy_timcon->hs_zero, da_hs_zero);
+			da_hs_trail = CHK_SWITCH(phy_timcon->hs_trail, da_hs_trail);
+			da_hs_exit = CHK_SWITCH(phy_timcon->da_hs_exit, da_hs_exit);
+
+			data_phy_cycle = da_hs_prep + da_hs_zero + da_hs_exit + 1 + lpx + cphy_progseq_cycle + 1;
+		}
+
 		if (panel_params->lp_perline_en) {
 			/* LP per line */
 			line_time =
@@ -11102,6 +11145,11 @@ unsigned int mtk_dsi_get_line_time(struct mtk_drm_crtc *mtk_crtc,
 				DIV_ROUND_UP(((dsi->lanes * 3) + 3 + 3 +
 				(CEILING(1 + ps_wc + 2, 2) / 2)),
 				dsi->lanes) + hs_trail + 1 + da_hs_exit + 1;
+			if (dsi->driver_data->n_verion >= VER_N3)
+				line_time = data_phy_cycle +
+					DIV_ROUND_UP(((dsi->lanes * 3) + 3 + 3 +
+					(CEILING(1 + ps_wc + 2, 2) / 2)),
+					dsi->lanes) + da_hs_trail + 1;
 		} else {
 			if (panel_params->cmd_null_pkt_en && dsi->dummy_cmd_en) {
 				/* Keep HS + Dummy cycle */
@@ -11117,6 +11165,8 @@ unsigned int mtk_dsi_get_line_time(struct mtk_drm_crtc *mtk_crtc,
 			}
 		}
 	} else {
+		struct mtk_drm_private *priv = NULL;
+
 		/* DPHY */
 		ui = (1000 / data_rate > 0) ? 1000 / data_rate : 1;
 		cycle_time = 8000 / data_rate;
@@ -11139,11 +11189,40 @@ unsigned int mtk_dsi_get_line_time(struct mtk_drm_crtc *mtk_crtc,
 		hs_trail = CHK_SWITCH(phy_timcon->hs_trail, hs_trail);
 		da_hs_exit = CHK_SWITCH(phy_timcon->da_hs_exit, da_hs_exit);
 
+		priv = mtk_crtc->base.dev->dev_private;
+		if (priv && (priv->data->mmsys_id == MMSYS_MT6899 ||
+			priv->data->mmsys_id == MMSYS_MT6991)) {
+			lpx = (data_rate * 80) / 8000 + 1;
+			lpx = (lpx % 2) ? lpx + 1 : lpx;  //lpx must be even
+			da_hs_prep = (data_rate * 59 + 4000) / 8000 + 1;
+			da_hs_prep = (da_hs_prep % 2) ? da_hs_prep + 1 : da_hs_prep;  //da_hs_prep must be even
+			da_hs_zero = (data_rate * 163 + 11000) / 8000 + 1 - da_hs_prep;
+			if (data_rate < 740)
+				da_hs_trail = (data_rate * 66 + 44300) / 8000 + 1;
+			else
+				da_hs_trail = (data_rate * 66 + 42000) / 8000 + 1;
+			da_hs_exit = (data_rate * 118) / 8000 + 1;
+			da_hs_exit = (da_hs_exit % 2) ? da_hs_exit + 2 : da_hs_exit + 1;
+
+			lpx = CHK_SWITCH(phy_timcon->lpx, lpx);
+			da_hs_prep = CHK_SWITCH(phy_timcon->hs_prpr, da_hs_prep);
+			da_hs_zero = CHK_SWITCH(phy_timcon->hs_zero, da_hs_zero);
+			da_hs_trail = CHK_SWITCH(phy_timcon->hs_trail, da_hs_trail);
+			da_hs_exit = CHK_SWITCH(phy_timcon->da_hs_exit, da_hs_exit);
+
+			data_phy_cycle = lpx + da_hs_exit + da_hs_prep + da_hs_zero + 2;
+		}
+
 		if (panel_params->lp_perline_en) {
 			/* LP per line */
 			line_time = lpx + hs_prpr + hs_zero + 1 +
 				DIV_ROUND_UP((5 + ps_wc + 6), dsi->lanes) +
 				hs_trail + 1 + da_hs_exit + 1;
+			if (priv && (priv->data->mmsys_id == MMSYS_MT6899 ||
+				priv->data->mmsys_id == MMSYS_MT6991))
+				line_time = data_phy_cycle +
+					DIV_ROUND_UP((5 + ps_wc + 6), dsi->lanes) +
+					da_hs_trail + 1;
 		} else {
 			if (panel_params->cmd_null_pkt_en && dsi->dummy_cmd_en) {
 			/* Keep HS + Dummy cycle */
@@ -11487,6 +11566,7 @@ void mtk_dsi_set_mmclk_by_datarate_V2(struct mtk_dsi *dsi,
 			u32 ui = 0, cycle_time = 0;
 			struct mtk_dsi_phy_timcon *phy_timcon = NULL;
 			u32 dsi_buf_bpp = mtk_get_dsi_buf_bpp(dsi);
+			u32 data_phy_cycle = 0, da_hs_prep =0, da_hs_zero = 0, da_hs_trail = 0;
 
 			pixclk = data_rate * dsi->lanes * compress_rate;
 			if (data_rate && ext->params->is_cphy)
@@ -11524,6 +11604,28 @@ void mtk_dsi_set_mmclk_by_datarate_V2(struct mtk_dsi *dsi,
 				hs_trail = CHK_SWITCH(phy_timcon->hs_trail, hs_trail);
 				da_hs_exit = CHK_SWITCH(phy_timcon->da_hs_exit, da_hs_exit);
 
+				if (dsi->driver_data->n_verion >= VER_N3) {
+					u32 cphy_progseq_cycle = 2;
+
+					lpx = (dsi->data_rate * 80) / 7000 + 1;
+					lpx = (lpx % 2) ? lpx + 1 : lpx;  //lpx must be even
+					da_hs_prep = (dsi->data_rate * 50) / 7000 + 1;
+					da_hs_prep = (da_hs_prep % 2) ? da_hs_prep + 1 : da_hs_prep;
+					da_hs_zero = 48;
+					da_hs_trail = 32;
+					da_hs_exit = (dsi->data_rate * 118) / 7000 + 1;
+					da_hs_exit = (da_hs_exit % 2) ? da_hs_exit + 2 : da_hs_exit + 1;
+
+					lpx = CHK_SWITCH(phy_timcon->lpx, lpx);
+					da_hs_prep = CHK_SWITCH(phy_timcon->hs_prpr, da_hs_prep);
+					da_hs_zero = CHK_SWITCH(phy_timcon->hs_zero, da_hs_zero);
+					da_hs_trail = CHK_SWITCH(phy_timcon->hs_trail, da_hs_trail);
+					da_hs_exit = CHK_SWITCH(phy_timcon->da_hs_exit, da_hs_exit);
+
+					data_phy_cycle = da_hs_prep + da_hs_zero + da_hs_exit + 1 +
+								lpx + cphy_progseq_cycle + 1;
+				}
+
 				image_time = DIV_ROUND_UP(DIV_ROUND_UP(ps_wc, 2), dsi->lanes);
 
 				if (ext->params->lp_perline_en) {
@@ -11534,6 +11636,11 @@ void mtk_dsi_set_mmclk_by_datarate_V2(struct mtk_dsi *dsi,
 							(CEILING(1 + ps_wc + 2, 2) / 2)),
 								dsi->lanes) +
 						hs_trail + 1 + da_hs_exit + 1;
+					if (dsi->driver_data->n_verion >= VER_N3)
+						line_time = data_phy_cycle +
+							DIV_ROUND_UP(((dsi->lanes * 3) + 3 + 3 +
+							(CEILING(1 + ps_wc + 2, 2) / 2)),
+							dsi->lanes) + da_hs_trail + 1;
 				} else {
 					if (dsi->ext->params->cmd_null_pkt_en && dsi->dummy_cmd_en) {
 						/* Keep HS + Dummy cycle */
@@ -11551,6 +11658,8 @@ void mtk_dsi_set_mmclk_by_datarate_V2(struct mtk_dsi *dsi,
 					}
 				}
 			} else {
+				struct mtk_drm_private *priv = NULL;
+
 				/* DPHY */
 				ui = (1000 / data_rate > 0) ? 1000 / data_rate : 1;
 				cycle_time = 8000 / data_rate;
@@ -11576,11 +11685,40 @@ void mtk_dsi_set_mmclk_by_datarate_V2(struct mtk_dsi *dsi,
 
 				image_time = DIV_ROUND_UP(ps_wc, dsi->lanes);
 
+				priv = mtk_crtc->base.dev->dev_private;
+				if (priv && (priv->data->mmsys_id == MMSYS_MT6899 ||
+					priv->data->mmsys_id == MMSYS_MT6991)) {
+					lpx = (data_rate * 80) / 8000 + 1;
+					lpx = (lpx % 2) ? lpx + 1 : lpx;  //lpx must be even
+					da_hs_prep = (data_rate * 59 + 4000) / 8000 + 1;
+					da_hs_prep = (da_hs_prep % 2) ? da_hs_prep + 1 : da_hs_prep;
+					da_hs_zero = (data_rate * 163 + 11000) / 8000 + 1 - da_hs_prep;
+					if (data_rate < 740)
+						da_hs_trail = (data_rate * 66 + 44300) / 8000 + 1;
+					else
+						da_hs_trail = (data_rate * 66 + 42000) / 8000 + 1;
+					da_hs_exit = (data_rate * 118) / 8000 + 1;
+					da_hs_exit = (da_hs_exit % 2) ? da_hs_exit + 2 : da_hs_exit + 1;
+
+					lpx = CHK_SWITCH(phy_timcon->lpx, lpx);
+					da_hs_prep = CHK_SWITCH(phy_timcon->hs_prpr, da_hs_prep);
+					da_hs_zero = CHK_SWITCH(phy_timcon->hs_zero, da_hs_zero);
+					da_hs_trail = CHK_SWITCH(phy_timcon->hs_trail, da_hs_trail);
+					da_hs_exit = CHK_SWITCH(phy_timcon->da_hs_exit, da_hs_exit);
+
+					data_phy_cycle = lpx + da_hs_exit + da_hs_prep + da_hs_zero + 2;
+				}
+
 				if (ext->params->lp_perline_en) {
 					/* LP per line */
 					line_time = lpx + hs_prpr + hs_zero + 1 +
 						DIV_ROUND_UP((5 + ps_wc + 6), dsi->lanes) +
 						hs_trail + 1 + da_hs_exit + 1;
+					if (priv && (priv->data->mmsys_id == MMSYS_MT6899 ||
+						priv->data->mmsys_id == MMSYS_MT6991))
+						line_time = data_phy_cycle +
+							DIV_ROUND_UP((5 + ps_wc + 6), dsi->lanes) +
+							da_hs_trail + 1;
 				} else {
 					if (dsi->ext->params->cmd_null_pkt_en && dsi->dummy_cmd_en) {
 						/* Keep HS + Dummy cycle */
