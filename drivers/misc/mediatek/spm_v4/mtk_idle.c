@@ -151,6 +151,8 @@ static int              sodi_by_uptime_count;
 /* Regular Idle */
 static unsigned long    rgidle_cnt[NR_CPUS] = {0};
 
+unsigned int is_tee_real_drv;
+
 /* idle_notifier */
 static RAW_NOTIFIER_HEAD(mtk_idle_notifier);
 
@@ -1001,10 +1003,11 @@ int mtk_idle_select(int cpu)
 	/* teei ready */
 #if !IS_ENABLED(CONFIG_FPGA_EARLY_PORTING)
 #if IS_ENABLED(CONFIG_MICROTRUST_TEE_SUPPORT)
-	if (!is_teei_ready()) {
-		reason = BY_TEE;
-		goto get_idle_idx;
-	}
+	if (is_tee_real_drv)
+		if (!is_teei_ready()) {
+			reason = BY_TEE;
+			goto get_idle_idx;
+		}
 #endif
 #endif
 
@@ -1869,6 +1872,29 @@ void mtk_idle_set_clkmux_addr(void)
 		clkmux_addr[i] = 0x10000040 + i * 0x10;
 }
 
+static void is_tee_real_drv_init(void)
+{
+	struct device_node *np = NULL;
+	int ret = 0;
+
+	np = of_find_compatible_node(NULL, NULL, "microtrust,utos");
+	if (!np) {
+		pr_err("find utos node failed\n");
+		is_tee_real_drv = 0;
+		goto OUT;
+	}
+
+	ret = of_property_read_u32(np, "microtrust,real-drv", &is_tee_real_drv);
+	if (ret) {
+		pr_err("MICROTRUST device is NOT enable.\n");
+		is_tee_real_drv = 0;
+		goto OUT;
+	}
+
+OUT:
+	pr_info("%s is_tee_real_drv:%u\n", __func__, is_tee_real_drv);
+}
+
 void mtk_cpuidle_framework_init(void)
 {
 #if !IS_ENABLED(CONFIG_MTK_PLAT_POWER_MT6739)
@@ -1917,6 +1943,9 @@ void mtk_cpuidle_framework_init(void)
 
 	mtk_idle_set_clkmux_addr();
 	mtk_idle_profile_init();
+
+	/* is_tee_real_drv */
+	is_tee_real_drv_init();
 }
 EXPORT_SYMBOL(mtk_cpuidle_framework_init);
 
