@@ -69,6 +69,8 @@ int fstb_no_r_timer_enable;
 EXPORT_SYMBOL(fstb_no_r_timer_enable);
 int fstb_filter_poll_enable;
 EXPORT_SYMBOL(fstb_filter_poll_enable);
+int fstb_check_interpolate_enable;
+EXPORT_SYMBOL(fstb_check_interpolate_enable);
 
 DECLARE_WAIT_QUEUE_HEAD(queue);
 DECLARE_WAIT_QUEUE_HEAD(active_queue);
@@ -2730,6 +2732,10 @@ FSTB_SYSFS_READ(fstb_filter_poll_enable, 1, fstb_filter_poll_enable);
 FSTB_SYSFS_WRITE_VALUE(fstb_filter_poll_enable, fstb_filter_poll_enable, 0, 1);
 static KOBJ_ATTR_RW(fstb_filter_poll_enable);
 
+FSTB_SYSFS_READ(fstb_check_interpolate_enable, 1, fstb_check_interpolate_enable);
+FSTB_SYSFS_WRITE_VALUE(fstb_check_interpolate_enable, fstb_check_interpolate_enable, 0, 3);
+static KOBJ_ATTR_RW(fstb_check_interpolate_enable);
+
 FSTB_SYSFS_READ(gpu_slowdown_check, 1, gpu_slowdown_check);
 FSTB_SYSFS_WRITE_VALUE(gpu_slowdown_check, gpu_slowdown_check, 0, 1);
 static KOBJ_ATTR_RW(gpu_slowdown_check);
@@ -3200,6 +3206,8 @@ int mtk_fstb_init(void)
 		fpsgo_sysfs_create_file(fstb_kobj,
 				&kobj_attr_fstb_filter_poll_enable);
 		fpsgo_sysfs_create_file(fstb_kobj,
+				&kobj_attr_fstb_check_interpolate_enable);
+		fpsgo_sysfs_create_file(fstb_kobj,
 				&kobj_attr_gpu_slowdown_check);
 		fpsgo_sysfs_create_file(fstb_kobj,
 				&kobj_attr_fstb_policy_cmd);
@@ -3257,6 +3265,8 @@ int __exit mtk_fstb_exit(void)
 			&kobj_attr_fstb_no_r_timer_enable);
 	fpsgo_sysfs_remove_file(fstb_kobj,
 			&kobj_attr_fstb_filter_poll_enable);
+	fpsgo_sysfs_remove_file(fstb_kobj,
+			&kobj_attr_fstb_check_interpolate_enable);
 	fpsgo_sysfs_remove_file(fstb_kobj,
 			&kobj_attr_gpu_slowdown_check);
 	fpsgo_sysfs_remove_file(fstb_kobj,
