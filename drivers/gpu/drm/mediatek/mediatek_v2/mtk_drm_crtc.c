@@ -6043,7 +6043,7 @@ static void mtk_crtc_update_hrt_state(struct drm_crtc *crtc,
 	struct mtk_ddp_comp *cwb_comp = NULL;
 	unsigned int wdma_bw = 0;
 #if IS_ENABLED(CONFIG_MTK_LCM_DUAL_PORT_SUPPORT) || IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
-	unsigned int frame_num = 0, max_channel_bw = 0;
+	unsigned int frame_num = 0;
 #endif
 
 	if (unlikely(!mtk_crtc || !mtk_crtc->qos_ctx)) {
@@ -6170,25 +6170,14 @@ static void mtk_crtc_update_hrt_state(struct drm_crtc *crtc,
 		bw_base = mtk_drm_primary_frame_bw(crtc);
 		CRTC_MMP_MARK(0, atomic_begin, (unsigned long)cmdq_handle, __LINE__);
 		priv->data->update_channel_hrt(mtk_crtc, bw_base, channel_hrt);
+#if IS_ENABLED(CONFIG_MTK_LCM_DUAL_PORT_SUPPORT) || IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+		if (mtk_crtc->mode_chg)
+			channel_hrt[0] = 7000;
+#endif
 		DDPINFO("%s channel[%u][%u][%u][%u]\n", __func__,
 			channel_hrt[0], channel_hrt[1], channel_hrt[2], channel_hrt[3]);
 		CRTC_MMP_MARK(0, atomic_begin, (unsigned long)cmdq_handle, __LINE__);
-#if IS_ENABLED(CONFIG_MTK_LCM_DUAL_PORT_SUPPORT) || IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
-		for (i = 0 ; i < BW_CHANNEL_NR ; i++) {
-			if(max_channel_bw < channel_hrt[i])
-				max_channel_bw = channel_hrt[i];
-		}
-		if (frame_num > 4)
-			max_channel_bw = 5300;
-		else if (frame_num == 4)
-			max_channel_bw = 4300;
-		else if (frame_num > 2)
-			max_channel_bw = max_channel_bw / 3 * 4;
 
-		channel_hrt[1] = max_channel_bw;
-		DDPINFO("%s framen_num:%d, after channel[%u][%u][%u][%u]\n", __func__, frame_num,
-			channel_hrt[0], channel_hrt[1], channel_hrt[2], channel_hrt[3]);
-#endif
 		for (i = 0 ; i < BW_CHANNEL_NR ; i++) {
 			if (channel_hrt[i] > mtk_crtc->qos_ctx->last_channel_req[i]) {
 				DDPINFO("mtk_disp_set_channel_hrt_bw[%u] = %u\n", i, channel_hrt[i]);
@@ -19948,6 +19937,10 @@ static void mtk_crtc_get_event_name(struct mtk_drm_crtc *mtk_crtc, char *buf,
 		break;
 	case EVENT_MUTEX0_SOF:
 		len = snprintf(buf, buf_len, "disp_mutex0_sof%d",
+					drm_crtc_index(&mtk_crtc->base));
+		break;
+	case EVENT_OVLSYS_DISP_OVL0_SOF:
+		len = snprintf(buf, buf_len, "disp_ovlsys_ovl_exdma3_sof%d",
 					drm_crtc_index(&mtk_crtc->base));
 		break;
 	default:

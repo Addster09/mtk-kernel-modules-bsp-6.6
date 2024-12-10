@@ -2395,9 +2395,13 @@ static void mtk_dsi_set_prefetch_time(struct mtk_dsi *dsi)
 		pr_info("%s:%d NULL Pointer\n", __func__, __LINE__);
 		return;
 	}
-
+#if IS_ENABLED(CONFIG_MTK_LCM_DUAL_PORT_SUPPORT) || IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+	if (dsi->panel) {
+		prefetch_time = 0x96 & 0x7fff;
+#else
 	if (dsi->panel && dsi->ext && dsi->ext->params->prefetch_time) {
 		prefetch_time = dsi->ext->params->prefetch_time & 0x7fff;
+#endif
 		SET_VAL_MASK(val, mask, prefetch_time, FLD_PREFETCH_TIME);
 		mtk_dsi_mask(dsi, DSI_TIME_CON1(dsi->driver_data), mask, val);
 		mtk_dsi_mask(dsi, DSI_TIME_CON1(dsi->driver_data), PREFETCH_EN, PREFETCH_EN);
@@ -12269,6 +12273,17 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 		DDPINFO("%s, change MIPI Clock\n", __func__);
 	} else if (fps_chg_index & MODE_DSI_HFP) {
 		DDPINFO("%s, change HFP\n", __func__);
+
+#if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+		cmdq_pkt_clear_event(handle,
+			mtk_crtc->gce_obj.event[EVENT_OVLSYS_DISP_OVL0_SOF]);
+		cmdq_pkt_wfe(handle,
+			mtk_crtc->gce_obj.event[EVENT_OVLSYS_DISP_OVL0_SOF]);
+		/* disable DSI pre-fetch */
+		cmdq_pkt_write(handle, comp->cmdq_base,
+			comp->regs_pa + DSI_TIME_CON1(dsi->driver_data), 0x0, 0x80000000);
+#endif
+
 		/*wait and clear EOF & ESD_EOF
 		 * avoid other display related task break fps change task
 		 * because fps change need stop & re-start vdo mode
@@ -12365,6 +12380,11 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 				mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
 		/*1.3 send cmd: trigger*/
 		mtk_disp_mutex_trigger(comp->mtk_crtc->mutex[0], handle);
+#if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+		/* enable DSI pre-fetch */
+		cmdq_pkt_write(handle, comp->cmdq_base,
+			comp->regs_pa + DSI_TIME_CON1(dsi->driver_data), 0x80000000, 0x80000000);
+#endif
 		mtk_dsi_trigger(comp, handle);
 	} else if (fps_chg_index & MODE_DSI_VFP) {
 		DDPINFO("%s, change VFP\n", __func__);
