@@ -416,6 +416,7 @@ static void _mt_eem_aee_init(void)
 }
 #endif
 
+/*
 #if IS_ENABLED(CONFIG_MTK_LEGACY_THERMAL)
 __weak int tscpu_get_temp_by_bank(enum thermal_bank_name ts_bank)
 {
@@ -429,6 +430,7 @@ __weak int tscpu_is_temp_valid(void)
 	return 0;
 }
 #endif
+ */
 
 static struct eem_ctrl *id_to_eem_ctrl(enum eem_ctrl_id id)
 {

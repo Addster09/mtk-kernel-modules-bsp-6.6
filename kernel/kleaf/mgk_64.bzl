@@ -2880,6 +2880,7 @@ def get_overlay_modules_list():
         mgk_64_platform_device_modules.update({"sound/soc/mediatek/common_int/mtk-soc-machine.ko":"mt6771"})
         mgk_64_device_modules.append("drivers/misc/mediatek/cm_mgr_legacy_v1/cm_mgr_plat_k8788/mtk_cm_mgr.ko")
         mgk_64_platform_device_modules.update({"drivers/misc/mediatek/cm_mgr_legacy_v1/cm_mgr_plat_k8788/mtk_cm_mgr.ko":"mt6771"})
+        mgk_64_device_modules.append("drivers/misc/mediatek/eem_v2/mediatek_eem.ko")
 
         mgk_64_device_modules.append("drivers/misc/mediatek/sensor/1.0/sensor_probe/sensor_probe.ko")
         mgk_64_device_modules.append("drivers/misc/mediatek/sensor/1.0/sensorHub/sensorHub.ko")
