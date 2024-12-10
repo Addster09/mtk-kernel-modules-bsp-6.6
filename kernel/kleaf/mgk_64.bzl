@@ -4118,6 +4118,10 @@ def get_overlay_modules_list():
         mgk_64_device_modules.remove("sound/soc/mediatek/audio_dsp/mtk-soc-offload-common.ko")
         mgk_64_device_modules.remove("sound/soc/mediatek/audio_dsp/snd-soc-audiodsp-common.ko")
 
+    if "mt6781_overlay_usnd_legacy.config" in DEFCONFIG_OVERLAYS:
+        mgk_64_device_modules.append("sound/soc/mediatek/ultrasound/ultra_common/mtk-scp-ultra.ko")
+        mgk_64_device_modules.append("sound/soc/mediatek/ultrasound/ultra_scp/snd-soc-mtk-scp-ultra.ko")
+
     if "mt8786p2_overlay.config" in DEFCONFIG_OVERLAYS:
         mgk_64_device_modules.append("drivers/video/backlight/sgm37604a.ko")
         mgk_64_device_modules.remove("drivers/misc/mediatek/sensor/1.0/barometer/baro_common.ko")
