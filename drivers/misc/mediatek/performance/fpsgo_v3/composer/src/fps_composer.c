@@ -78,6 +78,9 @@ static DEFINE_MUTEX(fpsgo_frame_info_cb_lock);
 static fpsgo_notify_is_boost_cb notify_fpsgo_boost_cb_list[MAX_FPSGO_CB_NUM];
 static struct render_frame_info_cb fpsgo_frame_info_cb_list[FPSGO_MAX_CALLBACK_NUM];
 
+void (*enable_ux_jank_detection_fp)(bool enable, const char *info, int tgid, int pid);
+EXPORT_SYMBOL(enable_ux_jank_detection_fp);
+
 typedef void (*heavy_fp)(int jank, int pid);
 int (*fpsgo2jank_detection_register_callback_fp)(heavy_fp cb);
 EXPORT_SYMBOL(fpsgo2jank_detection_register_callback_fp);
@@ -1561,6 +1564,7 @@ int fpsgo_ctrl2comp_set_sbe_policy(int tgid, char *name, unsigned long mask,
 				char *specific_name, int num)
 {
 	char *thread_name = NULL;
+	char *proc_name = NULL;
 	int ret;
 	int i;
 	int *final_pid_arr =  NULL;
@@ -1586,6 +1590,11 @@ int fpsgo_ctrl2comp_set_sbe_policy(int tgid, char *name, unsigned long mask,
 	if (!strncpy(thread_name, name, 16))
 		goto out;
 	thread_name[15] = '\0';
+
+	proc_name = kcalloc(16, sizeof(char), GFP_KERNEL);
+	if (!proc_name)
+		goto out;
+	proc_name[15] = '\0';
 
 	final_pid_arr = kcalloc(10, sizeof(int), GFP_KERNEL);
 	if (!final_pid_arr)
@@ -1646,6 +1655,9 @@ int fpsgo_ctrl2comp_set_sbe_policy(int tgid, char *name, unsigned long mask,
 		fpsgo_render_tree_unlock(__func__);
 	}
 
+	if (test_bit(FPSGO_HWUI, &mask))
+		register_jank_cb();
+
 	for (i = 0; i < final_pid_arr_idx; i++) {
 		if (test_bit(FPSGO_CONTROL, &mask))
 			switch_ui_ctrl(final_pid_arr[i], start);
@@ -1673,8 +1685,18 @@ int fpsgo_ctrl2comp_set_sbe_policy(int tgid, char *name, unsigned long mask,
 					attr_iter->attr.qr_enable_by_pid = 0;
 			}
 
+			if (enable_ux_jank_detection_fp) {
+				get_proc_name(tgid, proc_name);
+				enable_ux_jank_detection_fp(true, proc_name, tgid, final_pid_arr[i]);
+				fpsgo_main_trace(
+					"enable_ux_jank_detection for: tgid=%d, pid=%d, proc_name=%s",
+					tgid, final_pid_arr[i], proc_name
+				);
+			}
+
 			//get render_info struct for this tid and buffer_id
 			if (test_bit(FPSGO_HWUI, &mask) && thr != NULL) {
+				set_curr_thread(final_pid_arr[i], final_bufID_arr[i]);
 				int add_new_scrolling = 1;
 				int type = test_bit(FPSGO_MOVEING, &mask) ?
 						FPSGO_MOVEING : (test_bit(FPSGO_FLING, &mask) ? FPSGO_FLING : 0);
@@ -1702,6 +1724,9 @@ int fpsgo_ctrl2comp_set_sbe_policy(int tgid, char *name, unsigned long mask,
 		} else {
 			if (ux_general_policy && thr)
 				fpsgo_reset_deplist_task_priority(thr);
+
+			if (enable_ux_jank_detection_fp)
+				enable_ux_jank_detection_fp(false, proc_name, tgid, final_pid_arr[i]);
 
 			//update scroll_info when scroll end
 			if (test_bit(FPSGO_HWUI, &mask) && thr != NULL) {
@@ -1742,6 +1767,7 @@ int fpsgo_ctrl2comp_set_sbe_policy(int tgid, char *name, unsigned long mask,
 
 out:
 	kfree(thread_name);
+	kfree(proc_name);
 	kfree(final_pid_arr);
 	kfree(final_bufID_arr);
 	kfree(final_idf_arr);
