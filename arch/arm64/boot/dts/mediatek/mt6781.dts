@@ -4595,6 +4595,12 @@
 		mediatek,snd_audio_dsp = <&snd_audio_dsp>;
 	};
 
+	snd_scp_ultra: snd-scp-ultra {
+		compatible = "mediatek,snd-scp-ultra";
+		scp-ultra-dl-memif-id = <0x7>;
+		scp-ultra-ul-memif-id = <0xe>;
+	};
+
 	audio_sram@11212000 {
 		compatible = "mediatek,audio_sram";
 		reg = <0 0x11212000 0 0xd000>;
