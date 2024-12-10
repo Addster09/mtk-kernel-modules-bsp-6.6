@@ -70,6 +70,8 @@ unsigned long long ged_get_power_on_timestamp(void);
 void ged_eb_dvfs_trace_dump(void);
 int check_pm_callback_state(enum ged_gpu_power_state power_state);
 void dump_pm_callback_kbase_info(void);
+int ged_get_apo_autosuspend_delay_ctrl(void);
+
 
 #if defined(CONFIG_GPU_MT8167) || defined(CONFIG_GPU_MT8173) ||\
 defined(CONFIG_GPU_MT6739) || defined(CONFIG_GPU_MT6761) ||\
