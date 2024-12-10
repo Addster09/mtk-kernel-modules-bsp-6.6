@@ -673,7 +673,7 @@ int scp_pll_ctrl_set(unsigned int pll_ctrl_flag, unsigned int pll_sel)
 
 	if (pll_ctrl_flag == PLL_ENABLE) {
 		if (pre_pll_sel != UNIVPLL_416M) {
-			if (dvfs->legacy_support_v1) {
+			if (dvfs->legacy_support_v1 || dvfs->legacy_support_v3) {
 				if (pre_pll_sel != MAINPLL_273M)
 					ret = clk_prepare_enable(mt_scp_pll->clk_mux);
 			} else
@@ -708,7 +708,7 @@ int scp_pll_ctrl_set(unsigned int pll_ctrl_flag, unsigned int pll_sel)
 			pre_pll_sel = pll_sel;
 	} else if ((pll_ctrl_flag == PLL_DISABLE) &&
 			(pll_sel != UNIVPLL_416M)) {
-		if (dvfs->legacy_support_v1) {
+		if (dvfs->legacy_support_v1 || dvfs->legacy_support_v3) {
 			if (pre_pll_sel != MAINPLL_273M)
 				clk_disable_unprepare(mt_scp_pll->clk_mux);
 		} else
@@ -1595,6 +1595,7 @@ static int __init mt_scp_dvfs_pdrv_probe(struct platform_device *pdev)
 	dvfs->opp = opp;
 	dvfs->legacy_support_v1 = of_property_read_bool(node, "legacy-support-v1");
 	dvfs->legacy_support_v2 = of_property_read_bool(node, "legacy-support-v2");
+	dvfs->legacy_support_v3 = of_property_read_bool(node, "legacy-support-v3");
 
 	/* get dvfsrc table opp count */
 	ret = of_property_read_u32(node, "dvfsrc-opp-num",
