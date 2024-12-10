@@ -53,6 +53,23 @@
 
 #if IS_ENABLED(CONFIG_MTK_CCCI_DEVICES)
 #include <mt-plat/mtk_ccci_common.h>
+int (*exec_ccci_kern_func_pfn) (unsigned int id, char *buf, unsigned int len);
+
+int _exec_ccci_kern_func(unsigned int id, char *buf, unsigned int len)
+{
+	if (exec_ccci_kern_func_pfn) {
+		pr_info("exec_ccci_kern_func function is ready!!!\n");
+		exec_ccci_kern_func_pfn(id, buf, len);
+	} else
+		pr_info("exec_ccci_kern_func() function not ready!!!\n");
+	return 0;
+}
+
+void register_exec_ccci_kern_func_pfn(int (*f) (unsigned int id, char *buf, unsigned int len))
+{
+	exec_ccci_kern_func_pfn = f;
+}
+EXPORT_SYMBOL(register_exec_ccci_kern_func_pfn);
 #endif
 
 #if IS_ENABLED(CONFIG_MTK_USB2JTAG_SUPPORT)
@@ -215,20 +232,20 @@ static unsigned int spm_output_wake_reason(struct wake_status *wakesta)
 #if IS_ENABLED(CONFIG_MTK_CCCI_DEVICES)
 	/* if (wakesta->r13 & 0x18) { */
 		/* spm_crit2("dump ID_DUMP_MD_SLEEP_MODE"); */
-		//exec_ccci_kern_func_by_md_id(ID_DUMP_MD_SLEEP_MODE, NULL, 0);
+		_exec_ccci_kern_func(ID_DUMP_MD_SLEEP_MODE, NULL, 0);
 	/* } */
 #endif
 
 #if !IS_ENABLED(CONFIG_FPGA_EARLY_PORTING)
 #if IS_ENABLED(CONFIG_MTK_ECCCI_DRIVER)
-	//if (wakesta->r12 & WAKE_SRC_R12_CLDMA_EVENT_B)
-		//exec_ccci_kern_func_by_md_id(ID_GET_MD_WAKEUP_SRC, NULL, 0);
-	//if (wakesta->r12 & WAKE_SRC_R12_MD2AP_PEER_EVENT_B)
-		//exec_ccci_kern_func_by_md_id(ID_GET_MD_WAKEUP_SRC, NULL, 0);
-	//if (wakesta->r12 & WAKE_SRC_R12_CCIF0_EVENT_B)
-		//exec_ccci_kern_func_by_md_id(ID_GET_MD_WAKEUP_SRC, NULL, 0);
-	//if (wakesta->r12 & WAKE_SRC_R12_CCIF1_EVENT_B)
-		//exec_ccci_kern_func_by_md_id(ID_GET_MD_WAKEUP_SRC, NULL, 0);
+	if (wakesta->r12 & WAKE_SRC_R12_CLDMA_EVENT_B)
+		_exec_ccci_kern_func(ID_GET_MD_WAKEUP_SRC, NULL, 0);
+	if (wakesta->r12 & WAKE_SRC_R12_MD2AP_PEER_EVENT_B)
+		_exec_ccci_kern_func(ID_GET_MD_WAKEUP_SRC, NULL, 0);
+	if (wakesta->r12 & WAKE_SRC_R12_CCIF0_EVENT_B)
+		_exec_ccci_kern_func(ID_GET_MD_WAKEUP_SRC, NULL, 0);
+	if (wakesta->r12 & WAKE_SRC_R12_CCIF1_EVENT_B)
+		_exec_ccci_kern_func(ID_GET_MD_WAKEUP_SRC, NULL, 0);
 #endif
 #endif
 	return wr;

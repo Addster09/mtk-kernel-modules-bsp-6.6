@@ -32,6 +32,7 @@
 
 #if IS_ENABLED(CONFIG_MTK_CCCI_DEVICES)
 #include <mt-plat/mtk_ccci_common.h>
+extern int _exec_ccci_kern_func(unsigned int id, char *buf, unsigned int len);
 #endif
 
 #include <mtk_spm_misc.h>
@@ -347,8 +348,8 @@ static unsigned int spm_output_wake_reason(struct wake_status *wakesta,
 	}
 
 #if IS_ENABLED(CONFIG_MTK_ECCCI_DRIVER)
-	//if (wakesta->r12 & WAKE_SRC_R12_MD2AP_PEER_EVENT_B)
-		//exec_ccci_kern_func_by_md_id(ID_GET_MD_WAKEUP_SRC, NULL, 0);
+	if (wakesta->r12 & WAKE_SRC_R12_MD2AP_PEER_EVENT_B)
+		_exec_ccci_kern_func(ID_GET_MD_WAKEUP_SRC, NULL, 0);
 #endif
 
 	return wr;
