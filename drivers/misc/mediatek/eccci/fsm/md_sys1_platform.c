@@ -2268,6 +2268,12 @@ static int ccci_modem_probe(struct platform_device *plat_dev)
 	if (ret < 0) {
 		kfree(md_hw);
 	}
+#if IS_ENABLED(CONFIG_MTK_SPM_V4)
+	/* register callback func for spm */
+	register_exec_ccci_kern_func_pfn(&exec_ccci_kern_func);
+	CCCI_NORMAL_LOG(0, TAG, "%s: hook register_exec_ccci_kern_func_pfn done\n",
+		__func__);
+#endif
 	time_total = sched_clock() - time_total;
 	CCCI_NORMAL_LOG(-1, TAG, "%s cost: %llu\n", __func__, time_total);
 	ccci_dump_write(CCCI_DUMP_MD_INIT,
