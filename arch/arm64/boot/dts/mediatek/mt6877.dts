@@ -8549,7 +8549,6 @@
 		orientation-switch;
 		mode-switch;
 		accessory;
-		mediatek,inverse-orientation;
 		status = "okay";
 		port {
 			ssusb_mux: endpoint {

@@ -448,6 +448,7 @@
 
 	rt-pd-manager {
 		compatible = "mediatek,rt-pd-manager";
+		mediatek,not_support_u3;
 	};
 
 	typec_mux_switch: typec_mux_switch {
@@ -455,7 +456,6 @@
 		orientation-switch;
 		mode-switch;
 		accessory;
-		mediatek,inverse-orientation;
 		status = "okay";
 	};
 
