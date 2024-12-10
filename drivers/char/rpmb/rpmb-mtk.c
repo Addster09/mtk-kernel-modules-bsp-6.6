@@ -85,6 +85,8 @@ static bool rpmb_rsp_valid;
 /* protect nl_rpmb_req */
 struct mutex rpmb_lock;
 
+#define NL_RPMB_TRANSFER_DEFAULT_BLK (512U)
+
 /**
  * struct storage_rpmb_req - request format for STORAGE_RPMB_SEND
  * @reliable_write_size:        size in bytes of reliable write region
@@ -104,11 +106,17 @@ struct nl_rpmb_send_req {
 	u8  region;
 	u8 __reserved1;
 	u16 __reserved2;
+#if IS_ENABLED(CONFIG_TRUSTONIC_TEE_SUPPORT)
 	u8 payload[MAX_RPMB_REQUEST_SIZE + 512];
-};
-
 #define RPMB_REQ_HDR_SIZE \
 	(sizeof(struct nl_rpmb_send_req) - MAX_RPMB_REQUEST_SIZE - 512)
+#else
+	u8 payload[NL_RPMB_TRANSFER_DEFAULT_BLK + 512];
+#define RPMB_REQ_HDR_SIZE \
+	(sizeof(struct nl_rpmb_send_req) - NL_RPMB_TRANSFER_DEFAULT_BLK - 512)
+#endif
+};
+
 
 static struct nl_rpmb_send_req nl_rpmb_req;
 #endif
@@ -1867,6 +1875,7 @@ free:
 	return ret;
 }
 
+#if IS_ENABLED(CONFIG_TRUSTONIC_TEE_SUPPORT)
 static int rpmb_gp_execute_emmc(u32 cmdId)
 {
 	int ret;
@@ -1949,6 +1958,7 @@ static int rpmb_gp_execute_emmc(u32 cmdId)
 
 	return 0;
 }
+#endif
 
 int rpmb_req_get_wc_emmc(struct mmc_card *card, u8 *key, u32 *wc)
 {
@@ -2031,29 +2041,30 @@ int rpmb_req_ioctl_write_data_emmc(struct mmc_card *card,
 	struct s_rpmb *rpmb_frame;
 	u32 tran_size, left_size = param->data_len;
 	u32 wc = 0xFFFFFFFF;
-	u16 iCnt, total_blkcnt, tran_blkcnt, left_blkcnt;
+	u16 iCnt, total_blkcnt;
 	u16 blkaddr;
 	u8 hmac[RPMB_SZ_MAC] = {0};
-	u8 *dataBuf, *dataBuf_start;
-	int i, ret = 0;
+	int ret = 0;
 #ifdef RPMB_MULTI_BLOCK_ACCESS
+	int i = 0;
+	u16 tran_blkcnt, left_blkcnt;
+	u8 *dataBuf, *dataBuf_start;
 	u8 write_blks_one_time = 0;
 	u32 size_for_hmac;
 #endif
 
 	MSG(INFO, "%s start!!!\n", __func__);
 
+	total_blkcnt = ((param->data_len % RPMB_SZ_DATA) ?
+					(param->data_len / RPMB_SZ_DATA + 1) :
+					(param->data_len / RPMB_SZ_DATA));
+
+#ifdef RPMB_MULTI_BLOCK_ACCESS
 	i = 0;
 	tran_blkcnt = 0;
 	dataBuf = NULL;
 	dataBuf_start = NULL;
-
-	left_blkcnt = total_blkcnt = ((param->data_len % RPMB_SZ_DATA) ?
-					(param->data_len / RPMB_SZ_DATA + 1) :
-					(param->data_len / RPMB_SZ_DATA));
-
-
-#ifdef RPMB_MULTI_BLOCK_ACCESS
+	left_blkcnt = total_blkcnt;
 
 	/*
 	 * For RPMB write data, the elements we need in the data frame is
@@ -2203,7 +2214,7 @@ int rpmb_req_ioctl_write_data_emmc(struct mmc_card *card,
 
 	for (iCnt = 0; iCnt < total_blkcnt; iCnt++) {
 
-		ret = rpmb_req_get_wc_emmc(card, param->key, &wc);
+		ret = rpmb_req_get_wc_emmc(card, param->keybytes, &wc);
 		if (ret)
 			break;
 
@@ -2231,9 +2242,9 @@ int rpmb_req_ioctl_write_data_emmc(struct mmc_card *card,
 			tran_size = left_size;
 
 		memcpy(rpmb_frame->data,
-			param->data + iCnt * RPMB_SZ_DATA, tran_size);
+			param->databytes + iCnt * RPMB_SZ_DATA, tran_size);
 
-		hmac_sha256(param->key, 32, rpmb_frame->data, 284,
+		hmac_sha256(param->keybytes, 32, rpmb_frame->data, 284,
 			rpmb_frame->mac);
 
 		ret = emmc_rpmb_req_handle(card, &rpmb_req);
@@ -2246,7 +2257,7 @@ int rpmb_req_ioctl_write_data_emmc(struct mmc_card *card,
 		/*
 		 * Authenticate response write data frame.
 		 */
-		hmac_sha256(param->key, 32, rpmb_frame->data, 284, hmac);
+		hmac_sha256(param->keybytes, 32, rpmb_frame->data, 284, hmac);
 
 		if (memcmp(hmac, rpmb_frame->mac, RPMB_SZ_MAC) != 0) {
 			MSG(ERR, "%s, hmac compare error!!!\n", __func__);
@@ -2291,27 +2302,31 @@ int rpmb_req_ioctl_read_data_emmc(struct mmc_card *card,
 	 */
 	struct s_rpmb *rpmb_frame;
 	u32 tran_size, left_size = param->data_len;
-	u16 iCnt, total_blkcnt, tran_blkcnt, left_blkcnt;
+	u16 iCnt, total_blkcnt;
 	u16 blkaddr;
 	u8 nonce[RPMB_SZ_NONCE] = {0};
 	u8 hmac[RPMB_SZ_MAC] = {0};
-	u8 *dataBuf, *dataBuf_start;
-	int i, ret = 0;
-#ifdef RPMB_MULTI_BLOCK_ACCESS
-	u32 size_for_hmac;
-#endif
-	MSG(INFO, "%s start!!!\n", __func__);
+	int ret = 0;
 
-	i = 0;
+#ifdef RPMB_MULTI_BLOCK_ACCESS
+	u16 tran_blkcnt, left_blkcnt;
+	u8 *dataBuf, *dataBuf_start;
+	u32 size_for_hmac;
+
+	int i = 0;
 	tran_blkcnt = 0;
 	dataBuf = NULL;
 	dataBuf_start = NULL;
-	left_blkcnt = total_blkcnt = ((param->data_len % RPMB_SZ_DATA) ?
+#endif
+
+	total_blkcnt = ((param->data_len % RPMB_SZ_DATA) ?
 					(param->data_len / RPMB_SZ_DATA + 1) :
 					(param->data_len / RPMB_SZ_DATA));
 
-#ifdef RPMB_MULTI_BLOCK_ACCESS
+	MSG(INFO, "%s start!!!  with total_blkcnt=%x\n", __func__, total_blkcnt);
 
+#ifdef RPMB_MULTI_BLOCK_ACCESS
+	left_blkcnt = total_blkcnt;
 	blkaddr = param->addr;
 
 	while (left_blkcnt) {
@@ -2439,7 +2454,6 @@ int rpmb_req_ioctl_read_data_emmc(struct mmc_card *card,
 	}
 
 #else
-
 	rpmb_frame = kzalloc(sizeof(struct s_rpmb), 0);
 	if (rpmb_frame == NULL)
 		return RPMB_ALLOC_ERROR;
@@ -2475,7 +2489,7 @@ int rpmb_req_ioctl_read_data_emmc(struct mmc_card *card,
 		/*
 		 * Authenticate response read data frame.
 		 */
-		hmac_sha256(param->key, 32, rpmb_frame->data, 284, hmac);
+		hmac_sha256(param->keybytes, 32, rpmb_frame->data, 284, hmac);
 
 		if (memcmp(hmac, rpmb_frame->mac, RPMB_SZ_MAC) != 0) {
 			MSG(ERR, "%s, hmac compare error!!!\n", __func__);
@@ -2501,7 +2515,7 @@ int rpmb_req_ioctl_read_data_emmc(struct mmc_card *card,
 		else
 			tran_size = left_size;
 
-		memcpy(param->data + RPMB_SZ_DATA * iCnt,
+		memcpy(param->databytes + RPMB_SZ_DATA * iCnt,
 			rpmb_frame->data, tran_size);
 
 		left_size -= tran_size;
@@ -2556,6 +2570,7 @@ static int rpmb_gp_listenDci(void *arg)
 			mc_ret = rpmb_gp_execute_ufs(cmdId);
 #endif
 		/* Notify the STH*/
+		MSG(INFO, "%s, Nwd Call notify to Swd...\n", __func__);
 		mc_ret = mc_notify(&rpmb_gp_session);
 		if (mc_ret != MC_DRV_OK) {
 			MSG(ERR, "%s: mcNotify returned: %d\n",
@@ -3068,8 +3083,11 @@ static int rpmb_mtk_rcv_msg(struct sk_buff *skb, struct genl_info *info)
 		ret = -EINVAL;
 		goto out;
 	}
-
+#if IS_ENABLED(CONFIG_TRUSTONIC_TEE_SUPPORT)
 	if (req->read_size % 512 == 0 && req->read_size <= MAX_RPMB_REQUEST_SIZE) {
+#else
+	if (req->read_size % 512 == 0 && req->read_size <= NL_RPMB_TRANSFER_DEFAULT_BLK) {
+#endif
 		/* Copy rpmb response frames to payload */
 		memcpy(req->payload, nla_data(attr), nla_len(attr));
 	} else {
@@ -3125,6 +3143,22 @@ static const struct file_operations rpmb_fops_emmc = {
 	.read = NULL,
 };
 
+int mmc_rpmb_register(struct mmc_host *mmc)
+{
+	int ret = 0;
+
+	if (!(mmc->caps2 & MMC_CAP2_NO_MMC))
+		mtk_mmc_host[0] = mmc;
+	else if (!(mmc->caps2 & MMC_CAP2_NO_SD))
+		return ret;
+	else
+		return -EINVAL;
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(mmc_rpmb_register);
+#endif
+
 static int dt_get_boot_type(void)
 {
 	struct tag_bootmode *tags = NULL;
@@ -3152,22 +3186,6 @@ static int dt_get_boot_type(void)
 
 	return ret;
 }
-
-int mmc_rpmb_register(struct mmc_host *mmc)
-{
-	int ret = 0;
-
-	if (!(mmc->caps2 & MMC_CAP2_NO_MMC))
-		mtk_mmc_host[0] = mmc;
-	else if (!(mmc->caps2 & MMC_CAP2_NO_SD))
-		return ret;
-	else
-		return -EINVAL;
-
-	return ret;
-}
-EXPORT_SYMBOL_GPL(mmc_rpmb_register);
-#endif
 
 #define RPMB_DEV  MKDEV(MAJOR(dev), 0U)
 static int __init rpmb_init(void)
@@ -3246,6 +3264,7 @@ static int __init rpmb_init(void)
 	open_th = kthread_run(rpmb_thread, NULL, "rpmb_open");
 	if (IS_ERR(open_th))
 		MSG(ERR, "%s, init kthread_run failed!\n", __func__);
+#endif
 
 #ifdef __RPMB_KERNEL_NL_SUPPORT
 	init_waitqueue_head(&wait_rpmb);
@@ -3255,7 +3274,7 @@ static int __init rpmb_init(void)
 		MSG(ERR, "%s, init netlink failed!\n", __func__);
 	}
 #endif
-
+#if IS_ENABLED(CONFIG_TRUSTONIC_TEE_SUPPORT)
 fake_out:
 #endif
 
