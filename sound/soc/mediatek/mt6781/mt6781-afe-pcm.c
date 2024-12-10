@@ -5496,10 +5496,6 @@ static const struct file_operations mt6781_debugfs_ops = {
 	.read = mt6781_debugfs_read,
 };
 
-static const struct snd_soc_component_driver mt6781_afe_pcm_component = {
-	.name = "mt6781-afe-pcm-dai",
-};
-
 static int mt6781_dai_memif_register(struct mtk_base_afe *afe)
 {
 	struct mtk_base_afe_dai *dai;
@@ -5724,21 +5720,12 @@ static int mt6781_afe_pcm_dev_probe(struct platform_device *pdev)
 
 	/* register platform */
 	ret = devm_snd_soc_register_component(&pdev->dev,
-					     &mt6781_afe_component, NULL, 0);
-	if (ret) {
-		dev_info(dev, "err_platform\n");
-		goto err_platform;
-	}
-
-	dev_info(dev, "%s(), devm_snd_soc_register_component\n", __func__);
-
-	ret = devm_snd_soc_register_component(&pdev->dev,
-					      &mt6781_afe_pcm_component,
+					      &mt6781_afe_component,
 					      afe->dai_drivers,
 					      afe->num_dai_drivers);
 	if (ret) {
-		dev_info(dev, "err_dai_component\n");
-		goto err_dai_component;
+		dev_info(dev, "err_platform\n");
+		goto err_pm_disable;
 	}
 
 	dev_info(dev, "%s(), --\n", __func__);
@@ -5751,12 +5738,6 @@ static int mt6781_afe_pcm_dev_probe(struct platform_device *pdev)
 	ultra_set_dsp_afe(afe);
 #endif
 	return 0;
-
-err_dai_component:
-	snd_soc_unregister_component(&pdev->dev);
-
-err_platform:
-	snd_soc_unregister_component(&pdev->dev);
 
 err_pm_disable:
 	pm_runtime_disable(&pdev->dev);
