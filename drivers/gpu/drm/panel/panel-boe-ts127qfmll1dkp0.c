@@ -886,7 +886,6 @@ static struct mtk_panel_params ext_params = {
 	.pll_clk = 491,
 	.data_rate = 982,
 	.data_rate_khz = 976137,
-	.vfp_low_power = 2076, //60Hz
 	.physical_width_um = 273615,
 	.physical_height_um = 171009,
 	.output_mode = MTK_PANEL_DUAL_PORT,
