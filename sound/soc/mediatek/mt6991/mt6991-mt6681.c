@@ -90,14 +90,64 @@ static const struct soc_enum mt6991_spk_type_enum[] = {
 static unsigned int volume_throttle[BATTERY_PERCENT_LEVEL_NUM];
 static unsigned int last_level;
 
-static void audio_pt_battery_percent_cb(enum BATTERY_PERCENT_LEVEL_TAG level)
+static void update_volume_throttle(const char *volume_name_l,
+				   const char *volume_name_r,
+				   int old_level, int new_level)
 {
 	struct snd_soc_card *card = &mt6991_mt6681_soc_card;
 	struct snd_kcontrol *kcontrol;
 	struct snd_soc_component *component;
 	struct snd_ctl_elem_value ucontrol;
-	int ret, reduce;
+	int ret;
+	int diff = volume_throttle[new_level] - volume_throttle[old_level];
 
+	// Left amp
+	kcontrol = snd_soc_card_get_kcontrol(card, volume_name_l);
+	if (!kcontrol) {
+		dev_info(card->dev, "Cannot find kcontrol %s\n", volume_name_l);
+		return;
+	}
+	component = snd_soc_kcontrol_component(kcontrol);
+	if (!component) {
+		dev_info(card->dev, "Cannot find component for kcontrol %s\n", volume_name_l);
+		return;
+	}
+	memset(&ucontrol, 0, sizeof(ucontrol));
+
+	ret = kcontrol->get(kcontrol, &ucontrol);
+	dev_info(component->dev, "Current volume: %ld, throttle level: %d->%d, diff=%d\n",
+					ucontrol.value.integer.value[0], old_level, new_level, diff);
+	if (diff) {
+		ucontrol.value.integer.value[0] += volume_throttle[old_level];
+		ret = kcontrol->put(kcontrol, &ucontrol);
+		dev_info(component->dev, "New volume: %ld, ret=%d\n", ucontrol.value.integer.value[0], ret);
+	}
+
+	// Right amp
+	kcontrol = snd_soc_card_get_kcontrol(card, volume_name_r);
+	if (!kcontrol) {
+		dev_info(card->dev, "Cannot find kcontrol %s\n", volume_name_r);
+		return;
+	}
+	component = snd_soc_kcontrol_component(kcontrol);
+	if (!component) {
+		dev_info(card->dev, "Cannot find component for kcontrol %s\n", volume_name_r);
+		return;
+	}
+	memset(&ucontrol, 0, sizeof(ucontrol));
+
+	ret = kcontrol->get(kcontrol, &ucontrol);
+	dev_info(component->dev, "Current volume: %ld, throttle level: %d->%d, diff=%d\n",
+					ucontrol.value.integer.value[0], old_level, new_level, diff);
+	if (diff) {
+		ucontrol.value.integer.value[0] += volume_throttle[old_level];
+		ret = kcontrol->put(kcontrol, &ucontrol);
+		dev_info(component->dev, "New volume: %ld, ret=%d\n", ucontrol.value.integer.value[0], ret);
+	}
+}
+
+static void audio_pt_battery_percent_cb(enum BATTERY_PERCENT_LEVEL_TAG level)
+{
 	if (level >= BATTERY_PERCENT_LEVEL_NUM) {
 		// invalid
 		return;
@@ -105,43 +155,10 @@ static void audio_pt_battery_percent_cb(enum BATTERY_PERCENT_LEVEL_TAG level)
 
 	// throttle by level
 	mtk_spk_set_reduceDb(volume_throttle[level]);
-	reduce = volume_throttle[level] - volume_throttle[last_level];
 
-	// Left amp
-	kcontrol = snd_soc_card_get_kcontrol(card, "Left Volume_Ctrl");
-	component = snd_soc_kcontrol_component(kcontrol);
-	memset(&ucontrol, 0, sizeof(ucontrol));
-
-	ret = snd_soc_get_volsw(kcontrol, &ucontrol);
-	if (ret < 0)
-		dev_info(component->dev, "%s get volsw fail\n", __func__);
-	dev_info(component->dev, "Current volume: %ld, throttle level: %d->%d, reduce=%d\n",
-					ucontrol.value.integer.value[0], last_level, level, reduce);
-	ucontrol.value.integer.value[0] -= reduce;
-
-	ret = snd_soc_put_volsw(kcontrol, &ucontrol);
-	if (ret < 0)
-		dev_info(component->dev, "%s put volsw fail\n", __func__);
-	dev_info(component->dev, "New volume: %ld\n", ucontrol.value.integer.value[0]);
-
-	// Right amp
-	kcontrol = snd_soc_card_get_kcontrol(card, "Right Volume_Ctrl");
-	component = snd_soc_kcontrol_component(kcontrol);
-	memset(&ucontrol, 0, sizeof(ucontrol));
-
-	ret = snd_soc_get_volsw(kcontrol, &ucontrol);
-	if (ret < 0)
-		dev_info(component->dev, "%s get volsw fail\n", __func__);
-	dev_info(component->dev, "Current volume: %ld, throttle level: %d->%d, reduce=%d\n",
-					ucontrol.value.integer.value[0], last_level, level, reduce);
-	ucontrol.value.integer.value[0] -= reduce;
-
-	ret = snd_soc_put_volsw(kcontrol, &ucontrol);
-	if (ret < 0)
-		dev_info(component->dev, "%s put volsw fail\n", __func__);
-
-	dev_info(component->dev, "New volume: %ld\n", ucontrol.value.integer.value[0]);
-
+#if IS_ENABLED(CONFIG_SND_SOC_RT5512)
+	update_volume_throttle("Left Volume_Ctrl", "Right Volume_Ctrl", last_level , level);
+#endif
 	last_level = level;
 }
 #endif
