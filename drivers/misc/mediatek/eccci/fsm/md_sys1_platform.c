@@ -27,7 +27,9 @@
 #endif
 
 #include <linux/regulator/consumer.h> /* for MD PMIC */
-
+#if IS_ENABLED(CONFIG_MTK_SPM_V4)
+#include <vcorefs_v3/mtk_vcorefs_governor.h>
+#endif
 #include "ccci_core.h"
 #include "modem_sys.h"
 #include "md_sys1_platform.h"
@@ -1682,7 +1684,7 @@ void md1_pll_init(struct ccci_modem *md)
 }
 
 
-#ifdef SUPPORT_MT6739
+#if IS_ENABLED(CONFIG_MTK_SPM_V4)
 static int (*vcorefs_request_dvfs_callback)(enum dvfs_kicker, enum dvfs_opp);
 void ccci_set_svcorefs_request_dvfs_cb(int (*vcorefs_request_dvfs_opp)(enum dvfs_kicker, enum dvfs_opp))
 {
@@ -1697,7 +1699,7 @@ static int md_cd_vcore_config_old (unsigned int hold_req)
 {
 	static int is_hold;
 	int ret = -1;
-#ifdef SUPPORT_MT6739
+#if IS_ENABLED(CONFIG_MTK_SPM_V4)
 	if (!vcorefs_request_dvfs_callback) {
 		CCCI_ERROR_LOG(0, TAG,
 			"register vcorefs_request_dvfs_callback func fail\n");
@@ -1708,10 +1710,14 @@ static int md_cd_vcore_config_old (unsigned int hold_req)
 	CCCI_BOOTUP_LOG(0, TAG,
 		"md_cd_vcore_config: is_hold=%d, hold_req=%d\n", is_hold, hold_req);
 	if (hold_req && is_hold == 0) {
-		//ret = vcorefs_request_dvfs_callback(KIR_APCCCI, OPP_0);
+#if IS_ENABLED(CONFIG_MTK_SPM_V4)
+		ret = vcorefs_request_dvfs_callback(KIR_APCCCI, OPP_0);
+#endif
 		is_hold = 1;
 	} else if (hold_req == 0 && is_hold) {
-		//ret = vcorefs_request_dvfs_callback(KIR_APCCCI, OPP_UNREQ);
+#if IS_ENABLED(CONFIG_MTK_SPM_V4)
+		ret = vcorefs_request_dvfs_callback(KIR_APCCCI, OPP_UNREQ);
+#endif
 		is_hold = 0;
 	} else
 		CCCI_ERROR_LOG(0, TAG,
@@ -1734,8 +1740,8 @@ int md_cd_vcore_config(unsigned int hold_req)
 		return -1;
 	if (md_cd_plat_val_ptr.md_gen >= 6295)
 		return 0;
-	/* mt6739 used vcore old fun to set value */
-	if (ap_plat_info == 6739) {
+	/* mt6771 used vcore old fun to set value */
+	if (ap_plat_info == 6771) {
 		ret = md_cd_vcore_config_old(hold_req);
 		return ret;
 	}
