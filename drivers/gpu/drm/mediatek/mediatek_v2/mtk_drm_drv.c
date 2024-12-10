@@ -1474,8 +1474,10 @@ static enum mml_mode _mtk_atomic_mml_plane(struct drm_device *dev,
 	struct mtk_ddp_comp *comp = NULL;
 	struct mtk_ddp_comp *output_comp = NULL;
 
-	if (!mtk_plane_state->prop_val[PLANE_PROP_IS_MML])
+	if (!mtk_plane_state->prop_val[PLANE_PROP_IS_MML]) {
+		CRTC_MMP_MARK(0, mml_job_status, 0xFFFF, 0x11);
 		return MML_MODE_UNKNOWN;
+	}
 
 	crtc = mtk_plane_state->crtc;
 	mtk_crtc = to_mtk_crtc(crtc);
@@ -1485,18 +1487,22 @@ static enum mml_mode _mtk_atomic_mml_plane(struct drm_device *dev,
 	priv = dev->dev_private;
 
 	mml_ctx = mtk_drm_get_mml_drm_ctx(dev, crtc);
-	if (unlikely(!mml_ctx))
+	if (unlikely(!mml_ctx)) {
+		CRTC_MMP_MARK(0, mml_job_status, 0xFFFF, 0x12);
 		return MML_MODE_UNKNOWN;
+	}
 
 	submit_pq = mtk_alloc_mml_submit();
 	if (unlikely(!submit_pq)) {
 		DDPPR_ERR("%s:err_alloc_submit_pq\n", __func__);
+		CRTC_MMP_MARK(0, mml_job_status, 0xFFFF, 0x13);
 		goto err_alloc_submit_pq;
 	}
 
 	submit_kernel = mtk_alloc_mml_submit();
 	if (unlikely(!submit_kernel)) {
 		DDPPR_ERR("%s:err_alloc_submit_kernel\n", __func__);
+		CRTC_MMP_MARK(0, mml_job_status, 0xFFFF, 0x14);
 		goto err_alloc_submit_kernel;
 	}
 
@@ -1504,6 +1510,7 @@ static enum mml_mode _mtk_atomic_mml_plane(struct drm_device *dev,
 	    (struct mml_submit *)(mtk_plane_state->prop_val[PLANE_PROP_MML_SUBMIT]), submit_kernel);
 	if (unlikely(ret < 0)) {
 		DDPPR_ERR("%s:err_copy_submit\n", __func__);
+		CRTC_MMP_MARK(0, mml_job_status, 0xFFFF, 0x15);
 		goto err_copy_submit;
 	}
 
@@ -1520,11 +1527,13 @@ static enum mml_mode _mtk_atomic_mml_plane(struct drm_device *dev,
 		submit_kernel->buffer.src.use_dma = true;
 		submit_kernel->buffer.src.dmabuf[0] = fd_to_dma_buf(src_fd_0);
 		if (submit_kernel->buffer.src.dmabuf[0] == NULL) {
+			CRTC_MMP_MARK(0, mml_job_status, 0xFFFF, 0x16);
 			DDPPR_ERR("%s:err_fd_to_dma\n", __func__);
 			goto err_fd_to_dma;
 		}
 	} else {
 		DDPPR_ERR("%s:err_src_fd\n", __func__);
+		CRTC_MMP_MARK(0, mml_job_status, 0xFFFF, 0x17);
 		goto err_src_fd;
 	}
 
@@ -1610,6 +1619,7 @@ static enum mml_mode _mtk_atomic_mml_plane(struct drm_device *dev,
 	ret = mml_drm_submit(mml_ctx, submit_kernel, &(mtk_crtc->mml_cb));
 	if (ret) {
 		DDPPR_ERR("%s:err_submit\n", __func__);
+		CRTC_MMP_MARK(0, mml_job_status, 0xFFF0, ret);
 		goto err_submit;
 	}
 
@@ -1665,15 +1675,20 @@ static void mtk_atomic_mml(struct drm_device *dev,
 	for_each_oldnew_crtc_in_state(state, crtc, old_cs, new_cs, i) {
 		if (drm_crtc_index(crtc)== 0)
 			break;
-		else
+		else {
+			CRTC_MMP_MARK(0, mml_job_status, 0xFFFF, 0);
 			return;
+		}
 	}
+
 
 	if (new_cs && old_cs) {
 		mtk_crtc_state = to_mtk_crtc_state(new_cs);
 		old_mtk_state = to_mtk_crtc_state(old_cs);
-	} else
+	} else {
+		CRTC_MMP_MARK(0, mml_job_status, 0xFFFF, 1);
 		return;
+	}
 
 	mtk_crtc = to_mtk_crtc(crtc);
 	mtk_crtc->is_mml_dl_submit = false;
@@ -1696,6 +1711,7 @@ static void mtk_atomic_mml(struct drm_device *dev,
 	if (!need_update_plane && (mtk_crtc_state->lye_state.mml_ir_lye ||
 			mtk_crtc_state->lye_state.mml_dl_lye)) {
 		DDPINFO("no plane_update with mml lye, skip %s\n", __func__);
+		CRTC_MMP_MARK(0, mml_job_status, 0xFFFF, 2);
 		return;
 	}
 
