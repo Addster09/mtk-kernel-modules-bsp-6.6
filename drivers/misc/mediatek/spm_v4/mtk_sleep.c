@@ -331,7 +331,7 @@ static int slp_suspend_ops_enter(suspend_state_t state)
 			spm_go_to_sleep(slp_spm_flags, slp_spm_flags1);
 #if !defined(SPM_K414_EARLY_PORTING)
 	if (mcdi_task_pause_fun)
-		mcdi_task_pause_fun(true); //mcdi_task_pause(false);
+		mcdi_task_pause_fun(false); //mcdi_task_pause(false);
 	else
 		pr_info("mcdi task revert pause fail");
 #endif
