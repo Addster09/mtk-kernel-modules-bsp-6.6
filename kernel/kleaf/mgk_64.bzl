@@ -2627,10 +2627,17 @@ def get_overlay_modules_list():
         mgk_64_device_modules.remove("drivers/thermal/mediatek/cpu_isolate_cooling.ko")
         mgk_64_kleaf_modules.remove("//vendor/mediatek/kernel_modules/mtkcam/sched:c2ps")
 
+        mgk_64_device_modules.remove("drivers/devfreq/mtk-dvfsrc-devfreq.ko")
+        mgk_64_device_modules.remove("drivers/interconnect/mediatek/mtk-emi.ko")
+        mgk_64_device_modules.remove("drivers/interconnect/mediatek/mtk-emibus-icc.ko")
+        mgk_64_device_modules.remove("drivers/misc/mediatek/dvfsrc/mtk-dvfsrc-helper.ko")
         mgk_64_device_modules.remove("drivers/misc/mediatek/mmdvfs/mtk-mmdvfs-ccu.ko")
         mgk_64_device_modules.remove("drivers/misc/mediatek/mmdvfs/mtk-mmdvfs-debug.ko")
         mgk_64_device_modules.remove("drivers/misc/mediatek/mmdvfs/mtk-mmdvfs-ftrace.ko")
         mgk_64_device_modules.remove("drivers/misc/mediatek/mmdvfs/mtk-mmdvfs-v3-start.ko")
+        mgk_64_device_modules.remove("drivers/regulator/mtk-dvfsrc-regulator.ko")
+        mgk_64_device_modules.remove("drivers/soc/mediatek/mtk-dvfsrc.ko")
+        mgk_64_device_modules.remove("drivers/soc/mediatek/mtk-dvfsrc-start.ko")
         mgk_64_device_modules.remove("drivers/soc/mediatek/mtk-mmdvfs.ko")
         mgk_64_device_modules.remove("drivers/soc/mediatek/mtk-mmdvfs-v3.ko")
 
