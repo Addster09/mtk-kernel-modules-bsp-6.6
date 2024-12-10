@@ -57,7 +57,7 @@ static int pd_tcp_notifier_call(struct notifier_block *nb,
 	uint32_t partner_vdos[VDO_MAX_NR];
 	struct typec_displayport_data dp_data = {.status = 0, .conf = 0};
 	struct typec_mux_state state = {.mode = 0, .data = &dp_data};
-
+	struct device_node *np = rpmd->dev->of_node;
 	mt_dbg(rpmd->dev, "event = %lu, idx = %d ++\n", event, idx);
 
 	switch (event) {
@@ -145,10 +145,17 @@ static int pd_tcp_notifier_call(struct notifier_block *nb,
 			typec_set_vconn_role(rpmd->typec_port[idx],
 					     TYPEC_SOURCE);
 			/* set typec switch orientation */
-			typec_set_orientation(rpmd->typec_port[idx],
+			if (of_property_read_bool(np, "mediatek,not_support_u3")) {
+				typec_set_orientation(rpmd->typec_port[idx],
+					      noti->typec_state.polarity ?
+					      TYPEC_ORIENTATION_NORMAL :
+					      TYPEC_ORIENTATION_REVERSE);
+			} else {
+				typec_set_orientation(rpmd->typec_port[idx],
 					      noti->typec_state.polarity ?
 					      TYPEC_ORIENTATION_REVERSE :
 					      TYPEC_ORIENTATION_NORMAL);
+			}
 		} else if ((old_state == TYPEC_ATTACHED_SRC ||
 			    old_state == TYPEC_ATTACHED_DEBUG) &&
 			    new_state == TYPEC_UNATTACHED) {
