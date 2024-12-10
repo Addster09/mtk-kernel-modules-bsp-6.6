@@ -26,6 +26,10 @@
 #include "mt6991-machine.h"
 #endif
 
+#if IS_ENABLED(CONFIG_MTK_BATTERY_PERCENT_THROTTLING)
+#include "mtk_bp_thl.h"
+#endif
+
 /*
  * if need additional control for the ext spk amp that is connected
  * after Lineout Buffer / HP Buffer on the codec, put the control in
@@ -81,6 +85,66 @@ static const struct soc_enum mt6991_spk_type_enum[] = {
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(mt6991_spk_i2s_type_str),
 			    mt6991_spk_i2s_type_str),
 };
+
+#if IS_ENABLED(CONFIG_MTK_BATTERY_PERCENT_THROTTLING)
+static unsigned int volume_throttle[BATTERY_PERCENT_LEVEL_NUM];
+static unsigned int last_level;
+
+static void audio_pt_battery_percent_cb(enum BATTERY_PERCENT_LEVEL_TAG level)
+{
+	struct snd_soc_card *card = &mt6991_mt6681_soc_card;
+	struct snd_kcontrol *kcontrol;
+	struct snd_soc_component *component;
+	struct snd_ctl_elem_value ucontrol;
+	int ret, reduce;
+
+	if (level >= BATTERY_PERCENT_LEVEL_NUM) {
+		// invalid
+		return;
+	}
+
+	// throttle by level
+	mtk_spk_set_reduceDb(volume_throttle[level]);
+	reduce = volume_throttle[level] - volume_throttle[last_level];
+
+	// Left amp
+	kcontrol = snd_soc_card_get_kcontrol(card, "Left Volume_Ctrl");
+	component = snd_soc_kcontrol_component(kcontrol);
+	memset(&ucontrol, 0, sizeof(ucontrol));
+
+	ret = snd_soc_get_volsw(kcontrol, &ucontrol);
+	if (ret < 0)
+		dev_info(component->dev, "%s get volsw fail\n", __func__);
+	dev_info(component->dev, "Current volume: %ld, throttle level: %d->%d, reduce=%d\n",
+					ucontrol.value.integer.value[0], last_level, level, reduce);
+	ucontrol.value.integer.value[0] -= reduce;
+
+	ret = snd_soc_put_volsw(kcontrol, &ucontrol);
+	if (ret < 0)
+		dev_info(component->dev, "%s put volsw fail\n", __func__);
+	dev_info(component->dev, "New volume: %ld\n", ucontrol.value.integer.value[0]);
+
+	// Right amp
+	kcontrol = snd_soc_card_get_kcontrol(card, "Right Volume_Ctrl");
+	component = snd_soc_kcontrol_component(kcontrol);
+	memset(&ucontrol, 0, sizeof(ucontrol));
+
+	ret = snd_soc_get_volsw(kcontrol, &ucontrol);
+	if (ret < 0)
+		dev_info(component->dev, "%s get volsw fail\n", __func__);
+	dev_info(component->dev, "Current volume: %ld, throttle level: %d->%d, reduce=%d\n",
+					ucontrol.value.integer.value[0], last_level, level, reduce);
+	ucontrol.value.integer.value[0] -= reduce;
+
+	ret = snd_soc_put_volsw(kcontrol, &ucontrol);
+	if (ret < 0)
+		dev_info(component->dev, "%s put volsw fail\n", __func__);
+
+	dev_info(component->dev, "New volume: %ld\n", ucontrol.value.integer.value[0]);
+
+	last_level = level;
+}
+#endif
 
 static int mt6991_spk_type_get(struct snd_kcontrol *kcontrol,
 			       struct snd_ctl_elem_value *ucontrol)
@@ -2476,6 +2540,9 @@ static int mt6991_mt6681_dev_probe(struct platform_device *pdev)
 	struct device_node *platform_node, *spk_node;
 	int ret, i;
 	struct snd_soc_dai_link *dai_link;
+#if IS_ENABLED(CONFIG_MTK_BATTERY_PERCENT_THROTTLING)
+	int is_register_bt_pt;
+#endif
 
 	dev_info(&pdev->dev, "%s() successfully start\n", __func__);
 
@@ -2537,6 +2604,25 @@ static int mt6991_mt6681_dev_probe(struct platform_device *pdev)
 	if (!external_codec_done) {
 		dev_info(&pdev->dev, "%s external codec probe fail, bypass codec driver\n", __func__);
 		mt6991_bypass_external_codec(pdev);
+	}
+#endif
+
+#if IS_ENABLED(CONFIG_MTK_BATTERY_PERCENT_THROTTLING)
+	/* get low battery power throttling is supported */
+	ret = of_property_read_u32(pdev->dev.of_node, "register-battery-percent-pt", &is_register_bt_pt);
+	if (ret) {
+		dev_info(&pdev->dev, "%s(), get register_bt_pt fail, use defalut 0\n", __func__);
+		is_register_bt_pt = 0;
+	}
+	if (is_register_bt_pt) {
+		last_level = 0;
+		for (i = 0; i < BATTERY_PERCENT_LEVEL_NUM; i++)
+			volume_throttle[i] = 0;
+
+		ret = of_property_read_u32_array(pdev->dev.of_node, "volume-throttle",
+					(unsigned int *)&volume_throttle, BATTERY_PERCENT_LEVEL_NUM);
+
+		register_bp_thl_notify(&audio_pt_battery_percent_cb, BATTERY_PERCENT_PRIO_AUDIO);
 	}
 #endif
 
