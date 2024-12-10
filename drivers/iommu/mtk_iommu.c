@@ -603,13 +603,13 @@ static const struct mtk_iommu_iova_region mt6899_multi_dom_mm[] = {
 };
 
 /*
- * 0.APU_DATA(NORMAL): 12.375GB
- *	0x2000_0000~0x3FFF_FFFF(512MB)
+ * 0.APU_DATA(NORMAL): 11.875GB + 96MB
  *	0x1_0000_0000~0x1_05FF_FFFF(96MB)
  *	0x1_0800_0000~0x3_FFFF_FFFF(11.875GB)
  * 1.APU_SECURE:     0x1000~0x1FFF_FFFF(512MB)
  * 2.APU_CODE:       0x4000_0000~0xFFFF_FFFF(3GB)
  * 3.LK_RESV:        0x1_0600_0000~0x1_07FF_FFFF(32MB)
+ * 4.APU_INVALID:    0x2000_0000~0x3FFF_FFFF(512MB)
  */
 static const struct mtk_iommu_iova_region mt6899_multi_dom_apu[] = {
 #if IS_ENABLED(CONFIG_ARCH_DMA_ADDR_T_64BIT)
@@ -617,6 +617,7 @@ static const struct mtk_iommu_iova_region mt6899_multi_dom_apu[] = {
 	{ .iova_base = SZ_4K, .size = (SZ_512M - SZ_4K), .type = SECURE}, /* 1.APU_SECURE:512M */
 	{ .iova_base = SZ_1G, .size = (SZ_1G * 3ULL), .type = NORMAL}, /* 2.APU_CODE:3GB */
 	{ .iova_base = 0x106000000ULL, .size = SZ_32M, .type = NORMAL}, /* 3.LK_RESV:32MB */
+	{ .iova_base = SZ_512M, .size = SZ_512M, .type = NORMAL}, /* 4.APU_INVALID:512M */
 #endif
 };
 
