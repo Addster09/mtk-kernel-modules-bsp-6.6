@@ -63,14 +63,21 @@ int mtk_vcodec_init_pm(struct mtk_vcodec_dev *mtkdev)
 	memset(clks_data, 0x00, sizeof(struct mtk_clks_data));
 	while (!of_property_read_string_index(
 			pdev->dev.of_node, "clock-names", clk_id, &clk_name)) {
+
+		pr_info("%s,%d init clock, id: %d, name: %s",  __func__, __LINE__, clk_id, clk_name);
 		pm->vcodec_clks[clk_id] = devm_clk_get(&pdev->dev, clk_name);
-		pr_info("%s init clock, id: %d, name: %s",  __func__, clk_id, clk_name);
+		if (pm->vcodec_clks[clk_id] == NULL) {
+		    pr_info("[error]%s,%d  pm->vcodec_clks[%d] is NULL",  __func__, __LINE__, clk_id);
+	    break;
+		}
+		pr_info("%s,%d init clock, id: %d, name: %s",  __func__, __LINE__, clk_id, clk_name);
 		if (IS_ERR(pm->vcodec_clks[clk_id])) {
 			pr_info(
 				"[VCODEC][ERROR] Unable to devm_clk_get id: %d, name: %s\n",
 				clk_id, clk_name);
 			return PTR_ERR(pm->vcodec_clks[clk_id]);
 		}
+		pr_info("%s,%d init core_clks_len:%d",  __func__, __LINE__, clks_data->core_clks_len);
 		clks_data->core_clks[clks_data->core_clks_len].clk_id = clk_id;
 		clks_data->core_clks[clks_data->core_clks_len].clk_name = clk_name;
 		clks_data->core_clks_len++;
@@ -125,6 +132,7 @@ void mtk_vcodec_clock_off(enum mtk_instance_type type, struct mtk_vcodec_dev *mt
 	int i, clk_id;
 	struct mtk_vcodec_pm *pm;
 	struct mtk_clks_data *clks_data;
+	int ret = 0;
 
 	pm = &mtkDev->pm;
 	clks_data = &pm->clks_data;
@@ -143,12 +151,18 @@ void mtk_vcodec_clock_off(enum mtk_instance_type type, struct mtk_vcodec_dev *mt
 			}
 		}
 	if (type == MTK_INST_ENCODER) {
-		if (pm->larbvencs[0])
-			pm_runtime_put_sync(pm->larbvencs[0]);
+		if (pm->larbvencs[0]) {
+			ret = pm_runtime_put_sync(pm->larbvencs[0]);
+			if (ret)
+				pr_info("[error]%s,pm_runtime_put_sync ret:%d", __func__, ret);
+		}
 	}
 	if (type == MTK_INST_DECODER) {
-		if (pm->larbvdecs[0])
-			pm_runtime_put_sync(pm->larbvdecs[0]);
+		if (pm->larbvdecs[0]) {
+			ret = pm_runtime_put_sync(pm->larbvdecs[0]);
+			if (ret)
+				pr_info("[error]%s,pm_runtime_put_sync ret:%d", __func__, ret);
+		}
 	}
 }
 EXPORT_SYMBOL_GPL(mtk_vcodec_clock_off);

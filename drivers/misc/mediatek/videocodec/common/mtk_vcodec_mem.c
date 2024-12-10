@@ -8,6 +8,8 @@
 #include <uapi/linux/dma-heap.h>
 #include "mtk_heap.h"
 #include "mtk_vcodec_mem.h"
+#include <linux/dma-buf.h>
+
 
 
 struct mtk_vcodec_queue *mtk_vcodec_mem_init(struct device *dev)
