@@ -400,7 +400,6 @@ static void disp_dither_first_cfg(struct mtk_ddp_comp *comp,
 	       struct mtk_ddp_config *cfg, struct cmdq_pkt *handle)
 {
 	DDPINFO("%s cfg->bpc=%d\n", __func__, cfg->bpc);
-
 	disp_dither_config(comp, cfg, handle);
 }
 
@@ -912,6 +911,11 @@ static const struct mtk_disp_dither_data mt6765_dither_driver_data = {
 	.need_bypass_shadow = true,
 };
 
+static const struct mtk_disp_dither_data mt6771_dither_driver_data = {
+	.support_shadow     = false,
+	.need_bypass_shadow = false,
+};
+
 static const struct mtk_disp_dither_data mt6885_dither_driver_data = {
 	.support_shadow     = false,
 	.need_bypass_shadow = false,
@@ -994,6 +998,8 @@ static const struct of_device_id mtk_disp_dither_driver_dt_match[] = {
 	  .data = &mt6765_dither_driver_data},
 	{ .compatible = "mediatek,mt6768-disp-dither",
 	  .data = &mt6768_dither_driver_data},
+	{ .compatible = "mediatek,mt6771-disp-dither",
+	  .data = &mt6771_dither_driver_data},
 	{ .compatible = "mediatek,mt6781-disp-dither",
 	  .data = &mt6781_dither_driver_data},
 	{ .compatible = "mediatek,mt6885-disp-dither",

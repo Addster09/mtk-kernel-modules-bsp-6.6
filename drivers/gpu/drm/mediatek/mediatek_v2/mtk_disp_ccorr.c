@@ -185,7 +185,8 @@ static int disp_ccorr_write_coef_reg(struct mtk_ddp_comp *comp,
 	// For 6885 need to left shift one bit
 	if (priv->data->mmsys_id != MMSYS_MT6768 &&
 		priv->data->mmsys_id != MMSYS_MT6765 &&
-		priv->data->mmsys_id != MMSYS_MT6761) {
+		priv->data->mmsys_id != MMSYS_MT6761 &&
+		priv->data->mmsys_id != MMSYS_MT6771) {
 		DDPINFO("%s: shifting ccorr for bit:%d\n",
 			__func__,  primary_data->disp_ccorr_caps.ccorr_bit);
 		if (primary_data->disp_ccorr_caps.ccorr_bit == 12) {
@@ -1434,6 +1435,11 @@ static const struct mtk_disp_ccorr_data mt6765_ccorr_driver_data = {
 	.need_bypass_shadow = true,
 };
 
+static const struct mtk_disp_ccorr_data mt6771_ccorr_driver_data = {
+	.support_shadow     = false,
+	.need_bypass_shadow = false,
+};
+
 static const struct mtk_disp_ccorr_data mt6885_ccorr_driver_data = {
 	.support_shadow     = false,
 	.need_bypass_shadow = false,
@@ -1516,6 +1522,8 @@ static const struct of_device_id mtk_disp_ccorr_driver_dt_match[] = {
 	  .data = &mt6765_ccorr_driver_data},
 	{ .compatible = "mediatek,mt6768-disp-ccorr",
 	  .data = &mt6768_ccorr_driver_data},
+	{ .compatible = "mediatek,mt6771-disp-ccorr",
+	  .data = &mt6771_ccorr_driver_data},
 	{ .compatible = "mediatek,mt6885-disp-ccorr",
 	  .data = &mt6885_ccorr_driver_data},
 	{ .compatible = "mediatek,mt6877-disp-ccorr",
@@ -1744,5 +1752,3 @@ int disp_ccorr_r2y_enable(int enable, int id)
 
 }
 #endif
-
-
