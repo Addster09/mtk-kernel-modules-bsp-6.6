@@ -7,6 +7,7 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/cdev.h>
+//#include <linux/ide.h>
 #include <linux/io.h>
 #include <linux/gpio.h>
 #include <linux/of_gpio.h>
@@ -21,7 +22,6 @@
 #include <linux/i2c.h>
 
 #include "semi_touch_interface.h"
-#define report_size		((10 * 5 + 2) + 3) & 0xfc
 
 struct sm_touch_dev st_dev = 
 {
@@ -35,12 +35,10 @@ static int input_device_init(struct sm_touch_dev *st_dev)
     int ret = 0;
     struct i2c_client *client = st_dev->client;
 
-   // struct i2c_client *client = st_dev->client;
-
-    st_dev->input = devm_input_allocate_device(&st_dev->client->dev);//tpd->dev;
+    st_dev->input = devm_input_allocate_device(&st_dev->client->dev);
     check_return_if_fail(st_dev->input, NULL);
 
-    st_dev->input->name = "mtk-tpd";
+    st_dev->input->name = "mtk-tpd"; //client->name;
     st_dev->input->id.bustype = BUS_I2C;
     st_dev->input->dev.parent = &client->dev;
 
@@ -102,9 +100,13 @@ bool semi_touch_vkey_handled(bool pointed, unsigned int x, unsigned int y)
 static irqreturn_t semi_touch_irq_handler_imp(int irq, void *p)
 {
     bool pointed = 0;
-    int  index = 0, pointNum = 0/*, ioLevel = 0*/;
+    int  index = 0, pointNum = 0, event_iter = 0; /*, ioLevel = 0*/
     union rpt_point_t* ppt;
-    unsigned char readbuffer[report_size];
+    const unsigned char report_size = ((SEMI_TOUCH_MAX_POINTS * 5 + 2) + 5) & 0xfc;//32-5points,56-10points
+    unsigned char readbuffer[64];
+    static unsigned char map_event[3] = {0x00,0x08,0x04};
+    static unsigned char last_events[SEMI_TOUCH_MAX_POINTS] = {0x00};
+    static unsigned char count = 0;
 
     //kernel_log_d("st_dev.stc.ctp_run_status = 0x%x\n", st_dev.stc.ctp_run_status);
 
@@ -117,6 +119,16 @@ static irqreturn_t semi_touch_irq_handler_imp(int irq, void *p)
     {
         //int & iic is ok, dog feed
         semi_touch_watch_dog_feed(st_dev.stc.dog_feed_flag);
+        if(is_guesture_activate(st_dev.stc.ctp_run_status) && 0xFE != readbuffer[0])
+        {
+            if(count < 1)
+            {
+                semi_touch_guesture_switch(1);
+            }
+            if(15 == (count++))
+                count = 0;
+            return IRQ_RETVAL(IRQ_HANDLED);
+        }
 
         pointNum = (readbuffer[1] & 0x0f);
         ppt = (union rpt_point_t*)&readbuffer[2];
@@ -138,6 +150,22 @@ static irqreturn_t semi_touch_irq_handler_imp(int irq, void *p)
 #if MULTI_PROTOCOL_TYPE_A == MULTI_PROTOCOL_TYPE
         for(index = 0; index < SEMI_TOUCH_MAX_POINTS; index++)
         { 
+            if(last_events[index] != ppt->rp.event)
+            {
+                if(last_events[index] == map_event[0])
+                    event_iter = 0;
+                else if(last_events[index] == map_event[1])
+                    event_iter = 1;
+                else 
+                    event_iter = 2;
+                event_iter = (event_iter + 1) % 3;
+                if(ppt->rp.event != map_event[event_iter])
+                {
+                    ppt->rp.event = map_event[event_iter];
+                }
+            }
+            last_events[index] = ppt->rp.event;
+
             //EVENT_UP = 0x04
             pointed = (0x04 == ppt->rp.event) ? false : true;
 
@@ -169,6 +197,22 @@ static irqreturn_t semi_touch_irq_handler_imp(int irq, void *p)
 #elif MULTI_PROTOCOL_TYPE_B == MULTI_PROTOCOL_TYPE
         for(index = 0; index < SEMI_TOUCH_MAX_POINTS; index++)
         { 
+            if(last_events[index] != ppt->rp.event)
+            {
+                if(last_events[index] == map_event[0])
+                    event_iter = 0;
+                else if(last_events[index] == map_event[1])
+                    event_iter = 1;
+                else 
+                    event_iter = 2;
+                event_iter = (event_iter + 1) % 3;
+                if(ppt->rp.event != map_event[event_iter])
+                {
+                    ppt->rp.event = map_event[event_iter];
+                }
+            }
+            last_events[index] = ppt->rp.event;
+
             //EVENT_UP = 0x04
             pointed = (0x04 == ppt->rp.event) ? false : true;
 
@@ -198,16 +242,16 @@ static irqreturn_t semi_touch_irq_handler_imp(int irq, void *p)
             ppt++;
         }
 #endif
-    }
-    if(0 == pointNum) 
-    {
-        semi_touch_clear_report();
-    }
-    else
-    {
-        input_sync(st_dev.input);
-    }
 
+        if(0 == pointNum) 
+        {
+            semi_touch_clear_report();
+        }
+        else
+        {
+            input_sync(st_dev.input);
+        }
+    }
     return IRQ_RETVAL(IRQ_HANDLED);
 }
 
@@ -274,6 +318,7 @@ int semi_touch_resolution_adaption(struct sm_touch_dev *st_dev)
     unsigned char readbuffer[256] = {0};
     unsigned short index, pix_x, pix_y;
     const int vkey_evt[] = SEMI_TOUCH_KEY_EVT;
+    int match = 0;
 
     for(index = 0; index < 3; index++)
     {
@@ -281,55 +326,58 @@ int semi_touch_resolution_adaption(struct sm_touch_dev *st_dev)
         check_return_if_fail(ret, NULL);
         if(0 == caculate_checksum_u16((unsigned short*)readbuffer, sizeof(readbuffer)))
         {
+            match = 1;
             break;
         }
         kernel_log_d("config checksum mismatch, retry = %d\n", index);
     }
-    
-    //xy switch
-    if(readbuffer[0x0f] & 0x02)
-    {
-        pix_x = (unsigned short)((readbuffer[0x09] << 8) + readbuffer[0x08]);
-        pix_y = (unsigned short)((readbuffer[0x07] << 8) + readbuffer[0x06]);
-    }
-    else
-    {
-        pix_x = (unsigned short)((readbuffer[0x07] << 8) + readbuffer[0x06]);
-        pix_y = (unsigned short)((readbuffer[0x09] << 8) + readbuffer[0x08]);
-    }
-    
-    input_set_abs_params(st_dev->input, ABS_MT_POSITION_X, 0, pix_x, 0, 0);
-    input_set_abs_params(st_dev->input, ABS_MT_POSITION_Y, 0, pix_y, 0, 0);
 
-    kernel_log_d("resolution = (%d, %d)\n", pix_x, pix_y);
-
-    st_dev->stc.vkey_num = readbuffer[0x52];
-    memcpy(st_dev->stc.vkey_evt_arr, vkey_evt, sizeof(int) * MAX_VKEY_NUMBER);
-    //key xy switch
-    for(index = 0; (index < st_dev->stc.vkey_num) && (index < MAX_VKEY_NUMBER); index++)
+    if(match)
     {
-        if(readbuffer[0x53] & 0x02)
+        //xy switch
+        if(readbuffer[0x0f] & 0x02)
         {
-            pix_x = (readbuffer[0x55] << 8) + readbuffer[0x54];
-            pix_y = st_dev->stc.vkey_num > 5 ? (index + 1) : (readbuffer[0x57 + index * 2] << 8) + readbuffer[0x56 + index * 2];
+            pix_x = (unsigned short)((readbuffer[0x09] << 8) + readbuffer[0x08]);
+            pix_y = (unsigned short)((readbuffer[0x07] << 8) + readbuffer[0x06]);
         }
         else
         {
-            pix_y = (readbuffer[0x55] << 8) + readbuffer[0x54];
-            pix_x = st_dev->stc.vkey_num > 5 ? (index + 1) : (readbuffer[0x57 + index * 2] << 8) + readbuffer[0x56 + index * 2];
+            pix_x = (unsigned short)((readbuffer[0x07] << 8) + readbuffer[0x06]);
+            pix_y = (unsigned short)((readbuffer[0x09] << 8) + readbuffer[0x08]);
         }
+        
+        input_set_abs_params(st_dev->input, ABS_MT_POSITION_X, 0, pix_x, 0, 0);
+        input_set_abs_params(st_dev->input, ABS_MT_POSITION_Y, 0, pix_y, 0, 0);
 
-        st_dev->stc.vkey_dim_map[index][0] = pix_x;
-        st_dev->stc.vkey_dim_map[index][1] = pix_y;
-        st_dev->stc.vkey_dim_map[index][2] = 10;
-        st_dev->stc.vkey_dim_map[index][3] = 10;
+        kernel_log_d("resolution = (%d, %d)\n", pix_x, pix_y);
 
-        set_bit(st_dev->stc.vkey_evt_arr[index], st_dev->input->keybit);   
-        input_set_capability(st_dev->input, EV_KEY, st_dev->stc.vkey_evt_arr[index]);
+        st_dev->stc.vkey_num = readbuffer[0x52];
+        memcpy(st_dev->stc.vkey_evt_arr, vkey_evt, sizeof(int) * MAX_VKEY_NUMBER);
+        //key xy switch
+        for(index = 0; (index < st_dev->stc.vkey_num) && (index < MAX_VKEY_NUMBER); index++)
+        {
+            if(readbuffer[0x53] & 0x02)
+            {
+                pix_x = (readbuffer[0x55] << 8) + readbuffer[0x54];
+                pix_y = st_dev->stc.vkey_num > 5 ? (index + 1) : (readbuffer[0x57 + index * 2] << 8) + readbuffer[0x56 + index * 2];
+            }
+            else
+            {
+                pix_y = (readbuffer[0x55] << 8) + readbuffer[0x54];
+                pix_x = st_dev->stc.vkey_num > 5 ? (index + 1) : (readbuffer[0x57 + index * 2] << 8) + readbuffer[0x56 + index * 2];
+            }
 
-        kernel_log_d("vkey index = %d, xy = (%d, %d), event = %d\n", index, pix_x, pix_y, st_dev->stc.vkey_evt_arr[index]);
+            st_dev->stc.vkey_dim_map[index][0] = pix_x;
+            st_dev->stc.vkey_dim_map[index][1] = pix_y;
+            st_dev->stc.vkey_dim_map[index][2] = 10;
+            st_dev->stc.vkey_dim_map[index][3] = 10;
+
+            set_bit(st_dev->stc.vkey_evt_arr[index], st_dev->input->keybit);   
+            input_set_capability(st_dev->input, EV_KEY, st_dev->stc.vkey_evt_arr[index]);
+
+            kernel_log_d("vkey index = %d, xy = (%d, %d), event = %d\n", index, pix_x, pix_y, st_dev->stc.vkey_evt_arr[index]);
+        }
     }
-
     return ret;
 }
 

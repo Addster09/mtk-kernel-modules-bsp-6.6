@@ -7,18 +7,14 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/cdev.h>
+//#include <linux/ide.h>
 #include <linux/io.h>
 #include <linux/gpio.h>
 #include <linux/of_gpio.h>
 #include <linux/irq.h>
 #include <linux/of_irq.h>
-
-#include "head_def.h"
 #include "tpd.h"
 #include "semi_touch_interface.h"
-//#include "semi_touch_device.h"
-//#include "semi_touch_custom.h"
-//#include "semi_touch_function.h"
 
 extern  int  fix_tp_proc_info(void  *tp_data, u8 data_len);//add for 9375 info
 

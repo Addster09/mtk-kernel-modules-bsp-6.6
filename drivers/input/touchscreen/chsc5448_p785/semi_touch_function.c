@@ -21,7 +21,7 @@ int semi_touch_reset(enum reset_action action)
     msleep(30);
     semi_io_pin_high(st_dev.rst_pin);
 
-    msleep(5);
+    mdelay(5);
     semi_touch_write_bytes(0x20000018, (unsigned char*)&self_check, 4);
 
     if(do_report_after_reset == action)
@@ -270,21 +270,21 @@ int semi_touch_read_bytes(unsigned int reg, unsigned char* buffer, unsigned shor
     return ret >= 0 ? SEMI_DRV_ERR_OK : ret;
 }
 
-int cmd_send_to_tp(struct m_ctp_cmd_std_t *ptr_cmd, struct m_ctp_rsp_std_t *ptr_rsp, int once_delay)
+int cmd_send_to_tp(struct m_ctp_cmd_std_t *ptr_cmd, struct m_ctp_rsp_std_t *ptr_rsp, const int delay)
 {
     int ret = -SEMI_DRV_ERR_HAL_IO;
     unsigned int retry = 0, cmd_rsp_ok = 0;
+    int once_delay = delay;
 
     ptr_cmd->tag = 0xE9;
     ptr_cmd->chk = 1 + ~caculate_checksum_u16((unsigned short*)&ptr_cmd->d0, sizeof(struct m_ctp_cmd_std_t) - 2);
     ret = semi_touch_write_bytes(TP_CMD_BUFF_ADDR, (unsigned char*)ptr_cmd, sizeof(struct m_ctp_cmd_std_t));
     check_return_if_fail(ret, NULL);
 
-    once_delay = max(1000, once_delay);
-
     while(retry++ < 40)
     {
-        do{ udelay(1000); once_delay-= 1000; }while(once_delay > 0);
+        once_delay = delay;
+        do{ udelay(1500); once_delay-= 1500; }while(once_delay > 0);
         ret = semi_touch_read_bytes(TP_RSP_BUFF_ADDR, (unsigned char*)ptr_rsp, sizeof(struct m_ctp_rsp_std_t));
         check_return_if_fail(ret, NULL);
 
@@ -320,7 +320,7 @@ int cmd_send_to_tp_no_check(struct m_ctp_cmd_std_t *ptr_cmd)
     return ret;
 }
 
-
+#if 1 //no checksum
 int read_and_report_touch_points(unsigned char *readbuffer, unsigned short len)
 {
     int ret = 0, retry = 0;
@@ -348,6 +348,51 @@ int read_and_report_touch_points(unsigned char *readbuffer, unsigned short len)
 
     return ret;
 }
+#else
+int read_and_report_touch_points(unsigned char *readbuffer, unsigned short len)
+{
+    int ret = 0, retry = 0;
+    int read_flag = -SEMI_DRV_ERR_CHECKSUM;
+    unsigned short tem = 0;
+
+    if(!st_dev.stc.initialize_ok)  
+        ret = -SEMI_DRV_ERR_NO_INIT;
+    check_return_if_fail(ret, NULL);
+    
+    if(is_guesture_activate(st_dev.stc.ctp_run_status))
+    {
+        for(retry = 0; retry < 30; retry++)
+        {
+            msleep(10);
+            ret = semi_touch_read_bytes(st_dev.stc.touch_addr, readbuffer, len);
+            tem = (unsigned short) readbuffer[SEMI_TOUCH_MAX_POINTS * 5 + 3] << 8;
+            tem |= readbuffer[SEMI_TOUCH_MAX_POINTS * 5 + 2];
+            if(0 == ((caculate_checksum_u816(readbuffer, SEMI_TOUCH_MAX_POINTS * 5 + 2) + tem) & 0xFFFF))
+            {
+                read_flag = SEMI_DRV_ERR_OK;
+                break;
+            }
+            kernel_log_d("guesture read, retry = %d\n", retry);
+        }
+    }
+    else
+    {
+        ret = semi_touch_read_bytes(st_dev.stc.touch_addr, readbuffer, len);
+        check_return_if_fail(ret, NULL);
+        tem = (unsigned short) readbuffer[SEMI_TOUCH_MAX_POINTS * 5 + 3] << 8;
+        tem |= readbuffer[SEMI_TOUCH_MAX_POINTS * 5 + 2];
+        if(0 == ((caculate_checksum_u816(readbuffer, SEMI_TOUCH_MAX_POINTS * 5 + 2) + tem) & 0xFFFF))
+        {
+            read_flag = SEMI_DRV_ERR_OK;
+        }
+    }
+
+    if(SEMI_DRV_ERR_OK != read_flag)
+        ret = -SEMI_DRV_ERR_CHECKSUM;
+
+    return ret;
+}
+#endif
 
 int semi_touch_mode_init(struct sm_touch_dev *st_dev)
 {

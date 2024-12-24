@@ -8,8 +8,8 @@
 #include "semi_touch_interface.h"
 
 #if SEMI_TOUCH_BOOTUP_UPDATE_EN
-#include "fw_update_packet_v1a_p49.h"
-#include "fw_update_packet_ve3_p1.h"
+#include "fw_update_packet_v0x1a_p0x49.h"
+#include "fw_update_packet_v0xe3_p0x01.h"
 #endif
 
 #define BURN_W                              0x0
@@ -575,7 +575,55 @@ int semi_touch_bootup_update_check(void)
 
 int semi_touch_online_update_check(char* file_path)
 {
-    kernel_log_d("not support this function\n");
+#if SEMI_TOUCH_ONLINE_UPDATE_EN
+    mm_segment_t old_fs;
+    unsigned int file_size, file_sig;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+    const unsigned char* file_buffer = NULL;
+    static struct file *file = NULL;                          
+    loff_t fpos = 0;
+    unsigned char bootCheckOk = 0;
+
+    file = filp_open(file_path, O_RDWR, 0);
+    if(IS_ERR(file))                                                                                                                                                                                                                                                                             
+    {
+        kernel_log_d("open file %s error\n", file_path);
+        return -EINVAL;
+    }
+
+    old_fs = get_fs();
+    set_fs(KERNEL_DS);
+
+    fpos = 0;
+    vfs_llseek(file, 0, SEEK_SET);
+    vfs_read(file, (char*)&file_sig, sizeof(file_sig), &fpos);
+    if(0x43534843 != file_sig) 
+    {
+        filp_close(file, NULL);
+        kernel_log_d("file validation check fail...\n");
+        return -EINVAL;
+    }
+
+    file_sig = 0;
+    file_size = vfs_llseek(file, 0, SEEK_END);
+    file_buffer = kmalloc(file_size, GFP_KERNEL);
+    
+    fpos = 0;
+    vfs_llseek(file, 0, SEEK_SET);
+    if(file_size == vfs_read(file, (char*)file_buffer, file_size, &fpos))
+    {
+        semi_touch_start_up_check(&bootCheckOk, check_backup_if_fail);
+        semi_touch_check_and_update(file_buffer, file_size, bootCheckOk);
+        semi_touch_mode_init(&st_dev);
+
+        //file->f_op->llseek(file, 0, SEEK_SET);
+        //file->f_op->write(file, (char*)&file_sig, sizeof(file_sig), &file->f_pos);
+    }
+
+    kfree(file_buffer);
+    set_fs(old_fs);
+    filp_close(file, NULL);
+#endif //SEMI_TOUCH_ONLINE_UPDATE_EN
+
     return SEMI_DRV_ERR_OK;
 }
 

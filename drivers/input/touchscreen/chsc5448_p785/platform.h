@@ -7,6 +7,11 @@
 
 #define SEMI_TOUCH_5472                         0X0400
 #define SEMI_TOUCH_5448                         0X0401
+#define SEMI_TOUCH_5448A                        0X0402
+#define SEMI_TOUCH_5460                         0X0403
+#define SEMI_TOUCH_5468                         0X0404
+#define SEMI_TOUCH_5428                         0X0405
+#define SEMI_TOUCH_5432                         0X0406
 #define SEMI_TOUCH_5816                         0X0500
 #define SEMI_TOUCH_IC                           SEMI_TOUCH_5448                             
 
@@ -24,7 +29,7 @@
 #define SEMI_TOUCH_GESTURE_OPEN                 1
 #define SEMI_TOUCH_GLOVE_OPEN                   1
 #define SEMI_TOUCH_APK_NODE_EN                  1
-#define SEMI_TOUCH_ONLINE_UPDATE_EN             1
+#define SEMI_TOUCH_ONLINE_UPDATE_EN             0
 #define SEMI_TOUCH_BOOTUP_UPDATE_EN             1
 
 #define SEMI_TOUCH_DMA_TRANSFER                 0

@@ -326,7 +326,6 @@ static ssize_t semi_touch_proc_read(struct file* fp, char __user *buff, size_t l
     return ret;
 }
 
-#if 0
 static long semi_touch_ioctl(struct file* fp, unsigned int op_type, unsigned long args)
 {
     apk_comlex.op_type = (unsigned short)op_type;
@@ -336,15 +335,25 @@ static long semi_touch_ioctl(struct file* fp, unsigned int op_type, unsigned lon
 
     return 0;
 }
-#endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 static const struct proc_ops semi_touch_proc_opts = 
 {
     .proc_write = semi_touch_proc_write,
     .proc_read  = semi_touch_proc_read,
-    //.compat_ioctl = semi_touch_ioctl,
-    //.unlocked_ioctl = semi_touch_ioctl,
+    .proc_ioctl = semi_touch_ioctl,
+    #ifdef CONFIG_COMPAT
+    .proc_compat_ioctl = semi_touch_ioctl,
+    #endif
+};
+#else
+static const struct file_operations semi_touch_proc_opts = 
+{
+    .owner = THIS_MODULE,
+    .write = semi_touch_proc_write,
+    .read  = semi_touch_proc_read,
+    .compat_ioctl = semi_touch_ioctl,
+    .unlocked_ioctl = semi_touch_ioctl,
 };
 #endif
 

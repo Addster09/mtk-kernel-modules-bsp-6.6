@@ -8,6 +8,7 @@
 #include <linux/delay.h>
 #include <linux/i2c.h>
 #include <linux/input.h>
+#include <linux/version.h>
 #include "semi_touch_interface.h"
 
 enum entry_type{ chsc_version, chsc_tp_info, chsc_proximity, chsc_guesture, chsc_online_update, chsc_glove, chsc_suspend, chsc_orientation, chsc_esd_check, entry_max };
@@ -42,7 +43,11 @@ void semi_touch_release_nodes_dir(void)
     }
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 static int semi_touch_register_nodefun_imp(enum entry_type etype, char* node_name, const struct proc_ops* opt_addr)
+#else
+static int semi_touch_register_nodefun_imp(enum entry_type etype, char* node_name, const struct file_operations* opt_addr)
+#endif
 {
     struct proc_dir_entry* entry = proc_create(node_name, 0777, st_dev.chsc_nodes_dir, opt_addr);
     check_return_if_zero(entry, NULL);
@@ -52,6 +57,7 @@ static int semi_touch_register_nodefun_imp(enum entry_type etype, char* node_nam
     return 0;
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 #define semi_touch_register_nodefun(etype, fun_write, fun_read) \
 { \
     static const struct proc_ops ops_##etype = { \
@@ -60,6 +66,17 @@ static int semi_touch_register_nodefun_imp(enum entry_type etype, char* node_nam
     }; \
     semi_touch_register_nodefun_imp(etype, #etype, &ops_##etype); \
 }
+#else
+#define semi_touch_register_nodefun(etype, fun_write, fun_read) \
+{ \
+    static const struct file_operations ops_##etype = { \
+    .owner = NULL, \
+    .write = fun_write, \
+    .read  = fun_read, \
+    }; \
+    semi_touch_register_nodefun_imp(etype, #etype, &ops_##etype); \
+}
+#endif
 
 #define kernel_buffer_prepare(copy, ker_buf, size) \
 char ker_buf[size], *copy = ker_buf; \
@@ -171,6 +188,9 @@ const char* const mapping_ic_from_type(unsigned char ictype)
         break;
     case 0x04:
         ic_name = "CHSC5468";
+        break;
+    case 0x05:
+        ic_name = "CHSC5432";
         break;
     case 0x10:
         ic_name = "CHSC5816";

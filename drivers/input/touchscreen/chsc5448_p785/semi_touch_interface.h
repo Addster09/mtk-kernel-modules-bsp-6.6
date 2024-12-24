@@ -36,7 +36,7 @@ int semi_touch_start_up_check(unsigned char* checkOK, unsigned char opt);
 int semi_touch_heart_beat(void);
 int semi_touch_write_bytes(unsigned int reg, const unsigned char* buffer, unsigned short len);
 int semi_touch_read_bytes(unsigned int reg, unsigned char* buffer, unsigned short len);
-int cmd_send_to_tp(struct m_ctp_cmd_std_t *ptr_cmd, struct m_ctp_rsp_std_t *ptr_rsp, int once_delay);
+int cmd_send_to_tp(struct m_ctp_cmd_std_t *ptr_cmd, struct m_ctp_rsp_std_t *ptr_rsp, const int delay);
 int cmd_send_to_tp_no_check(struct m_ctp_cmd_std_t *ptr_cmd);
 int read_and_report_touch_points(unsigned char *readbuffer, unsigned short len);
 int semi_touch_mode_init(struct sm_touch_dev *st_dev);
