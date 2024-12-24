@@ -12106,7 +12106,6 @@ unsigned long long mtk_dsi_get_frame_hrt_bw_base_by_mode(
 	struct mtk_panel_ext *panel_ext = mtk_crtc->panel_ext;
 	u32 ps_wc = 0;
 	struct total_tile_overhead to_info;
-	struct mtk_drm_private *priv = mtk_crtc->base.dev->dev_private;
 
 	if (is_bdg_supported())
 		data_rate = data_rate * bdg_rxtx_ratio / 100;
@@ -12195,13 +12194,6 @@ unsigned long long mtk_dsi_get_frame_hrt_bw_base_by_mode(
 			* hact * vrefresh * 4, 1000);
 		bw_base = DO_COMMON_DIV(bw_base * vtotal, vact);
 		bw_base = DO_COMMON_DIV(bw_base, 1000);
-
-		if(priv && priv->data->mmsys_id == MMSYS_MT6765 &&
-		   mtk_crtc->base.state->adjusted_mode.hdisplay >= 1200 &&
-		   mtk_crtc->base.state->adjusted_mode.vdisplay >= 1920) {
-			bw_base = bw_base * 2;
-			DDPDBG("[%s]improve bw_base for resolution 1200x1920\n");
-		}
 
 		DDPDBG("%s vdo mode bw_base:%llu, vrefresh:%d\n",
 				__func__, bw_base, vrefresh);
