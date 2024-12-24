@@ -17450,7 +17450,7 @@ connsys_emi_config_hyp: connsys-emi-config-hyp {
 			30220   30850    0    6540>;
 	};
 
-	low-battery-throttling {
+	low_battery_throttling: low-battery-throttling {
 		compatible = "mediatek,low_battery_throttling";
 		lvsys-thd-enable = <1>;
 		vbat-thd-enable = <1>;
@@ -17547,8 +17547,7 @@ connsys_emi_config_hyp: connsys-emi-config-hyp {
 		oc-reduce-tx-lv1 = <0>;
 		oc-reduce-tx-lv2 = <6>;
 
-		soc-max-level = <1>;
-		soc-reduce-tx-lv1 = <0>;
+		soc-max-level = <0>;
 	};
 
 	bp_thl: bp-thl {
