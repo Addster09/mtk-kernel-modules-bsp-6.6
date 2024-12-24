@@ -86,6 +86,8 @@ int (*fpsgo2jank_detection_register_callback_fp)(heavy_fp cb);
 EXPORT_SYMBOL(fpsgo2jank_detection_register_callback_fp);
 int (*fpsgo2jank_detection_unregister_callback_fp)(heavy_fp cb);
 EXPORT_SYMBOL(fpsgo2jank_detection_unregister_callback_fp);
+int (*fpsgo_com_set_mfrc_active_fp)(int tgid, int enable);
+EXPORT_SYMBOL(fpsgo_com_set_mfrc_active_fp);
 
 static enum hrtimer_restart prepare_do_recycle(struct hrtimer *timer)
 {
@@ -422,7 +424,8 @@ static void fpsgo_com_delete_policy_cmd(struct fpsgo_com_policy_cmd *iter)
 			iter->control_hwui_by_pid == BY_PID_DEFAULT_VAL &&
 			iter->app_cam_meta_min_fps == BY_PID_DEFAULT_VAL &&
 			iter->dep_loading_thr_by_pid == BY_PID_DEFAULT_VAL &&
-			iter->cam_bypass_window_ms_by_pid == BY_PID_DEFAULT_VAL) {
+			iter->cam_bypass_window_ms_by_pid == BY_PID_DEFAULT_VAL &&
+			iter->mfrc_active_by_pid == BY_PID_DEFAULT_VAL) {
 			min_iter = iter;
 			goto delete;
 		} else
@@ -484,6 +487,7 @@ static struct fpsgo_com_policy_cmd *fpsgo_com_get_policy_cmd(int tgid,
 	iter->app_cam_meta_min_fps = BY_PID_DEFAULT_VAL;
 	iter->dep_loading_thr_by_pid = BY_PID_DEFAULT_VAL;
 	iter->cam_bypass_window_ms_by_pid = BY_PID_DEFAULT_VAL;
+	iter->mfrc_active_by_pid = BY_PID_DEFAULT_VAL;
 	iter->ts = ts;
 
 	rb_link_node(&iter->rb_node, parent, p);
@@ -1007,6 +1011,14 @@ void fpsgo_ctrl2comp_enqueue_end(int pid,
 			f_render->hwui);
 		break;
 	case MFRC_BY_PASS_FRAME:
+		fpsgo_comp2fstb_prepare_calculate_target_fps(pid, f_render->buffer_id,
+			enqueue_end_time);
+		fpsgo_comp2fstb_queue_time_update(pid,
+			f_render->buffer_id,
+			f_render->frame_type,
+			enqueue_end_time,
+			f_render->api,
+			f_render->hwui);
 		f_render->frame_count++;
 
 		fpsgo_systrace_c_fbt_debug(-300, 0, f_render->enqueue_length,
@@ -2048,9 +2060,66 @@ out:
 	mutex_unlock(&recycle_lock);
 }
 
-int fpsgo_com_get_mfrc_is_on(void)
+
+void fpsgo_com_set_all_policy_mfrc(int enable)
 {
-	return mfrc_active;
+	struct fpsgo_com_policy_cmd *iter;
+	struct rb_root *rbr;
+	struct rb_node *rbn;
+
+	rbr = &fpsgo_com_policy_cmd_tree;
+	rbn = rb_first(rbr);
+	while (rbn) {
+		iter = rb_entry(rbn, struct fpsgo_com_policy_cmd, rb_node);
+		iter->mfrc_active_by_pid = enable;
+		if (enable == -1) {
+			fpsgo_com_delete_policy_cmd(iter);
+			rbn = rb_first(rbr);
+			continue;
+		}
+		rbn = rb_next(rbn);
+	}
+}
+
+int fpsgo_com_set_mfrc_active(int tgid, int enable)
+{
+	int ret = 0;
+	struct fpsgo_com_policy_cmd *iter = NULL;
+
+	mutex_lock(&fpsgo_com_policy_cmd_lock);
+	if (tgid == -1) {
+		fpsgo_com_set_all_policy_mfrc(enable);
+		goto out;
+	}
+	iter = fpsgo_com_get_policy_cmd(tgid, 0, 1);
+	if (iter) {
+		iter->mfrc_active_by_pid = enable;
+		if (enable == -1)
+			fpsgo_com_delete_policy_cmd(iter);
+	} else {
+		ret = 1;
+	}
+out:
+	mutex_unlock(&fpsgo_com_policy_cmd_lock);
+	xgf_trace("[fpsgo_comp] ret=%d,tgid=%d, mfrc=%d", ret, tgid, enable);
+
+	return ret;
+}
+
+int fpsgo_com_get_mfrc_is_active(int tgid)
+{
+	int local_mfrc_active = mfrc_active;
+	struct fpsgo_com_policy_cmd *iter = NULL;
+
+	mutex_lock(&fpsgo_com_policy_cmd_lock);
+	iter = fpsgo_com_get_policy_cmd(tgid, 0, 0);
+	if (iter) {
+		if (iter->mfrc_active_by_pid != BY_PID_DEFAULT_VAL)
+			local_mfrc_active = iter->mfrc_active_by_pid;
+	}
+	mutex_unlock(&fpsgo_com_policy_cmd_lock);
+
+	return local_mfrc_active;
 }
 
 int notify_fpsgo_touch_latency_ko_ready(void)
@@ -2304,7 +2373,7 @@ static KOBJ_ATTR_WO(control_hwui_by_pid);
 FPSGO_COM_SYSFS_WRITE_POLICY_CMD(dep_loading_thr_by_pid, 3, 0, 100);
 static KOBJ_ATTR_WO(dep_loading_thr_by_pid);
 
-FPSGO_COM_SYSFS_WRITE_POLICY_CMD(mfrc_active_by_pid, 4, 0, 1);
+FPSGO_COM_SYSFS_WRITE_POLICY_CMD(mfrc_active_by_pid, 4, -1, 1);
 static KOBJ_ATTR_WO(mfrc_active_by_pid);
 
 FPSGO_COM_SYSFS_WRITE_POLICY_CMD(cam_bypass_window_ms_by_pid, 5, 0, 60000);
@@ -2665,6 +2734,7 @@ int __init fpsgo_composer_init(void)
 
 	init_fpsgo_is_boosting_callback();
 	init_fpsgo_frame_info_cb_list();
+	fpsgo_com_set_mfrc_active_fp = fpsgo_com_set_mfrc_active;
 
 	if (!fpsgo_sysfs_create_dir(NULL, "composer", &comp_kobj)) {
 		fpsgo_sysfs_create_file(comp_kobj, &kobj_attr_control_hwui);
