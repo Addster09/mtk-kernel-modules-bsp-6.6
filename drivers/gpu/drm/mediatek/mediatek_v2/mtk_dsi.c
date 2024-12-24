@@ -11518,6 +11518,8 @@ void mtk_dsi_set_mmclk_by_datarate_V1(struct mtk_dsi *dsi,
 	}
 
 	compress_rate = mtk_dsi_get_dsc_compress_rate(dsi);
+	if (ext && ext->params && ext->params->dsc_params.enable)
+		bpp = ext->params->dsc_params.bit_per_channel * 3;
 
 	if (!data_rate) {
 		DDPPR_ERR("DSI data_rate is NULL\n");
