@@ -49,6 +49,7 @@ camera_dpe_isp60-objs += isp_60/videobuf2-dma-contig.o
 endif
 
 ifeq ($(CONFIG_MTK_CAMERA_DPE_ISP50),m)
+ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/cameraisp/mfb/isp_50/
 obj-$(CONFIG_MTK_CAMERA_DPE_ISP50) += camera_dpe_isp50.o
 camera_dpe_isp50-objs += isp_50/camera_dpe.o
 endif

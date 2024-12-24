@@ -3132,6 +3132,21 @@ static void MFB_add_device_link(struct platform_device *pDev)
 	}
 }
 
+#ifdef MFB_USE_GCE
+/*
+ * We only have 2 gce threads to use, thread 3 for fdvt, thread 1 for mfb/wpe/
+ * dpe/rsc.
+ */
+struct cmdq_client *get_isp_cmdq_client(void)
+{
+	if (mfb_cmdq_clt)
+		return mfb_cmdq_clt;
+	log_err("mfb_cmdq_clt is NULL!\n");
+	return NULL;
+}
+EXPORT_SYMBOL(get_isp_cmdq_client);
+#endif
+
 /******************************************************************************
  *
  ******************************************************************************/

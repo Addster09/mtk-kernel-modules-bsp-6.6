@@ -40,6 +40,7 @@
 /*#include <mach/hardware.h>*/
 /* #include <mach/mt6593_pll.h> */
 #include "camera_rsc.h"
+#include "camera_mfb.h"		/* for get_isp_cmdq_client() */
 /*#include <mach/irqs.h>*/
 /* #include <mach/mt_reg_base.h> */
 /* #if IS_ENABLED(CONFIG_MTK_LEGACY) */
@@ -1022,7 +1023,11 @@ signed int CmdqRSCHW(struct frame *frame)
 	cmdqRecReset(handle);	/* reset the handle to reuse */
 	cmdqRecDestroy(handle);	/* recycle the memory */
 #else //cmdq mailbox
-	pkt = cmdq_pkt_create(cmdq_clt);	// TODO: cmdq_clt
+	if (cmdq_clt == NULL) {
+		LOG_ERR("cmdq_clt is NULL!\n");
+		return -1;
+	}
+	pkt = cmdq_pkt_create(cmdq_clt);
 
 	cmdq_pkt_write(pkt, cmdq_base, RSC_INT_CTL_HW, 0x1, ~0);
 	/* RSC Interrupt read-clear mode */
@@ -2541,7 +2546,10 @@ static signed int RSC_open(struct inode *pInode, struct file *pFile)
 
 	/* Enable clock */
 	RSC_EnableClock(MTRUE);
-	cmdq_mbox_enable(cmdq_clt->chan);
+	if (cmdq_clt)
+		cmdq_mbox_enable(cmdq_clt->chan);
+	else
+		LOG_ERR("cmdq_clt is NULL!\n");
 	g_SuspendCnt = 0;
 	LOG_INF("RSC open g_u4EnableClockCount: %d", g_u4EnableClockCount);
 	/*  */
@@ -2604,7 +2612,10 @@ static signed int RSC_release(struct inode *pInode, struct file *pFile)
 	LOG_INF("Curr UsrCnt(%d), (process, pid, tgid)=(%s, %d, %d), last user",
 		RSCInfo.UserCount, current->comm, current->pid, current->tgid);
 
-	cmdq_mbox_disable(cmdq_clt->chan);
+	if (cmdq_clt)
+		cmdq_mbox_disable(cmdq_clt->chan);
+	else
+		LOG_ERR("cmdq_clt is NULL!\n");
 	/* Disable clock. */
 	RSC_EnableClock(MFALSE);
 	LOG_DBG("RSC release g_u4EnableClockCount: %d", g_u4EnableClockCount);
@@ -2987,7 +2998,7 @@ static signed int RSC_probe(struct platform_device *pDev)
 
 		/* init cmdq */
 		cmdq_base = cmdq_register_device(&pDev->dev);
-		cmdq_clt = cmdq_mbox_create(&pDev->dev, 0);
+		cmdq_clt = get_isp_cmdq_client();
 		cmdq_event_id = cmdq_dev_get_event(&pDev->dev, "rsc_eof");
 
 		RSC_add_device_link(pDev);

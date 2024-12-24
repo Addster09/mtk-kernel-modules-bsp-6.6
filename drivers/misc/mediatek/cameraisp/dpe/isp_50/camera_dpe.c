@@ -34,6 +34,7 @@
 /*#include <mach/hardware.h>*/
 /* #include <mach/mt6593_pll.h> */
 #include "camera_dpe.h"
+#include "camera_mfb.h"		/* for get_isp_cmdq_client() */
 /*#include <mach/irqs.h>*/
 /* #include <mach/mt_reg_base.h> */
 
@@ -1027,7 +1028,7 @@ static bool ConfigDVERequest(signed int ReqIdx)
 		}
 
 	/*} else {*/
-		/*LOG_ERR("ConfigDVERequest state machine error!!,
+		/*LOG_INF("ConfigDVERequest state machine error!!,
 		 *		ReqIdx:%d, RequestState:%d\n",
 		 *		ReqIdx, g_DVE_RequestRing.DVEReq_Struct[
 		 *		ReqIdx].RequestState);
@@ -1323,6 +1324,10 @@ static signed int __maybe_unused ConfigDVEHW(struct DPE_DVEConfig *pDveConfig)
 	mt_kernel_trace_begin("ConfigDVEHW");
 #endif
 
+	if (dpe_cmdq_clt == NULL) {
+		LOG_INF("dpe_cmdq_clt is NULL!\n");
+		return -1;
+	}
 	pkt = cmdq_pkt_create(dpe_cmdq_clt);
 
 	/* Use command queue to write register */
@@ -3239,7 +3244,10 @@ static signed int DPE_open(struct inode *pInode, struct file *pFile)
 	__pm_stay_awake(dpe_wake_lock);
 #endif
 	DPE_EnableClock(MTRUE);
-	cmdq_mbox_enable(dpe_cmdq_clt->chan);
+	if (dpe_cmdq_clt)
+		cmdq_mbox_enable(dpe_cmdq_clt->chan);
+	else
+		LOG_INF("dpe_cmdq_clt is NULL!\n");
 	g_SuspendCnt = 0;
 #if IS_ENABLED(CONFIG_PM_SLEEP)
 	__pm_relax(dpe_wake_lock);
@@ -3321,7 +3329,10 @@ static signed int DPE_release(struct inode *pInode, struct file *pFile)
 #if IS_ENABLED(CONFIG_PM_SLEEP)
 	__pm_stay_awake(dpe_wake_lock);
 #endif
-	cmdq_mbox_disable(dpe_cmdq_clt->chan);
+	if (dpe_cmdq_clt)
+		cmdq_mbox_disable(dpe_cmdq_clt->chan);
+	else
+		LOG_INF("dpe_cmdq_clt is NULL!\n");
 	DPE_EnableClock(MFALSE);
 #if IS_ENABLED(CONFIG_PM_SLEEP)
 	__pm_relax(dpe_wake_lock);
@@ -3533,7 +3544,7 @@ static signed int DPE_probe(struct platform_device *pDev)
 		dpe_cmdq_base = cmdq_register_device(&pDev->dev);
 
 		/* request thread by index (in dts) 0 */
-		dpe_cmdq_clt = cmdq_mbox_create(&pDev->dev, 0);
+		dpe_cmdq_clt = get_isp_cmdq_client();
 		LOG_INF("[Debug]cmdq_mbox_create 0x%lx\n", (unsigned long)dpe_cmdq_clt);
 
 		/* parse hardware event */

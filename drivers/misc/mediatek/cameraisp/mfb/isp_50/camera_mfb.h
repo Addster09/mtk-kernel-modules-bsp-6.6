@@ -264,5 +264,7 @@ struct compat_MFB_Request {
 
 #endif
 
+struct cmdq_client *get_isp_cmdq_client(void);
+
 /*  */
 #endif

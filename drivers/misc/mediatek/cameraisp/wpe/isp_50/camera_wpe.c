@@ -39,6 +39,7 @@
 /*#include <mach/hardware.h>*/
 /* #include <mach/mt6593_pll.h> */
 #include "inc/camera_wpe.h"
+#include "camera_mfb.h"		/* for get_isp_cmdq_client() */
 /*#include <mach/irqs.h>*/
 /* #include <mach/mt_reg_base.h> */
 /* #if IS_ENABLED(CONFIG_MTK_LEGACY) */
@@ -2038,6 +2039,11 @@ static signed int ConfigWPEHW(struct WPE_Config *pWPEConfig)
 #ifdef __WPE_KERNEL_PERFORMANCE_MEASURE__
 	mt_kernel_trace_begin("ConfigWPEHW");
 #endif
+
+	if (wpe_cmdq_clt == NULL) {
+		LOG_ERR("wpe_cmdq_clt is NULL!\n");
+		return -1;
+	}
 
 	pkt = cmdq_pkt_create(wpe_cmdq_clt);
 
@@ -4825,7 +4831,10 @@ static signed int WPE_open(struct inode *pInode, struct file *pFile)
 	__pm_stay_awake(WPE_wake_lock);
 #endif
 	WPE_EnableClock(MTRUE);
-	cmdq_mbox_enable(wpe_cmdq_clt->chan);
+	if (wpe_cmdq_clt)
+		cmdq_mbox_enable(wpe_cmdq_clt->chan);
+	else
+		LOG_ERR("wpe_cmdq_clt is NULL!");
 	g_u4WpeCnt = 0;
 #if IS_ENABLED(CONFIG_PM_SLEEP)
 	__pm_relax(WPE_wake_lock);
@@ -4905,7 +4914,10 @@ static signed int WPE_release(struct inode *pInode, struct file *pFile)
 #if IS_ENABLED(CONFIG_PM_SLEEP)
 	__pm_stay_awake(WPE_wake_lock);
 #endif
-	cmdq_mbox_disable(wpe_cmdq_clt->chan);
+	if (wpe_cmdq_clt)
+		cmdq_mbox_disable(wpe_cmdq_clt->chan);
+	else
+		LOG_ERR("wpe_cmdq_clt is NULL!");
 	WPE_EnableClock(MFALSE);
 #if IS_ENABLED(CONFIG_PM_SLEEP)
 	__pm_relax(WPE_wake_lock);
@@ -5295,7 +5307,7 @@ static signed int WPE_probe(struct platform_device *pDev)
 							INT_ST_MASK_WPE;
 
 		wpe_cmdq_base = cmdq_register_device(&pDev->dev);
-		wpe_cmdq_clt = cmdq_mbox_create(&pDev->dev, 0);
+		wpe_cmdq_clt = get_isp_cmdq_client();
 		wpe_cmdq_event_id = cmdq_dev_get_event(&pDev->dev, "wpe_eof");
 	}
 	if (nr_WPE_devs == 2) {

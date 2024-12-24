@@ -34,6 +34,9 @@ obj-$(CONFIG_MTK_CAMERA_RSC_ISP6S_V1) += camera_rsc_isp6s_v1.o
 camera_rsc_isp6s_v1-objs += engine_request.o
 camera_rsc_isp6s_v1-objs += 6781/camera_rsc.o
 
+ifeq ($(CONFIG_MTK_CAMERA_DPE_ISP50),m)
+ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/cameraisp/mfb/isp_50/
 obj-$(CONFIG_MTK_CAMERA_RSC_ISP50) += camera_rsc_isp50.o
 camera_rsc_isp50-objs += engine_request.o
 camera_rsc_isp50-objs += isp_50/camera_rsc.o
+endif
