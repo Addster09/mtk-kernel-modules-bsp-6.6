@@ -39,7 +39,7 @@
 /* MET: define to enable MET*/
 /*#define ISP_MET_READY*/
 
-#define EP_STAGE
+#define EP_NO_PMQOS
 #define EP_NO_K_LOG_ADJUST
 #ifdef EP_STAGE
 /* disable SMI related for EP */
@@ -71,13 +71,15 @@
 #include <linux/of_address.h>   /* for device tree */
 #endif
 
+#include <linux/pm_runtime.h> /* for mtcmos */
+
 #if defined(ISP_MET_READY)
 #define CREATE_TRACE_POINTS
 #include "inc/met_events_camsys.h"
 #endif
 
 #ifndef EP_MARK_SMI
-#include <smi_public.h>
+#include <soc/mediatek/smi.h>
 /*for SMI BW debug log*/
 #endif
 
@@ -85,13 +87,14 @@
 
 #ifndef EP_NO_PMQOS /* EP_NO_PMQOS is equivalent to EP_MARK_MMDVFS */
 #include <mmdvfs_mgr.h>
-#if IS_ENABLED(CONFIG_MTK_QOS_SUPPORT)
-#include <mmdvfs_pmqos.h>
+#if IS_ENABLED(CONFIG_MTK_PMQOS)
+// #include <mmdvfs_pmqos.h>
+#include <mtk-pm-qos.h>
 #endif
 #include <linux/pm_qos.h>
 
 /* Use this qos request to control camera dynamic frequency change */
-#if IS_ENABLED(CONFIG_MTK_QOS_SUPPORT)
+#if IS_ENABLED(CONFIG_MTK_PMQOS)
 struct mtk_pm_qos_request isp_qos;
 struct mtk_pm_qos_request camsys_qos_request[ISP_IRQ_TYPE_INT_CAM_C_ST+1];
 static struct ISP_PM_QOS_STRUCT G_PM_QOS[ISP_IRQ_TYPE_INT_CAM_C_ST+1];
@@ -1206,6 +1209,9 @@ static inline void Prepare_Enable_ccf_clock(void)
 	// smi_bus_prepare_enable(SMI_LARB6, ISP_DEV_NAME);
 	// smi_bus_prepare_enable(SMI_LARB3, ISP_DEV_NAME);
 	// #endif
+	ret = pm_runtime_get_sync(isp_devs[ISP_CAMSYS_CONFIG_IDX].dev);
+	if (ret < 0)
+		LOG_NOTICE("cannot pm runtime get ISP_CAMSYS_CONFIG_IDX mtcmos\n");
 
 	ret = clk_prepare_enable(isp_clk.ISP_SCP_SYS_DIS);
 	if (ret)
@@ -1246,6 +1252,8 @@ static inline void Disable_Unprepare_ccf_clock(void)
 	/* must keep this clk close order:
 	 * ISP clk->CG_SCP_SYS_ISP/CAM->CG_DISP0_SMI_COMMON->CG_SCP_SYS_DIS
 	 */
+	int ret;
+
 	clk_disable_unprepare(isp_clk.ISP_CAM_CAMSV0);
 	clk_disable_unprepare(isp_clk.ISP_CAM_CAMSV1);
 	clk_disable_unprepare(isp_clk.ISP_CAM_CAMSV2);
@@ -1254,6 +1262,10 @@ static inline void Disable_Unprepare_ccf_clock(void)
 	clk_disable_unprepare(isp_clk.ISP_SCP_SYS_CAM);
 	clk_disable_unprepare(isp_clk.ISP_SCP_SYS_ISP);
 	clk_disable_unprepare(isp_clk.ISP_SCP_SYS_DIS);
+
+	ret = pm_runtime_put_sync(isp_devs[ISP_CAMSYS_CONFIG_IDX].dev);
+	if (ret < 0)
+		LOG_NOTICE("cannot pm runtime put ISP_IMGSYS_CONFIG_IDX mtcmos\n");
 
 	// TODO: smi api changed
 	// #ifndef EP_MARK_SMI
@@ -1953,7 +1965,7 @@ static long ISP_Buf_CTRL_FUNC(unsigned long Param)
 }
 
 #ifndef EP_NO_PMQOS
-#if IS_ENABLED(CONFIG_MTK_QOS_SUPPORT)
+#if IS_ENABLED(CONFIG_MTK_PMQOS)
 static int ISP_SetPMQOS(unsigned int cmd, unsigned int module)
 {
 	#define bit 8
@@ -3144,10 +3156,10 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 			    sizeof(unsigned int)) == 0) {
 				if (dfs_ctrl == MTRUE) {
 					if (++camsys_qos == 1) {
-						#if IS_ENABLED(CONFIG_MTK_QOS_SUPPORT)
+						#if IS_ENABLED(CONFIG_MTK_PMQOS)
 						mtk_pm_qos_add_request(
 						  &isp_qos,
-						  PM_QOS_CAM_FREQ,
+						  MTK_PM_QOS_CAM_FREQ,
 						  0);
 						#else
 						mmdvfs_pm_qos_add_request(
@@ -3159,7 +3171,7 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 					}
 				} else {
 					if (--camsys_qos == 0) {
-						#if IS_ENABLED(CONFIG_MTK_QOS_SUPPORT)
+						#if IS_ENABLED(CONFIG_MTK_PMQOS)
 						mtk_pm_qos_remove_request(
 						    &isp_qos);
 						#else
@@ -3183,7 +3195,7 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 
 			if (copy_from_user(&dfs_update, (void *)Param,
 			    sizeof(unsigned int)) == 0) {
-				#if IS_ENABLED(CONFIG_MTK_QOS_SUPPORT)
+				#if IS_ENABLED(CONFIG_MTK_PMQOS)
 				mtk_pm_qos_update_request(
 					&isp_qos,
 					dfs_update);
@@ -3204,7 +3216,7 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 		break;
 	case ISP_GET_SUPPORTED_ISP_CLOCKS:
 		{
-		#if IS_ENABLED(CONFIG_MTK_QOS_SUPPORT)
+		#if IS_ENABLED(CONFIG_MTK_PMQOS)
 			int result = 0;
 			u64 freq_steps[ISP_CLK_LEVEL_CNT] = {0};
 
@@ -3212,7 +3224,7 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 			 * get supported frequency
 			 */
 			result = mmdvfs_qos_get_freq_steps(
-					PM_QOS_CAM_FREQ,
+					MTK_PM_QOS_CAM_FREQ,
 					freq_steps,
 					(u32 *)&ispclks.clklevelcnt);
 
@@ -3277,9 +3289,9 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 		{
 			struct ISP_GET_CLK_INFO getclk;
 
-			#if IS_ENABLED(CONFIG_MTK_QOS_SUPPORT)
+			#if IS_ENABLED(CONFIG_MTK_PMQOS)
 			getclk.curClk = (u32)mmdvfs_qos_get_freq(
-						PM_QOS_CAM_FREQ);
+						MTK_PM_QOS_CAM_FREQ);
 			#else
 			getclk.curClk = mmdvfs_qos_get_cur_thres(
 						&isp_qos,
@@ -3346,7 +3358,7 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 					Ret = -EFAULT;
 					break;
 				}
-				#if IS_ENABLED(CONFIG_MTK_QOS_SUPPORT)
+				#if IS_ENABLED(CONFIG_MTK_PMQOS)
 				G_PM_QOS[pm_qos_info.module].bw_sum =
 					pm_qos_info.bw_value;
 				G_PM_QOS[pm_qos_info.module].fps =
@@ -3366,7 +3378,7 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 		{
 			if (copy_from_user(DebugFlag, (void *)Param,
 			    sizeof(unsigned int) * 2) == 0) {
-				#if IS_ENABLED(CONFIG_MTK_QOS_SUPPORT)
+				#if IS_ENABLED(CONFIG_MTK_PMQOS)
 				static int bw_request[
 						ISP_IRQ_TYPE_INT_CAM_C_ST+1];
 
@@ -3382,8 +3394,8 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 						mtk_pm_qos_add_request(
 						    &camsys_qos_request[
 						    DebugFlag[1]],
-						    PM_QOS_MM_MEMORY_BANDWIDTH,
-						    PM_QOS_DEFAULT_VALUE);
+						    MTK_PM_QOS_MM_MEMORY_BANDWIDTH,
+						    MTK_PM_QOS_MM_MEMORY_BANDWIDTH_DEFAULT_VALUE);
 					}
 					Ret = ISP_SetPMQOS(
 						DebugFlag[0], DebugFlag[1]);
@@ -4997,6 +5009,66 @@ EXIT:
 	return Ret;
 }
 
+/*******************************************************************************
+ * Add isp p1 device link.
+ ******************************************************************************/
+static void ISP_add_device_link(struct platform_device *pDev)
+{
+	char mtk_larb_str[32];
+	int i = 0, mtk_larb = 0, mtk_larbs = 0, larb_num = 0;
+	unsigned int larb_id = 0;
+	struct device_node *larb_node;
+	struct device_link *link;
+	struct platform_device *larb_pdev;
+
+	mtk_larb = of_count_phandle_with_args(pDev->dev.of_node, "mediatek,larb", NULL);
+	mtk_larbs = of_count_phandle_with_args(pDev->dev.of_node, "mediatek,larbs", NULL);
+
+	if (mtk_larb > mtk_larbs) {
+		larb_num = mtk_larb;
+		strscpy_pad(mtk_larb_str, "mediatek,larb", 14);
+	} else {
+		larb_num = mtk_larbs;
+		strscpy_pad(mtk_larb_str, "mediatek,larbs", 15);
+	}
+
+	LOG_INF("larb_num: %d; (%d, %d)\n", larb_num, mtk_larb, mtk_larbs);
+
+	if (larb_num <= 0) {
+		LOG_INF("%s: find no larb", pDev->dev.of_node->name);
+		return;
+	}
+
+	for (i = 0; i < larb_num; i++) {
+		larb_node = of_parse_phandle(pDev->dev.of_node, mtk_larb_str, i);
+		if (!larb_node) {
+			LOG_NOTICE("%s: [%d]: failed to get larb from %s\n",
+				pDev->dev.of_node->name, i, mtk_larb_str);
+			continue;
+		}
+		larb_pdev = of_find_device_by_node(larb_node);
+		if (WARN_ON(!larb_pdev)) {
+			of_node_put(larb_node);
+			LOG_NOTICE("%s: failed to get larb pdev\n", pDev->dev.of_node->name);
+			continue;
+		}
+
+		if (of_property_read_u32(larb_node, "mediatek,larb-id", &larb_id))
+			LOG_NOTICE("Error: get larb id from DTS fail!!\n");
+		else
+			LOG_INF("%s gets larb_id=%d\n",
+				pDev->dev.of_node->name, larb_id);
+
+		of_node_put(larb_node);
+
+		link = device_link_add(&pDev->dev, &larb_pdev->dev,
+				DL_FLAG_PM_RUNTIME | DL_FLAG_STATELESS);
+		if (!link)
+			LOG_NOTICE("%s: [%d]: unable to link smi larb %d\n",
+				pDev->dev.of_node->name, i, larb_id);
+	}
+}
+
 /******************************************************************************
  *
  ******************************************************************************/
@@ -5049,6 +5121,11 @@ static int ISP_probe(struct platform_device *pDev)
 	LOG_INF("nr_isp_devs=%d, devnode(%s), map_addr=0x%lx\n",
 		nr_isp_devs, pDev->dev.of_node->name,
 		(unsigned long)isp_dev->regs);
+
+#ifndef EP_NO_CLKMGR /* MTCMOS */
+	if ((strncmp(pDev->dev.of_node->name, "camsys1", strlen("camsys1")) == 0))
+		pm_runtime_enable(&pDev->dev);
+#endif
 
 	/* get IRQ ID and request IRQ */
 	isp_dev->irq = irq_of_parse_and_map(pDev->dev.of_node, 0);
@@ -5105,6 +5182,8 @@ static int ISP_probe(struct platform_device *pDev)
 		LOG_INF("No IRQ!!: nr_isp_devs=%d, devnode(%s), irq=%d\n",
 			nr_isp_devs, pDev->dev.of_node->name, isp_dev->irq);
 	}
+
+	ISP_add_device_link(pDev);
 
 	/* Only register char driver in the 1st time */
 	if (nr_isp_devs == 1) {
@@ -5320,6 +5399,11 @@ static int ISP_remove(struct platform_device *pDev)
 	int i;
 	/*  */
 	LOG_DBG("- E.");
+#ifndef EP_NO_CLKMGR /* CCF */
+	if ((strncmp(pDev->dev.of_node->name, "camsys1", strlen("camsys1")) == 0))
+		pm_runtime_disable(&pDev->dev);
+#endif
+
 	/* unregister char driver. */
 	ISP_UnregCharDev();
 
@@ -8765,7 +8849,7 @@ static void SMI_INFO_DUMP(enum ISP_IRQ_TYPE_ENUM irq_module)
 			    INT_ST_MASK_CAM_WARN_2)) {
 				LOG_NOTICE(
 				    "ERR:SMI_DUMP by module:%d\n", irq_module);
-				smi_debug_bus_hang_detect(false, ISP_DEV_NAME);
+				mtk_smi_dbg_hang_detect("camera_isp");
 			}
 
 			g_ISPIntStatus_SMI[irq_module].ispIntErr =
@@ -8778,7 +8862,7 @@ static void SMI_INFO_DUMP(enum ISP_IRQ_TYPE_ENUM irq_module)
 				irq_module);
 #endif
 			LOG_NOTICE("ERR:SMI_DUMP by module:%d\n", irq_module);
-			smi_debug_bus_hang_detect(false, ISP_DEV_NAME);
+			mtk_smi_dbg_hang_detect("camera_isp");
 
 			g_ISPIntStatus_SMI[irq_module].ispIntErr =
 				g_ISPIntStatus_SMI[irq_module].ispInt3Err = 0;
@@ -8797,7 +8881,7 @@ static void SMI_INFO_DUMP(enum ISP_IRQ_TYPE_ENUM irq_module)
 				LOG_NOTICE(
 					"ERR:SMI_DUMP by module:%d\n",
 					irq_module);
-				smi_debug_bus_hang_detect(false, ISP_DEV_NAME);
+				mtk_smi_dbg_hang_detect("camera_isp_camsv");
 			}
 
 			g_ISPIntStatus_SMI[irq_module].ispIntErr = 0;
