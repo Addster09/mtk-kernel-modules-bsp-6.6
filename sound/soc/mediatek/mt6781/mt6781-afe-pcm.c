@@ -51,6 +51,7 @@
 
 static const struct snd_pcm_hardware mt6781_afe_hardware = {
 	.info = (SNDRV_PCM_INFO_MMAP |
+		 SNDRV_PCM_INFO_NO_PERIOD_WAKEUP |
 		 SNDRV_PCM_INFO_INTERLEAVED |
 		 SNDRV_PCM_INFO_MMAP_VALID),
 	.formats = (SNDRV_PCM_FMTBIT_S16_LE |
