@@ -1267,22 +1267,26 @@ static void drv2_hw_reset(void)
 	reg_value &= ~INFRA_PROT_DPMAIF_BIT;
 	dpmaif_write32(dpmaif_ctl->infra_ao_mem_base, 0, reg_value);
 	CCCI_BOOTUP_LOG(0, TAG, "%s:set prot:0x%x\n", __func__, reg_value);
+	udelay(500);
 
 	/* DPMAIF HW reset */
 	CCCI_BOOTUP_LOG(0, TAG, "%s:rst dpmaif\n", __func__);
 	/* reset dpmaif hw: AO Domain */
 	reg_value = DPMAIF_AO_RST_MASK;/* so only this bit effective */
 	regmap_write(dpmaif_ctl->infra_ao_base, INFRA_RST0_REG_AO, reg_value);
+	udelay(500);
 
 	CCCI_BOOTUP_LOG(0, TAG, "%s:clear reset\n", __func__);
 	/* reset dpmaif clr */
 	regmap_write(dpmaif_ctl->infra_ao_base, INFRA_RST1_REG_AO, reg_value);
 	CCCI_BOOTUP_LOG(0, TAG, "%s:done. reg_value: %x\n", __func__, reg_value);
+	udelay(500);
 
 	/* reset dpmaif hw: PD Domain */
 	reg_value = DPMAIF_PD_RST_MASK;
 	regmap_write(dpmaif_ctl->infra_ao_base, INFRA_RST0_REG_PD, reg_value);
 	CCCI_BOOTUP_LOG(0, TAG, "%s:clear reset\n", __func__);
+	udelay(500);
 
 	/* reset dpmaif clr */
 	regmap_write(dpmaif_ctl->infra_ao_base, INFRA_RST1_REG_PD, reg_value);
