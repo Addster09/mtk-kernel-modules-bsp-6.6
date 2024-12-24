@@ -212,6 +212,8 @@ int mtk_dump_reg(struct mtk_ddp_comp *comp)
 		break;
 	case DDP_COMPONENT_C3D0:
 	case DDP_COMPONENT_C3D1:
+	case DDP_COMPONENT_C3D2:
+	case DDP_COMPONENT_C3D3:
 		disp_c3d_dump(comp);
 		break;
 	case DDP_COMPONENT_AAL0:
