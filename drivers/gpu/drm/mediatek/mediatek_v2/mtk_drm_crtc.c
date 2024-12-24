@@ -4598,6 +4598,7 @@ _mtk_crtc_wb_addon_module_connect(
 	struct total_tile_overhead to_info;
 	enum addon_scenario scn;
 	struct mtk_drm_private *priv = crtc->dev->dev_private;
+	int event;
 
 	if (index != 0 || mtk_crtc_is_dc_mode(crtc) ||
 		!state->prop_val[CRTC_PROP_OUTPUT_ENABLE])
@@ -4748,7 +4749,9 @@ _mtk_crtc_wb_addon_module_connect(
 
 				addon_config.addon_wdma_config.wdma_src_roi = src_roi_l;
 				addon_config.addon_wdma_config.wdma_dst_roi = dst_roi_l;
-
+				//clear wdma frame done
+				event = mtk_crtc_wb_addon_get_event(crtc);
+				cmdq_pkt_clear_event(cmdq_handle, event);
 				/* connect left pipe */
 				mtk_addon_connect_after(crtc, ddp_mode, addon_module,
 							  &addon_config, cmdq_handle);
