@@ -11299,24 +11299,12 @@ unsigned int mtk_dsi_get_line_time(struct mtk_drm_crtc *mtk_crtc,
 
 	if (panel_params->is_cphy) {
 		/* CPHY */
-		ui = (1000 / data_rate > 0) ? 1000 / data_rate : 1;
-		cycle_time = 7000 / data_rate;
+		struct mtk_drm_private *priv = NULL;
 
-		lpx = NS_TO_CYCLE(75, cycle_time) + 1;
-		hs_prpr = NS_TO_CYCLE(64, cycle_time) + 1;
-		hs_zero = NS_TO_CYCLE((336 * ui), cycle_time);
-		hs_trail = NS_TO_CYCLE((203 * ui), cycle_time);
-		da_hs_exit = NS_TO_CYCLE(125, cycle_time) + 1;
-
+		priv = mtk_crtc->base.dev->dev_private;
 		phy_timcon = &panel_params->phy_timcon;
-
-		lpx = CHK_SWITCH(phy_timcon->lpx, lpx);
-		hs_prpr = CHK_SWITCH(phy_timcon->hs_prpr, hs_prpr);
-		hs_zero = CHK_SWITCH(phy_timcon->hs_zero, hs_zero);
-		hs_trail = CHK_SWITCH(phy_timcon->hs_trail, hs_trail);
-		da_hs_exit = CHK_SWITCH(phy_timcon->da_hs_exit, da_hs_exit);
-
-		if (dsi->driver_data->n_verion >= VER_N3) {
+		if (priv && (priv->data->mmsys_id == MMSYS_MT6899 ||
+			priv->data->mmsys_id == MMSYS_MT6991)) {
 			u32 cphy_progseq_cycle = 2;
 
 			lpx = (dsi->data_rate * 80) / 7000 + 1;
@@ -11328,27 +11316,48 @@ unsigned int mtk_dsi_get_line_time(struct mtk_drm_crtc *mtk_crtc,
 			da_hs_exit = (dsi->data_rate * 118) / 7000 + 1;
 			da_hs_exit = (da_hs_exit % 2) ? da_hs_exit + 2 : da_hs_exit + 1;  //da_hs_exit must be odd
 
-			lpx = CHK_SWITCH(phy_timcon->lpx, lpx);
-			da_hs_prep = CHK_SWITCH(phy_timcon->hs_prpr, da_hs_prep);
-			da_hs_zero = CHK_SWITCH(phy_timcon->hs_zero, da_hs_zero);
-			da_hs_trail = CHK_SWITCH(phy_timcon->hs_trail, da_hs_trail);
-			da_hs_exit = CHK_SWITCH(phy_timcon->da_hs_exit, da_hs_exit);
+			if (phy_timcon) {
+				lpx = CHK_SWITCH(phy_timcon->lpx, lpx);
+				da_hs_prep = CHK_SWITCH(phy_timcon->hs_prpr, da_hs_prep);
+				da_hs_zero = CHK_SWITCH(phy_timcon->hs_zero, da_hs_zero);
+				da_hs_trail = CHK_SWITCH(phy_timcon->hs_trail, da_hs_trail);
+				da_hs_exit = CHK_SWITCH(phy_timcon->da_hs_exit, da_hs_exit);
+			}
 
 			data_phy_cycle = da_hs_prep + da_hs_zero + da_hs_exit + 1 + lpx + cphy_progseq_cycle + 1;
+		} else {
+			ui = (1000 / data_rate > 0) ? 1000 / data_rate : 1;
+			cycle_time = 7000 / data_rate;
+
+			lpx = NS_TO_CYCLE(75, cycle_time) + 1;
+			hs_prpr = NS_TO_CYCLE(64, cycle_time) + 1;
+			hs_zero = NS_TO_CYCLE((336 * ui), cycle_time);
+			hs_trail = NS_TO_CYCLE((203 * ui), cycle_time);
+			da_hs_exit = NS_TO_CYCLE(125, cycle_time) + 1;
+
+			if (phy_timcon) {
+				lpx = CHK_SWITCH(phy_timcon->lpx, lpx);
+				hs_prpr = CHK_SWITCH(phy_timcon->hs_prpr, hs_prpr);
+				hs_zero = CHK_SWITCH(phy_timcon->hs_zero, hs_zero);
+				hs_trail = CHK_SWITCH(phy_timcon->hs_trail, hs_trail);
+				da_hs_exit = CHK_SWITCH(phy_timcon->da_hs_exit, da_hs_exit);
+			}
 		}
 
 		if (panel_params->lp_perline_en) {
 			/* LP per line */
-			line_time =
-				lpx + hs_prpr + hs_zero + 2 + 1 +
-				DIV_ROUND_UP(((dsi->lanes * 3) + 3 + 3 +
-				(CEILING(1 + ps_wc + 2, 2) / 2)),
-				dsi->lanes) + hs_trail + 1 + da_hs_exit + 1;
-			if (dsi->driver_data->n_verion >= VER_N3)
+			if (priv && (priv->data->mmsys_id == MMSYS_MT6899 ||
+				priv->data->mmsys_id == MMSYS_MT6991))
 				line_time = data_phy_cycle +
 					DIV_ROUND_UP(((dsi->lanes * 3) + 3 + 3 +
 					(CEILING(1 + ps_wc + 2, 2) / 2)),
 					dsi->lanes) + da_hs_trail + 1;
+			else
+				line_time =
+					lpx + hs_prpr + hs_zero + 2 + 1 +
+					DIV_ROUND_UP(((dsi->lanes * 3) + 3 + 3 +
+					(CEILING(1 + ps_wc + 2, 2) / 2)),
+					dsi->lanes) + hs_trail + 1 + da_hs_exit + 1;
 		} else {
 			if (panel_params->cmd_null_pkt_en && dsi->dummy_cmd_en) {
 				/* Keep HS + Dummy cycle */
@@ -11788,24 +11797,12 @@ void mtk_dsi_set_mmclk_by_datarate_V2(struct mtk_dsi *dsi,
 
 			if (ext->params->is_cphy) {
 				/* CPHY */
-				ui = (1000 / data_rate > 0) ? 1000 / data_rate : 1;
-				cycle_time = 7000 / data_rate;
+				struct mtk_drm_private *priv = NULL;
 
-				lpx = NS_TO_CYCLE(75, cycle_time) + 1;
-				hs_prpr = NS_TO_CYCLE(64, cycle_time) + 1;
-				hs_zero = NS_TO_CYCLE((336 * ui), cycle_time);
-				hs_trail = NS_TO_CYCLE((203 * ui), cycle_time);
-				da_hs_exit = NS_TO_CYCLE(125, cycle_time) + 1;
-
+				priv = mtk_crtc->base.dev->dev_private;
 				phy_timcon = &ext->params->phy_timcon;
-
-				lpx = CHK_SWITCH(phy_timcon->lpx, lpx);
-				hs_prpr = CHK_SWITCH(phy_timcon->hs_prpr, hs_prpr);
-				hs_zero = CHK_SWITCH(phy_timcon->hs_zero, hs_zero);
-				hs_trail = CHK_SWITCH(phy_timcon->hs_trail, hs_trail);
-				da_hs_exit = CHK_SWITCH(phy_timcon->da_hs_exit, da_hs_exit);
-
-				if (dsi->driver_data->n_verion >= VER_N3) {
+				if (priv && (priv->data->mmsys_id == MMSYS_MT6899 ||
+					priv->data->mmsys_id == MMSYS_MT6991)) {
 					u32 cphy_progseq_cycle = 2;
 
 					lpx = (dsi->data_rate * 80) / 7000 + 1;
@@ -11817,31 +11814,52 @@ void mtk_dsi_set_mmclk_by_datarate_V2(struct mtk_dsi *dsi,
 					da_hs_exit = (dsi->data_rate * 118) / 7000 + 1;
 					da_hs_exit = (da_hs_exit % 2) ? da_hs_exit + 2 : da_hs_exit + 1;
 
-					lpx = CHK_SWITCH(phy_timcon->lpx, lpx);
-					da_hs_prep = CHK_SWITCH(phy_timcon->hs_prpr, da_hs_prep);
-					da_hs_zero = CHK_SWITCH(phy_timcon->hs_zero, da_hs_zero);
-					da_hs_trail = CHK_SWITCH(phy_timcon->hs_trail, da_hs_trail);
-					da_hs_exit = CHK_SWITCH(phy_timcon->da_hs_exit, da_hs_exit);
+					if (phy_timcon) {
+						lpx = CHK_SWITCH(phy_timcon->lpx, lpx);
+						da_hs_prep = CHK_SWITCH(phy_timcon->hs_prpr, da_hs_prep);
+						da_hs_zero = CHK_SWITCH(phy_timcon->hs_zero, da_hs_zero);
+						da_hs_trail = CHK_SWITCH(phy_timcon->hs_trail, da_hs_trail);
+						da_hs_exit = CHK_SWITCH(phy_timcon->da_hs_exit, da_hs_exit);
+					}
 
 					data_phy_cycle = da_hs_prep + da_hs_zero + da_hs_exit + 1 +
 								lpx + cphy_progseq_cycle + 1;
+				} else {
+					ui = (1000 / data_rate > 0) ? 1000 / data_rate : 1;
+					cycle_time = 7000 / data_rate;
+
+					lpx = NS_TO_CYCLE(75, cycle_time) + 1;
+					hs_prpr = NS_TO_CYCLE(64, cycle_time) + 1;
+					hs_zero = NS_TO_CYCLE((336 * ui), cycle_time);
+					hs_trail = NS_TO_CYCLE((203 * ui), cycle_time);
+					da_hs_exit = NS_TO_CYCLE(125, cycle_time) + 1;
+
+					if (phy_timcon) {
+						lpx = CHK_SWITCH(phy_timcon->lpx, lpx);
+						hs_prpr = CHK_SWITCH(phy_timcon->hs_prpr, hs_prpr);
+						hs_zero = CHK_SWITCH(phy_timcon->hs_zero, hs_zero);
+						hs_trail = CHK_SWITCH(phy_timcon->hs_trail, hs_trail);
+						da_hs_exit = CHK_SWITCH(phy_timcon->da_hs_exit, da_hs_exit);
+					}
 				}
 
 				image_time = DIV_ROUND_UP(DIV_ROUND_UP(ps_wc, 2), dsi->lanes);
 
 				if (ext->params->lp_perline_en) {
 					/* LP per line */
-					line_time =
-						lpx + hs_prpr + hs_zero + 2 + 1 +
-						DIV_ROUND_UP(((dsi->lanes * 3) + 3 + 3 +
-							(CEILING(1 + ps_wc + 2, 2) / 2)),
-								dsi->lanes) +
-						hs_trail + 1 + da_hs_exit + 1;
-					if (dsi->driver_data->n_verion >= VER_N3)
+					if (priv && (priv->data->mmsys_id == MMSYS_MT6899 ||
+						priv->data->mmsys_id == MMSYS_MT6991))
 						line_time = data_phy_cycle +
 							DIV_ROUND_UP(((dsi->lanes * 3) + 3 + 3 +
 							(CEILING(1 + ps_wc + 2, 2) / 2)),
 							dsi->lanes) + da_hs_trail + 1;
+					else
+						line_time =
+							lpx + hs_prpr + hs_zero + 2 + 1 +
+							DIV_ROUND_UP(((dsi->lanes * 3) + 3 + 3 +
+								(CEILING(1 + ps_wc + 2, 2) / 2)),
+									dsi->lanes) +
+							hs_trail + 1 + da_hs_exit + 1;
 				} else {
 					if (dsi->ext->params->cmd_null_pkt_en && dsi->dummy_cmd_en) {
 						/* Keep HS + Dummy cycle */
