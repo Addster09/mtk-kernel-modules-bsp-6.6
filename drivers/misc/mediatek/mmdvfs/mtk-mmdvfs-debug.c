@@ -776,10 +776,10 @@ static int mmdvfs_v3_dbg_ftrace_thread(void *data)
 					ftrace_user_opp_v3(i, readl(MEM_USR_OPP(i,
 						readl(MEM_USR_OPP(i, true)) != MAX_OPP)));
 				else if (i == MMDVFS_USER_DISP)
-					ftrace_user_opp_v3(SRAM_USR_DPC, readl(SRAM_USR_VAL(SRAM_USR_DPC, (readl(
+					ftrace_user_opp_v3(i, readl(SRAM_USR_VAL(SRAM_USR_DPC, (readl(
 						SRAM_REC_CNT_USR(SRAM_USR_DPC)) + SRAM_REC_CNT - 1) % SRAM_REC_CNT)));
 				else if (i == MMDVFS_USER_SMI)
-					ftrace_user_opp_v3(SRAM_USR_SMI, readl(SRAM_USR_VAL(SRAM_USR_SMI, (readl(
+					ftrace_user_opp_v3(i, readl(SRAM_USR_VAL(SRAM_USR_SMI, (readl(
 						SRAM_REC_CNT_USR(SRAM_USR_SMI)) + SRAM_REC_CNT - 1) % SRAM_REC_CNT)));
 		} else {                     //mmdvfs v3.0
 			// power opp
