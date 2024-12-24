@@ -210,6 +210,7 @@ endmenu # Security
 
 menu "Tinysys"
 source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/apusys/Kconfig"
+source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/vpu/Kconfig"
 source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/sspm/Kconfig"
 source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/tinysys_scmi/Kconfig"
 source "$(KCONFIG_EXT_PREFIX)drivers/misc/mediatek/scp/Kconfig"

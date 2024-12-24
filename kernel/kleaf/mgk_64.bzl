@@ -337,6 +337,7 @@ mgk_64_device_modules = [
     "drivers/misc/mediatek/aee/aed/aee_rs.ko",
     "drivers/misc/mediatek/aee/hangdet/aee_hangdet.ko",
     "drivers/misc/mediatek/aee/mrdump/mrdump.ko",
+    "drivers/misc/mediatek/vpu/vpusys.ko",
     "drivers/misc/mediatek/apusys/apusys.ko",
     "drivers/misc/mediatek/apusys/apu_aov.ko",
     "drivers/misc/mediatek/apusys/power/apu_top.ko",
