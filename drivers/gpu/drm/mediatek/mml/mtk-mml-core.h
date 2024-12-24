@@ -527,6 +527,7 @@ struct mml_pipe_cache {
 struct mml_frame_config {
 	struct list_head entry;
 	struct mml_frame_info info;
+	struct mml_frame_size max_size;
 	enum mml_sys_id sysid;		/* main mmlsys used for this config */
 
 	/* frame input image size after rrot binning and rotate */
