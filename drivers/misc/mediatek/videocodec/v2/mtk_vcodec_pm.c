@@ -28,7 +28,7 @@ int mtk_vcodec_init_pm(struct mtk_vcodec_dev *mtkdev)
 	node = of_find_compatible_node(NULL, NULL, "mediatek,smi_larb1");
 	if (!node) {
 	    pr_info("[error]+%s,%d.can not get larb1\n", __func__, __LINE__);
-	return -1;
+		return -1;
 	}
 	pdev = of_find_device_by_node(node);
 	if (pdev == NULL) {
@@ -41,7 +41,7 @@ int mtk_vcodec_init_pm(struct mtk_vcodec_dev *mtkdev)
 		if (!device_link_add(&tmpdev->dev, pm->larbvdecs[0],
 				DL_FLAG_PM_RUNTIME | DL_FLAG_STATELESS)) {
 		    pr_info("%s larbvdecs(0) device link fail\n", __func__);
-		return -1;
+			return -1;
 		}
 		pr_debug("+%s,larbvdecs[0] = %p", __func__,  pm->larbvdecs[0]);
 	}

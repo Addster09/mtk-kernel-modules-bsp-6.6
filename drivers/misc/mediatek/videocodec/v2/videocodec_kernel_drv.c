@@ -104,8 +104,6 @@
 #include <linux/dma-buf.h>
 
 
-///#define YUGANG
-
 #define VDO_HW_WRITE(ptr, data)     mt_reg_sync_writel(data, ptr)
 #define VDO_HW_READ(ptr)            readl((void __iomem *)ptr)
 
@@ -1002,6 +1000,11 @@ void enc_isr(void)
 
 static irqreturn_t video_intr_dlr(int irq, void *dev_id)
 {
+	if (g_svp_mode) {
+		pr_debug("[VCODEC] svp_mode %d don't handle IRQ here",
+			g_svp_mode);
+		return IRQ_HANDLED;
+	}
 	dec_isr();
 	return IRQ_HANDLED;
 }
@@ -1222,7 +1225,7 @@ static long vcodec_lockhw(unsigned long arg)
 				ret = vcodec_lockhw_dec_fail(rHWLock,
 					FirstUseDecHW);
 				if (ret) {
-					pr_debug("[ERROR] lockhw_dec_fail failed %lu\n",
+					pr_debug("[ERROR] lockhw_dec_fail failed %d\n",
 						ret);
 					return -EFAULT;
 				}
@@ -1314,8 +1317,7 @@ static long vcodec_lockhw(unsigned long arg)
 				vdec_power_on();
 #endif
 #endif
-				if (rHWLock.bSecureInst == VAL_FALSE)
-					enable_irq(VDEC_IRQ_ID);
+				enable_irq(VDEC_IRQ_ID);
 
 #ifdef ENABLE_MMDVFS_VDEC
 				VdecDvfsMonitorStart();
@@ -1418,7 +1420,7 @@ static long vcodec_lockhw(unsigned long arg)
 				ret = vcodec_lockhw_enc_fail(rHWLock,
 					FirstUseEncHW);
 				if (ret) {
-					pr_debug("[ERROR] lockhw_enc_fail failed %lu\n",
+					pr_debug("[ERROR] lockhw_enc_fail failed %d\n",
 						ret);
 					return -EFAULT;
 				}
@@ -1617,7 +1619,7 @@ static long vcodec_unlockhw(unsigned long arg)
 	ret = copy_from_user(&rHWLock,
 		user_data_addr, sizeof(struct VAL_HW_LOCK_T));
 	if (ret) {
-		pr_debug("[ERROR] copy_from_user failed: %lu\n", ret);
+		pr_debug("[ERROR] copy_from_user failed: %d\n", ret);
 		return -EFAULT;
 	}
 
@@ -1657,8 +1659,7 @@ static long vcodec_unlockhw(unsigned long arg)
 			}
 			mutex_unlock(&VdecDVFSLock);
 #endif
-			if (rHWLock.bSecureInst == VAL_FALSE)
-				disable_irq(VDEC_IRQ_ID);
+			disable_irq(VDEC_IRQ_ID);
 
 			/* TODO: check if turning power off is ok */
 #if IS_ENABLED(CONFIG_PM)
@@ -3683,7 +3684,25 @@ static int vcodec_probe(struct platform_device *dev)
 		return ret;
 	}
 	vcodec_device2->pm_domain = &mt_venc_pm_domain;
+	ret = dma_set_mask_and_coherent(&dev->dev, DMA_BIT_MASK(34));
+	dev_info(&dev->dev, "64-bit DMA enable\n");
+	if (ret) {
+		ret = dma_set_mask_and_coherent(&dev->dev, DMA_BIT_MASK(34));
+		if (ret) {
+			pr_info("64-bit DMA enable failed\n");
+			return ret;
+		}
+	}
 
+	if (!dev->dev.dma_parms) {
+		dev->dev.dma_parms =
+			devm_kzalloc(&dev->dev, sizeof(*dev->dev.dma_parms), GFP_KERNEL);
+	}
+	if (dev->dev.dma_parms) {
+		ret = dma_set_max_seg_size(&dev->dev, (unsigned int)DMA_BIT_MASK(34));
+		if (ret)
+			pr_info("Failed to set DMA segment size\n");
+	}
 	pm_runtime_enable(vcodec_device);
 	pm_runtime_enable(vcodec_device2);
 #endif
@@ -3693,14 +3712,14 @@ static int vcodec_probe(struct platform_device *dev)
 
 	if (request_irq(VDEC_IRQ_ID,
 		(irq_handler_t)video_intr_dlr,
-		IRQF_TRIGGER_HIGH, VCODEC_DEVNAME, NULL) < 0)
+		IRQF_NO_THREAD | IRQF_SHARED | IRQF_PROBE_SHARED, VCODEC_DEVNAME, video_dev) < 0)
 		pr_debug("[VCODEC][ERROR] error to request dec irq\n");
 	else
 		pr_debug("[VCODEC] req success dec irq %d\n", VDEC_IRQ_ID);
 
 	if (request_irq(VENC_IRQ_ID,
 		(irq_handler_t)video_intr_dlr2,
-		IRQF_TRIGGER_HIGH, VCODEC_DEVNAME, NULL) < 0)
+		IRQF_TRIGGER_HIGH, VCODEC_DEVNAME, video_dev) < 0)
 		pr_debug("[VCODEC][ERROR] error to request enc irq\n");
 	else
 		pr_debug("[VCODEC] req success enc irq %d\n", VENC_IRQ_ID);
