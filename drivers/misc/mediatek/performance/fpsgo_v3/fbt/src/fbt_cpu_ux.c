@@ -97,12 +97,13 @@ static int registered;
 static int curr_pid;
 static unsigned long long curr_idf;
 
-typedef void (*heavy_fp)(int jank, int tgid, int pid);
+typedef void (*heavy_fp)(int jank, int tgid, int pid, unsigned long long frameid);
 int (*register_jank_ux_callback_fp)(heavy_fp cb);
 EXPORT_SYMBOL(register_jank_ux_callback_fp);
 int (*unregister_jank_ux_callback_fp)(heavy_fp cb);
 EXPORT_SYMBOL(unregister_jank_ux_callback_fp);
-void (*sbe_frame_hint_fp)(int frame_start, int perf_index, int capacity_area, int buffer_count);
+void (*sbe_frame_hint_fp)(int frame_start, int perf_index, int capacity_area,
+	int buffer_count, unsigned long long frame_id);
 EXPORT_SYMBOL(sbe_frame_hint_fp);
 
 static struct fpsgo_loading temp_blc_dep[MAX_DEP_NUM];
@@ -158,7 +159,7 @@ void set_curr_thread(int pid, unsigned long long identifier)
 	curr_idf = identifier;
 }
 
-void receive_jank_detection(int perf, int tgid, int pid)
+void receive_jank_detection(int perf, int tgid, int pid, unsigned long long frameid)
 {
 	struct render_info *rinfo = NULL;
 
@@ -167,7 +168,7 @@ void receive_jank_detection(int perf, int tgid, int pid)
 
 	if (rinfo != NULL) {
 		fpsgo_main_trace("Received heavy detection: %d", perf);
-		fpsgo_sbe_rescue(rinfo, 1, perf, RESCUE_TYPE_AI_RESCUE, 0, 0);
+		fpsgo_sbe_rescue(rinfo, 1, perf, RESCUE_TYPE_AI_RESCUE, 0, frameid);
 	}
 	fpsgo_render_tree_unlock(__func__);
 }
@@ -442,6 +443,7 @@ void fbt_ux_frame_start(struct render_info *thr, unsigned long long frameid, uns
 	if (!thr)
 		return;
 
+	thr->ai_boost = 0;
 	thr->ux_blc_cur = thr->ux_blc_next;
 	if (ux_general_policy)
 		fpsgo_set_deplist_policy(thr, FPSGO_TASK_VIP);
@@ -449,9 +451,9 @@ void fbt_ux_frame_start(struct render_info *thr, unsigned long long frameid, uns
 	fbt_ux_set_cap_with_sbe(thr);
 
 	if (sbe_frame_hint_fp) {
-		fpsgo_main_trace("[ai_hint] sbe_rescued:%d, enhance_f: %d",
-				thr->boost_info.sbe_rescue, thr->sbe_dy_enhance_f);
-		sbe_frame_hint_fp(1, thr->ux_blc_cur, -1, thr->cur_buffer_count);
+		fpsgo_main_trace("[ai_hint] sbe_rescued:%d, enhance_f: %d, frameid: %llu",
+				thr->boost_info.sbe_rescue, thr->sbe_dy_enhance_f, frameid);
+		sbe_frame_hint_fp(1, thr->ux_blc_cur, -1, thr->cur_buffer_count, frameid);
 	}
 
 	if (sbe_dy_rescue_enable && !list_empty(&thr->scroll_list)) {
@@ -573,7 +575,7 @@ EXIT:
 	if (sbe_frame_hint_fp) {
 		fpsgo_main_trace("[ai_hint] sbe_rescued:%d, enhance_f: %d",
 				thr->boost_info.sbe_rescue, thr->sbe_dy_enhance_f);
-		sbe_frame_hint_fp(0, thr->boost_info.sbe_rescue, loading, thr->cur_buffer_count);
+		sbe_frame_hint_fp(0, thr->boost_info.sbe_rescue, loading, thr->cur_buffer_count, frameid);
 	}
 
 	thr->ux_blc_cur = 0;
@@ -584,10 +586,21 @@ EXIT:
 		thr->ux_blc_next, 100, 0, 0);
 }
 
-void fpsgo_ai_boost(struct render_info *thr, int start, int boost, int frame_id)
+void fpsgo_ai_boost(struct render_info *thr, int start, int boost, unsigned long long frame_id)
 {
 	mutex_lock(&fbt_mlock);
 	if (start) {
+		struct hwui_frame_info *frame =
+			get_hwui_frame_info_by_frameid(thr, frame_id);
+
+		if (frame == NULL) {
+			fpsgo_main_trace("frame not found!\n");
+			goto leave;
+		} else if (frame->end_ts > frame->start_ts) {
+			fpsgo_main_trace("frame is end :%llu\n", frame_id);
+			goto leave;
+		}
+
 		ai_rescuing_frame_id = frame_id;
 
 		thr->ai_boost = boost < 0 ?  0 : boost;
