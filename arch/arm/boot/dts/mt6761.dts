@@ -3719,7 +3719,7 @@ firmware_class.path=/vendor/firmware clk_ignore_unused=1";
 		compatible = "mediatek,mt_soc_pcm_capture";
 	};
 
-	mt_soc_voice_md1 {
+	mt_soc_voice_md1: mt_soc_voice_md1 {
 		compatible = "mediatek,mt_soc_pcm_voice_md1";
 	};
 
