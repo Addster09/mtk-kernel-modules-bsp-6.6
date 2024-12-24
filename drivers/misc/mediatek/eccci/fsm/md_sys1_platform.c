@@ -27,8 +27,9 @@
 #endif
 
 #include <linux/regulator/consumer.h> /* for MD PMIC */
-#if IS_ENABLED(CONFIG_MTK_SPM_V4)
+#if (IS_ENABLED(CONFIG_MTK_SPM_V4) && IS_ENABLED(CONFIG_MTK_PMQOS))
 #include <vcorefs_v3/mtk_vcorefs_governor.h>
+#include "mtk-pm-qos.h"
 #endif
 #include "ccci_core.h"
 #include "modem_sys.h"
@@ -1683,48 +1684,31 @@ void md1_pll_init(struct ccci_modem *md)
 	CCCI_BOOTUP_LOG(0, TAG, "pll init: end\n");
 }
 
-
-#if IS_ENABLED(CONFIG_MTK_SPM_V4)
-static int (*vcorefs_request_dvfs_callback)(enum dvfs_kicker, enum dvfs_opp);
-void ccci_set_svcorefs_request_dvfs_cb(int (*vcorefs_request_dvfs_opp)(enum dvfs_kicker, enum dvfs_opp))
-{
-	vcorefs_request_dvfs_callback = vcorefs_request_dvfs_opp;
-}
-EXPORT_SYMBOL(ccci_set_svcorefs_request_dvfs_cb);
-#endif
-
-
 /* mt6739 used vcore old fun to set value */
 static int md_cd_vcore_config_old (unsigned int hold_req)
 {
 	static int is_hold;
 	int ret = -1;
-#if IS_ENABLED(CONFIG_MTK_SPM_V4)
-	if (!vcorefs_request_dvfs_callback) {
-		CCCI_ERROR_LOG(0, TAG,
-			"register vcorefs_request_dvfs_callback func fail\n");
-		return ret;
-	}
+#if (IS_ENABLED(CONFIG_MTK_SPM_V4) && IS_ENABLED(CONFIG_MTK_PMQOS))
+	static struct mtk_pm_qos_request md_qos_vcore_request;
 #endif
 
-	CCCI_BOOTUP_LOG(0, TAG,
-		"md_cd_vcore_config: is_hold=%d, hold_req=%d\n", is_hold, hold_req);
+	CCCI_BOOTUP_LOG(0, TAG, "md_cd_vcore_config: is_hold=%d, hold_req=%d\n",
+		is_hold, hold_req);
 	if (hold_req && is_hold == 0) {
-#if IS_ENABLED(CONFIG_MTK_SPM_V4)
-		ret = vcorefs_request_dvfs_callback(KIR_APCCCI, OPP_0);
+#if (IS_ENABLED(CONFIG_MTK_SPM_V4) && IS_ENABLED(CONFIG_MTK_PMQOS))
+		mtk_pm_qos_add_request(&md_qos_vcore_request, MTK_PM_QOS_VCORE_OPP, 0);
 #endif
 		is_hold = 1;
 	} else if (hold_req == 0 && is_hold) {
-#if IS_ENABLED(CONFIG_MTK_SPM_V4)
-		ret = vcorefs_request_dvfs_callback(KIR_APCCCI, OPP_UNREQ);
+#if (IS_ENABLED(CONFIG_MTK_SPM_V4) && IS_ENABLED(CONFIG_MTK_PMQOS))
+		mtk_pm_qos_remove_request(&md_qos_vcore_request);
 #endif
 		is_hold = 0;
 	} else
-		CCCI_ERROR_LOG(0, TAG,
-			"invalid hold_req: is_hold=%d, hold_req=%d\n", is_hold, hold_req);
-	if (ret)
-		CCCI_ERROR_LOG(0, TAG,
-			"md_cd_vcore_config fail: ret=%d, hold_req=%d\n", ret, hold_req);
+		CCCI_ERROR_LOG(0, TAG, "invalid hold_req: is_hold=%d, hold_req=%d\n",
+			is_hold, hold_req);
+
 	return ret;
 }
 
