@@ -19,6 +19,7 @@ ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/mtk-interconnect/
 ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/smi/
 ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/mmdvfs/
 ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/helio-dvfsrc/
+ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/soc/mediatek/
 
 ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/cam_timesync/
 ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/cameraisp/src/common/

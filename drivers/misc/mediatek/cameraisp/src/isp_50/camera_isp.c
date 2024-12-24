@@ -39,7 +39,6 @@
 /* MET: define to enable MET*/
 /*#define ISP_MET_READY*/
 
-#define EP_NO_PMQOS
 #define EP_NO_K_LOG_ADJUST
 #ifdef EP_STAGE
 /* disable SMI related for EP */
@@ -88,7 +87,7 @@
 #ifndef EP_NO_PMQOS /* EP_NO_PMQOS is equivalent to EP_MARK_MMDVFS */
 #include <mmdvfs_mgr.h>
 #if IS_ENABLED(CONFIG_MTK_PMQOS)
-// #include <mmdvfs_pmqos.h>
+#include <mmdvfs_pmqos.h>
 #include <mtk-pm-qos.h>
 #endif
 #include <linux/pm_qos.h>
