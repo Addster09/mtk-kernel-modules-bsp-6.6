@@ -66,9 +66,3 @@ s scan_swap_map_try_ssd_cluster
 s swap_do_scheduled_discard
 s swapcache_free_entries
 s do_set_pmd
-s binder_add_freeze_work
-s binder_cleanup_ref_olocked
-s binder_deferred_func
-s binder_release_work
-s print_binder_proc
-s print_binder_work_ilocked
