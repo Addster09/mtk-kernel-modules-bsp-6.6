@@ -6310,7 +6310,7 @@ static void mtk_dsi_encoder_enable(struct drm_encoder *encoder)
 	struct mtk_dsi *dsi = encoder_to_dsi(encoder);
 	struct drm_crtc *crtc = encoder->crtc;
 	struct mtk_ddp_comp *comp = &dsi->ddp_comp;
-	int index = drm_crtc_index(crtc);
+	int index = crtc ? drm_crtc_index(crtc) : 0;
 	int data = MTK_DISP_BLANK_UNBLANK;
 	struct mtk_drm_private *priv = (crtc && crtc->dev) ? crtc->dev->dev_private : NULL;
 
