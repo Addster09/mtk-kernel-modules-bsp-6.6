@@ -91,14 +91,13 @@ void mtk_vidle_flag_init(void *_crtc)
 		return;
 	vidle_data.drm_priv = priv;
 
-	if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_VIDLE_TOP_EN))
-		mtk_disp_vidle_flag.vidle_en |= DISP_VIDLE_TOP_EN;
-
 	if (!mtk_drm_lcm_is_connect(mtk_crtc))
 		DDPMSG("%s, lcm is not connected\n", __func__);
-	else if (mtk_dsi_is_cmd_mode(output_comp))
+	else if (mtk_dsi_is_cmd_mode(output_comp)) {
 		type = PANEL_TYPE_CMD;
-	else if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_VIDLE_FULL_SCENARIO) ||
+		if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_VIDLE_TOP_EN))
+			mtk_disp_vidle_flag.vidle_en |= DISP_VIDLE_TOP_EN;
+	} else if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_VIDLE_FULL_SCENARIO) ||
 		mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_VIDLE_VDO_PANEL))
 		type = PANEL_TYPE_VDO;
 	else
@@ -144,6 +143,9 @@ static void mtk_vidle_dt_enable(unsigned int en)
 
 void mtk_vidle_clear_wfe_event(enum mtk_vidle_voter_user user, struct cmdq_pkt *pkt, int event)
 {
+	if (!mtk_disp_vidle_flag.vidle_en)
+		return;
+
 	if (disp_dpc_driver.dpc_clear_wfe_event == NULL)
 		return;
 
@@ -491,10 +493,8 @@ int mtk_vidle_update_dt_v2(void *_crtc)
 	unsigned int duration = 0;
 	unsigned int fps = 0;
 
-	if (!mtk_disp_vidle_flag.vidle_en) {
-		DDPMSG("%s, %d\n", __func__, __LINE__);
+	if (!mtk_disp_vidle_flag.vidle_en)
 		return -1;
-	}
 
 	if (_crtc == NULL) {
 		DDPMSG("%s, %d\n", __func__, __LINE__);
@@ -652,14 +652,11 @@ static void mtk_vidle_enable_v2(bool _en, void *_drm_priv)
 	if (!disp_dpc_driver.dpc_enable)
 		return;
 
-	if (!mtk_disp_vidle_flag.vidle_en)
-		return;
-
 	if (unlikely(!_drm_priv))
 		return;
 	drm_priv = _drm_priv;
 
-	if (_en)
+	if (_en && mtk_disp_vidle_flag.vidle_en)
 		en = mtk_crtc_is_frame_trigger_mode(drm_priv->crtc[0]) ? 1 : 2;
 
 	disp_dpc_driver.dpc_enable(en);
@@ -738,15 +735,16 @@ u8 mtk_vidle_check_pll(void)
 	return disp_dpc_driver.dpc_check_pll ? disp_dpc_driver.dpc_check_pll() : 0;
 }
 
-void mtk_vidle_config_ff(bool en)
+void mtk_vidle_config_ff(bool _en)
 {
 	int ret = 0;
+	bool en = false;
 
 	if (!disp_dpc_driver.dpc_config)
 		return;
 
-	if (en && !mtk_disp_vidle_flag.vidle_en)
-		return;
+	if (_en && mtk_disp_vidle_flag.vidle_en)
+		en = true;
 
 	/* only allow in single CRTC, usually limits only CRTC0 to call */
 	if (en && (atomic_read(&vidle_data.drm_priv->kernel_pm.wakelock_cnt) != 1))
