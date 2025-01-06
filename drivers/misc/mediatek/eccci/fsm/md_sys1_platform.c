@@ -31,6 +31,9 @@
 #include <vcorefs_v3/mtk_vcorefs_governor.h>
 #include "mtk-pm-qos.h"
 #endif
+#if IS_ENABLED(CONFIG_MTK_SPM_V4)
+#include "mtk_spm_sleep.h"
+#endif
 #include "ccci_core.h"
 #include "modem_sys.h"
 #include "md_sys1_platform.h"
@@ -206,8 +209,12 @@ void md_cd_lock_modem_clock_src(int locked)
 
 	if (res.a0 && md_cd_plat_val_ptr.md_gen < 6295) {
 		CCCI_ERROR_LOG(-1, TAG, "[md_gen < 6295] using spm\n");
+#if IS_ENABLED(CONFIG_MTK_SPM_V4)
+		spm_ap_mdsrc_req(locked);
+#else
 		if (s_md_clock_src_callback)
 			s_md_clock_src_callback(locked);
+#endif
 		return;
 	}
 
