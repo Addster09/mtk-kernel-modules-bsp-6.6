@@ -428,6 +428,8 @@ static atomic_t G_u4DevNodeCt;
 
 int pr_detect_count;
 
+static bool isp_use_genpd;
+
 /*save ion fd*/
 //#define ENABLE_KEEP_ION_HANDLE
 
@@ -1202,15 +1204,17 @@ static inline void Prepare_Enable_ccf_clock(void)
 	 * CG_SCP_SYS_DIS->CG_DISP0_SMI_COMMON->CG_SCP_SYS_ISP/CAM->ISP clk
 	 */
 
-	// TODO: smi api changed
-	// #ifndef EP_MARK_SMI /* enable through smi API */
-	// LOG_INF("enable CG/MTCMOS through SMI CLK API\n");
-	// smi_bus_prepare_enable(SMI_LARB6, ISP_DEV_NAME);
-	// smi_bus_prepare_enable(SMI_LARB3, ISP_DEV_NAME);
-	// #endif
-	ret = pm_runtime_get_sync(isp_devs[ISP_CAMSYS_CONFIG_IDX].dev);
-	if (ret < 0)
-		LOG_NOTICE("cannot pm runtime get ISP_CAMSYS_CONFIG_IDX mtcmos\n");
+	if (!isp_use_genpd) {
+#ifndef EP_MARK_SMI /* enable through smi API */
+		LOG_INF("enable CG/MTCMOS through SMI CLK API\n");
+		smi_bus_prepare_enable(SMI_LARB6, ISP_DEV_NAME);
+		smi_bus_prepare_enable(SMI_LARB3, ISP_DEV_NAME);
+#endif
+	} else {
+		ret = pm_runtime_get_sync(isp_devs[ISP_CAMSYS_CONFIG_IDX].dev);
+		if (ret < 0)
+			LOG_NOTICE("cannot pm runtime get ISP_CAMSYS_CONFIG_IDX mtcmos\n");
+	}
 
 	ret = clk_prepare_enable(isp_clk.ISP_SCP_SYS_DIS);
 	if (ret)
@@ -1262,16 +1266,17 @@ static inline void Disable_Unprepare_ccf_clock(void)
 	clk_disable_unprepare(isp_clk.ISP_SCP_SYS_ISP);
 	clk_disable_unprepare(isp_clk.ISP_SCP_SYS_DIS);
 
-	ret = pm_runtime_put_sync(isp_devs[ISP_CAMSYS_CONFIG_IDX].dev);
-	if (ret < 0)
-		LOG_NOTICE("cannot pm runtime put ISP_IMGSYS_CONFIG_IDX mtcmos\n");
-
-	// TODO: smi api changed
-	// #ifndef EP_MARK_SMI
-	// LOG_INF("disable CG/MTCMOS through SMI CLK API\n");
-	// smi_bus_disable_unprepare(SMI_LARB6, ISP_DEV_NAME);
-	// smi_bus_disable_unprepare(SMI_LARB3, ISP_DEV_NAME);
-	// #endif
+	if (!isp_use_genpd) {
+#ifndef EP_MARK_SMI
+		LOG_INF("disable CG/MTCMOS through SMI CLK API\n");
+		smi_bus_disable_unprepare(SMI_LARB6, ISP_DEV_NAME);
+		smi_bus_disable_unprepare(SMI_LARB3, ISP_DEV_NAME);
+#endif
+	} else {
+		ret = pm_runtime_put_sync(isp_devs[ISP_CAMSYS_CONFIG_IDX].dev);
+		if (ret < 0)
+			LOG_NOTICE("cannot pm runtime put ISP_IMGSYS_CONFIG_IDX mtcmos\n");
+	}
 }
 
 /******************************************************************************
@@ -5122,8 +5127,14 @@ static int ISP_probe(struct platform_device *pDev)
 		(unsigned long)isp_dev->regs);
 
 #ifndef EP_NO_CLKMGR /* MTCMOS */
-	if ((strncmp(pDev->dev.of_node->name, "camsys1", strlen("camsys1")) == 0))
+	if ((strncmp(pDev->dev.of_node->name, "camsys1", strlen("camsys1")) == 0)
+		&& of_property_read_bool(pDev->dev.of_node, "power-domains")) {
+		isp_use_genpd = true;
 		pm_runtime_enable(&pDev->dev);
+	} else {
+		isp_use_genpd = false;
+		LOG_INF("Not found power-domains, use ccf to control mtcmos!\n");
+	}
 #endif
 
 	/* get IRQ ID and request IRQ */
@@ -5182,7 +5193,8 @@ static int ISP_probe(struct platform_device *pDev)
 			nr_isp_devs, pDev->dev.of_node->name, isp_dev->irq);
 	}
 
-	ISP_add_device_link(pDev);
+	if (isp_use_genpd)
+		ISP_add_device_link(pDev);
 
 	/* Only register char driver in the 1st time */
 	if (nr_isp_devs == 1) {
@@ -5398,8 +5410,10 @@ static int ISP_remove(struct platform_device *pDev)
 	int i;
 	/*  */
 	LOG_DBG("- E.");
+
 #ifndef EP_NO_CLKMGR /* CCF */
-	if ((strncmp(pDev->dev.of_node->name, "camsys1", strlen("camsys1")) == 0))
+	if ((strncmp(pDev->dev.of_node->name, "camsys1", strlen("camsys1")) == 0)
+		&& isp_use_genpd)
 		pm_runtime_disable(&pDev->dev);
 #endif
 

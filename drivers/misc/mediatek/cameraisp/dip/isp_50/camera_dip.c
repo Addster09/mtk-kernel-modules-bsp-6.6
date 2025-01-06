@@ -100,7 +100,6 @@
 #include <mt-plat/met_drv.h>
 #endif
 
-
 #include "camera_dip.h"
 
 /*  */
@@ -551,6 +550,7 @@ static void *pBuf_kmalloc[DIP_IRQ_TYPE_AMOUNT];
 static unsigned int G_u4DipEnClkCnt;
 static unsigned int g_u4DipCnt;
 
+static bool dip_use_genpd;
 
 int DIP_pr_detect_count;
 
@@ -1838,7 +1838,11 @@ static inline void Prepare_Enable_ccf_clock(void)
 	if (ret)
 		LOG_ERR("mtk_smi_larb_get larb5 fail %d\n", ret);
 #endif
-	pm_runtime_resume_and_get(dip_devs->dev);
+
+	if (!dip_use_genpd)
+		smi_bus_prepare_enable(SMI_LARB5, DIP_DEV_NAME);
+	else
+		pm_runtime_resume_and_get(dip_devs->dev);
 
 	ret = clk_prepare_enable(dip_clk.DIP_IMG_LARB5);
 	if (ret)
@@ -1858,7 +1862,11 @@ static inline void Disable_Unprepare_ccf_clock(void)
 #ifdef DIP_GET_SMI_NODE
 	mtk_smi_larb_put(dip_devs->larb5);
 #endif
-	pm_runtime_put_sync(dip_devs->dev);
+
+	if (!dip_use_genpd)
+		smi_bus_disable_unprepare(SMI_LARB5, DIP_DEV_NAME);
+	else
+		pm_runtime_put_sync(dip_devs->dev);
 }
 
 
@@ -4507,6 +4515,7 @@ EXIT:
 	LOG_DBG("- X.\n");
 	return Ret;
 }
+
 /*
  * mtk_smi_larb_put/mtk_smi_larb_get was removed, use pm_runtime + device link instead.
  */
@@ -4621,8 +4630,14 @@ static signed int DIP_probe(struct platform_device *pDev)
 	}
 
 	if (nr_dip_devs == 1) {
-		// TODO: pm_runtime api -- haipeng
-		pm_runtime_enable(dip_devs->dev);
+		if (of_property_read_bool(pDev->dev.of_node, "power-domains")) {
+			dip_use_genpd = true;
+			pm_runtime_enable(dip_devs->dev);
+		} else {
+			dip_use_genpd = false;
+			LOG_INF("Not found power-domains, use ccf to control mtcmos!\n");
+		}
+
 		/* parse larb node*/
 #ifdef DIP_GET_SMI_NODE
 		node_larb5 = of_parse_phandle(pDev->dev.of_node, "mediatek,larb", 0);
@@ -4703,7 +4718,8 @@ static signed int DIP_probe(struct platform_device *pDev)
 			nr_dip_devs, pDev->dev.of_node->name, dip_dev->irq);
 	}
 
-	DIP_add_device_link(pDev);
+	if (dip_use_genpd)
+		DIP_add_device_link(pDev);
 
 	/* Only register char driver in the 1st time */
 	if (nr_dip_devs == 1) {

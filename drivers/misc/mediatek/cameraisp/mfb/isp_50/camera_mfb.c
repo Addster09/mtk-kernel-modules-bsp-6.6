@@ -84,7 +84,6 @@
 
 #include <linux/pm_wakeup.h>
 
-
 /* CCF */
 #if !IS_ENABLED(CONFIG_MTK_LEGACY) && IS_ENABLED(CONFIG_COMMON_CLK) /*CCF*/
 #include <linux/clk.h>
@@ -280,6 +279,7 @@ static unsigned int g_u4EnableClockCount;
 static unsigned int g_u4MfbCnt;
 static unsigned int g_SuspendCnt;
 static bool g_MFB_PMState;
+static bool mfb_use_genpd;
 
 /* maximum number for supporting user to do interrupt operation */
 /* index 0 is for all the user that do not do register irq first */
@@ -1677,7 +1677,11 @@ static inline void MFB_Prepare_Enable_ccf_clock(void)
 	/* must keep this clk open order:
 	 * CG_SCP_SYS_MM0-> CG_MM_SMI_COMMON -> CG_SCP_SYS_ISP -> MFB clk
 	 */
-	pm_runtime_resume_and_get(MFB_devs[0].dev);
+	if (!mfb_use_genpd)
+		smi_bus_prepare_enable(SMI_LARB5, "camera_mfb");
+	else
+		pm_runtime_resume_and_get(MFB_devs[0].dev);
+
 	log_inf("MFB_Prepare_Enable_ccf_clock!!");
 
 	ret = clk_prepare_enable(mfb_clk.CG_IMGSYS_MFB);
@@ -1698,7 +1702,10 @@ static inline void MFB_Disable_Unprepare_ccf_clock(void)
 	 */
 	clk_disable_unprepare(mfb_clk.CG_IMGSYS_MFB);
 
-	pm_runtime_put_sync(MFB_devs[0].dev);
+	if (!mfb_use_genpd)
+		smi_bus_disable_unprepare(SMI_LARB5, "camera_mfb");
+	else
+		pm_runtime_put_sync(MFB_devs[0].dev);
 }
 #endif
 
@@ -3262,8 +3269,6 @@ static signed int MFB_probe(struct platform_device *pDev)
 
 #endif
 
-	MFB_add_device_link(pDev);
-
 #ifdef MFB_USE_GCE
 	/*init cmdq*/
 	if (nr_MFB_devs == 1) {
@@ -3297,9 +3302,17 @@ static signed int MFB_probe(struct platform_device *pDev)
 #endif
 		dma_set_mask_and_coherent(MFB_dev->dev, DMA_BIT_MASK(34));
 
-		pm_runtime_enable(MFB_dev->dev);
-		if (!pm_runtime_enabled(MFB_dev->dev))
-			goto EXIT;
+		if (of_property_read_bool(pDev->dev.of_node, "power-domains")) {
+			mfb_use_genpd = true;
+			pm_runtime_enable(MFB_dev->dev);
+			if (!pm_runtime_enabled(MFB_dev->dev))
+				goto EXIT;
+		} else {
+			mfb_use_genpd = false;
+			dev_info(
+				&pDev->dev,
+				"Not found power-domains, use ccf to control mtcmos!\n");
+		}
 
 		/* Create class register */
 		pMFBClass = class_create("MFBdrv");
@@ -3345,6 +3358,10 @@ static signed int MFB_probe(struct platform_device *pDev)
 
 	}
 	g_MFB_PMState = 0;
+
+	if (mfb_use_genpd)
+		MFB_add_device_link(pDev);
+
 EXIT:
 	if (Ret < 0)
 		MFB_UnregCharDev();

@@ -302,7 +302,7 @@ static int nr_WPE_devs;
 
 static unsigned int g_u4EnableClockCount;
 static unsigned int g_u4WpeCnt;
-
+static bool wpe_use_genpd;
 
 /* maximum number for supporting user to do interrupt operation */
 /* index 0 is for all the user that do not do register irq first */
@@ -2961,7 +2961,10 @@ static inline void WPE_Prepare_Enable_ccf_clock(void)
 {
 	int ret;
 
-	pm_runtime_resume_and_get(WPE_devs->dev);
+	if (!wpe_use_genpd)
+		smi_bus_prepare_enable(SMI_LARB5, "camera_wpe");
+	else
+		pm_runtime_resume_and_get(WPE_devs->dev);
 
 	/* must keep this clk open order:*/
 	/*CG_SCP_SYS_DIS-> CG_MM_SMI_COMMON ->*/
@@ -2984,7 +2987,10 @@ static inline void WPE_Disable_Unprepare_ccf_clock(void)
 	clk_disable_unprepare(wpe_clk.CG_IMGSYS_WPE_B);
 	clk_disable_unprepare(wpe_clk.CG_IMGSYS_WPE_A);
 
-	pm_runtime_put_sync(WPE_devs->dev);
+	if (!wpe_use_genpd)
+		smi_bus_disable_unprepare(SMI_LARB5, "camera_wpe");
+	else
+		pm_runtime_put_sync(WPE_devs->dev);
 }
 #endif
 #endif
@@ -5163,11 +5169,18 @@ static signed int WPE_probe(struct platform_device *pDev)
 		    nr_WPE_devs, pDev->dev.of_node->name);
 		return -ENOMEM;
 	}
+
 	if (nr_WPE_devs == 1) {
-		pm_runtime_enable(WPE_devs->dev);
-		if (!pm_runtime_enabled(WPE_devs->dev)){
-			LOG_ERR("[ERROR] WPE pm runtime enabled failed");
-			goto EXIT;
+		if (of_property_read_bool(pDev->dev.of_node, "power-domains")) {
+			wpe_use_genpd = true;
+			pm_runtime_enable(WPE_devs->dev);
+			if (!pm_runtime_enabled(WPE_devs->dev)){
+				LOG_ERR("[ERROR] WPE pm runtime enabled failed");
+				goto EXIT;
+			}
+		} else {
+			wpe_use_genpd = false;
+			LOG_INF("Not found power-domains, use ccf to control mtcmos!\n");
 		}
 	}
 
@@ -5235,7 +5248,8 @@ static signed int WPE_probe(struct platform_device *pDev)
 
 #endif
 
-	WPE_add_device_link(pDev);
+	if (wpe_use_genpd)
+		WPE_add_device_link(pDev);
 
 	/* Only register char driver in the 1st time */
 	if (nr_WPE_devs == 1) {

@@ -86,6 +86,7 @@
 /*  #include "smi_common.h" */
 
 #include <linux/pm_wakeup.h>
+
 /* CCF */
 #if !IS_ENABLED(CONFIG_MTK_LEGACY) && IS_ENABLED(CONFIG_COMMON_CLK) /*CCF*/
 #include <linux/clk.h>
@@ -262,6 +263,7 @@ static s32					cmdq_event_id;
 
 static unsigned int g_u4EnableClockCount;
 static unsigned int g_SuspendCnt;
+static bool rsc_use_genpd;
 
 /* maximum number for supporting user to do interrupt operation */
 /* index 0 is for all the user that do not do register irq first */
@@ -1253,7 +1255,10 @@ static inline void RSC_Prepare_Enable_ccf_clock(void)
 {
 	int ret;
 	/* open order:CG_SCP_SYS_MM0>CG_MM_SMI_COMMON>CG_SCP_SYS_ISP>RSC clk */
-	pm_runtime_get_sync(RSC_devs->dev);
+	if (!rsc_use_genpd)
+		smi_bus_prepare_enable(SMI_LARB5, "camera_rsc");
+	else
+		pm_runtime_get_sync(RSC_devs->dev);
 
 	ret = clk_prepare_enable(rsc_clk.CG_IMGSYS_RSC);
 	if (ret)
@@ -1264,7 +1269,11 @@ static inline void RSC_Disable_Unprepare_ccf_clock(void)
 {
 	/* close order:RSC clk>CG_SCP_SYS_ISP>CG_MM_SMI_COMMON>CG_SCP_SYS_MM0 */
 	clk_disable_unprepare(rsc_clk.CG_IMGSYS_RSC);
-	pm_runtime_put_sync(RSC_devs->dev);
+
+	if (!rsc_use_genpd)
+		smi_bus_disable_unprepare(SMI_LARB5, "camera_rsc");
+	else
+		pm_runtime_put_sync(RSC_devs->dev);
 }
 #endif
 
@@ -2958,6 +2967,16 @@ static signed int RSC_probe(struct platform_device *pDev)
 			goto EXIT;
 		}
 
+		if (of_property_read_bool(pDev->dev.of_node, "power-domains")) {
+			rsc_use_genpd = true;
+			pm_runtime_enable(RSC_devs->dev);
+		} else {
+			rsc_use_genpd = false;
+			dev_info(
+				&pDev->dev,
+				"Not found power-domains, use ccf to control mtcmos!\n");
+		}
+
 		/* Init spinlocks */
 		spin_lock_init(&(RSCInfo.SpinLockRSCRef));
 		spin_lock_init(&(RSCInfo.SpinLockRSC));
@@ -3001,7 +3020,8 @@ static signed int RSC_probe(struct platform_device *pDev)
 		cmdq_clt = get_isp_cmdq_client();
 		cmdq_event_id = cmdq_dev_get_event(&pDev->dev, "rsc_eof");
 
-		RSC_add_device_link(pDev);
+		if (rsc_use_genpd)
+			RSC_add_device_link(pDev);
 	}
 
 EXIT:

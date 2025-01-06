@@ -260,6 +260,7 @@ static int nr_DPE_devs;
 static unsigned int g_u4EnableClockCount;
 static unsigned int g_SuspendCnt;
 static bool g_DPE_PMState;
+static bool dpe_use_genpd;
 
 static struct cmdq_base       *dpe_cmdq_base;
 static struct cmdq_client     *dpe_cmdq_clt;
@@ -1871,12 +1872,14 @@ static inline void DPE_Prepare_Enable_ccf_clock(void)
 	/* must keep this clk open order:
 	 * CG_SCP_SYS_DIS-> CG_MM_SMI_COMMON -> CG_SCP_SYS_ISP -> DPE clk
 	 */
-	// TODO: smi api changed
-	// smi_bus_prepare_enable(SMI_LARB5, DPE_DEV_NAME);
+	if (!dpe_use_genpd)
+		smi_bus_prepare_enable(SMI_LARB5, DPE_DEV_NAME);
+	else
+		pm_runtime_resume_and_get(DPE_devs->dev);
+
 	ret = clk_prepare_enable(dpe_clk.CG_IMGSYS_DPE);
 	if (ret)
 		LOG_INF("cannot prepare and enable CG_IMGSYS_DPE clock\n");
-
 }
 static inline void DPE_Disable_Unprepare_ccf_clock(void)
 {
@@ -1884,8 +1887,10 @@ static inline void DPE_Disable_Unprepare_ccf_clock(void)
 	 * DPE clk -> CG_SCP_SYS_ISP -> CG_MM_SMI_COMMON -> CG_SCP_SYS_DIS
 	 */
 	clk_disable_unprepare(dpe_clk.CG_IMGSYS_DPE);
-	// TODO: smi api changed
-	// smi_bus_disable_unprepare(SMI_LARB5, DPE_DEV_NAME);
+	if (!dpe_use_genpd)
+		smi_bus_disable_unprepare(SMI_LARB5, DPE_DEV_NAME);
+	else
+		pm_runtime_put_sync(DPE_devs->dev);
 }
 #endif
 #endif
@@ -3536,8 +3541,6 @@ static signed int DPE_probe(struct platform_device *pDev)
 	LOG_INF("nr_DPE_devs=%d, devnode(%s), map_addr=0x%lx\n", nr_DPE_devs,
 		pDev->dev.of_node->name, (unsigned long)DPE_dev->regs);
 
-	DPE_add_device_link(pDev);
-
 	if (nr_DPE_devs == 1) {
 		/* register device by node */
 		dpe_cmdq_base = NULL;
@@ -3611,9 +3614,17 @@ static signed int DPE_probe(struct platform_device *pDev)
 
 
 #endif
-	pm_runtime_enable(DPE_dev->dev);
-	if (!pm_runtime_enabled(DPE_dev->dev))
-		goto EXIT;
+
+	if (of_property_read_bool(pDev->dev.of_node, "power-domains")) {
+		dpe_use_genpd = true;
+		pm_runtime_enable(DPE_dev->dev);
+		if (!pm_runtime_enabled(DPE_dev->dev))
+			goto EXIT;
+		DPE_add_device_link(pDev);
+	} else {
+		dpe_use_genpd = false;
+		LOG_INF("Not found power-domains, use ccf to control mtcmos!\n");
+	}
 
 #if IS_ENABLED(CONFIG_ARM64)
 	if (dma_set_mask_and_coherent(DPE_dev->dev, DMA_BIT_MASK(34)))
