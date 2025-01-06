@@ -4701,6 +4701,9 @@ _mtk_crtc_wb_addon_module_connect(
 			DDPMSG("S+/PL12/e1/id%d/mva0x%08llx/size0x%08lx/sec%d\n",
 				(unsigned int)state->prop_val[CRTC_PROP_OUTPUT_FENCE_IDX],
 				mtk_fb_get_dma(fb), mtk_fb_get_size(fb), mtk_drm_fb_is_secure(fb));
+			//clear wdma frame done
+			event = mtk_crtc_wb_addon_get_event(crtc);
+			cmdq_pkt_clear_event(cmdq_handle, event);
 
 			if (mtk_crtc->is_dual_pipe) {
 				int src_w = 0, dst_w = 0;
@@ -4759,9 +4762,7 @@ _mtk_crtc_wb_addon_module_connect(
 
 				addon_config.addon_wdma_config.wdma_src_roi = src_roi_l;
 				addon_config.addon_wdma_config.wdma_dst_roi = dst_roi_l;
-				//clear wdma frame done
-				event = mtk_crtc_wb_addon_get_event(crtc);
-				cmdq_pkt_clear_event(cmdq_handle, event);
+
 				/* connect left pipe */
 				mtk_addon_connect_after(crtc, ddp_mode, addon_module,
 							  &addon_config, cmdq_handle);
