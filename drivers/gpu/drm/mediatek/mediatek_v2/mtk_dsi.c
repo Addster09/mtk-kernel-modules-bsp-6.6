@@ -35,6 +35,7 @@
 #include <linux/ratelimit.h>
 #include <soc/mediatek/smi.h>
 #include <soc/mediatek/dramc.h>
+#include <soc/mediatek/emi.h>
 #if IS_ENABLED(CONFIG_ENABLE_DSI_HOTPLUG) || IS_ENABLED(CONFIG_ENABLE_SEND_PPS_PER_FRAME)
 #include <uapi/linux/sched/types.h>
 #endif
@@ -4161,6 +4162,7 @@ irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 			aee_v2 = (priv->data->mmsys_id == MMSYS_MT6899) &&
 				(mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_DSI_UNDERRUN_AEE_V2));
 
+			DDPPR_ERR("[dsi] underrun isr start\n");
 			if (mtk_dsi_is_cmd_mode(comp)) {
 				underrun_happened = 1;
 				// enable fdone inten and clr inten when fdone if not enable
@@ -4231,6 +4233,11 @@ irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 			++underrun_cnt;
 
 			mtk_disp_clr_debug_deteriorate();
+
+#if !IS_ENABLED(CONFIG_MTK_EMI_LEGACY)
+			mtk_emiisu_record_off();
+#endif
+
 			if (comp->id == DDP_COMPONENT_DSI0)
 				DRM_MMP_MARK(dsi, underrun_cnt|(0<<16), 0);
 		}
