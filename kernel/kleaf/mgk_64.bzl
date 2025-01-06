@@ -2614,6 +2614,8 @@ def get_overlay_modules_list():
         mgk_64_device_modules.append("drivers/misc/mediatek/upower/Upower.ko")
         mgk_64_device_modules.append("drivers/misc/mediatek/ppm_v3/mtk_ppm_v3.ko")
         mgk_64_device_modules.append("drivers/misc/mediatek/cpufreq_v2/src/CPU_DVFS.ko")
+        mgk_64_device_modules.remove("drivers/memory/mtk-smi.ko")
+        mgk_64_device_modules.append("drivers/memory/mtk-smi-mt6771.ko")
         mgk_64_device_modules.append("drivers/misc/mediatek/thermal/thermal_monitor.ko")
         mgk_64_device_modules.remove("drivers/thermal/mediatek/backlight_cooling.ko")
         mgk_64_device_modules.remove("drivers/thermal/mediatek/board_temp.ko")
