@@ -2703,7 +2703,7 @@ firmware_class.path=/vendor/firmware clk_ignore_unused=1";
 			/*WDT_EINT conn_wdt_irq_b*/
 			   <GIC_SPI 213 IRQ_TYPE_LEVEL_HIGH 0>,
 			/*conn2ap_sw_irq*/
-			   <GIC_SPI 214 IRQ_TYPE_EDGE_RISING>;
+			   <GIC_SPI 214 IRQ_TYPE_EDGE_RISING 0>;
 		power-domains = <&scpsys MT6761_POWER_DOMAIN_CONN>;
 		pmic = <&main_pmic>;
 		memory-region = <&consys_mem>;
