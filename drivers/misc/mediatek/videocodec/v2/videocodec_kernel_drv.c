@@ -144,7 +144,6 @@ static struct clk *clk_MT_CG_VENC_VENC;         /* VENC_VENC */
 static struct clk *clk_MT_SCP_SYS_VDE;          /* SCP_SYS_VDE */
 static struct clk *clk_MT_SCP_SYS_VEN;          /* SCP_SYS_VEN */
 static struct clk *clk_MT_SCP_SYS_DIS;          /* SCP_SYS_DIS */
-unsigned int g_svp_mode;
 
 static DEFINE_MUTEX(IsOpenedLock);
 static DEFINE_MUTEX(PWRLock);
@@ -1000,9 +999,9 @@ void enc_isr(void)
 
 static irqreturn_t video_intr_dlr(int irq, void *dev_id)
 {
-	if (g_svp_mode) {
+	if (video_dev->svp_mode) {
 		pr_debug("[VCODEC] svp_mode %d don't handle IRQ here",
-			g_svp_mode);
+			video_dev->svp_mode);
 		return IRQ_HANDLED;
 	}
 	dec_isr();
@@ -1306,17 +1305,23 @@ static long vcodec_lockhw(unsigned long arg)
 #endif
 
 #if IS_ENABLED(CONFIG_PM)
-		pr_debug("+%s,%d,\n", __func__, __LINE__);
+				pr_debug("+%s,%d,\n", __func__, __LINE__);
 				ret = pm_runtime_get_sync(vcodec_device);
 				if (ret)
 					pr_info("[error]%s,pm_runtime_get_sync ret:%d", __func__, ret);
 				pr_debug("+%s,%d,\n", __func__, __LINE__);
 #else
 #ifndef KS_POWER_WORKAROUND
-		pr_info("+%s,%d,\n", __func__, __LINE__);
+				pr_info("+%s,%d,\n", __func__, __LINE__);
 				vdec_power_on();
 #endif
 #endif
+				if (rHWLock.bSecureInst == VAL_FALSE)
+					video_dev->svp_mode = 0;
+				else
+					video_dev->svp_mode = 1;
+				pr_debug("[lock]%s,svp_mode:%d,bSecureInst:%d", __func__,
+					video_dev->svp_mode, rHWLock.bSecureInst);
 				enable_irq(VDEC_IRQ_ID);
 
 #ifdef ENABLE_MMDVFS_VDEC
@@ -1660,6 +1665,12 @@ static long vcodec_unlockhw(unsigned long arg)
 			mutex_unlock(&VdecDVFSLock);
 #endif
 			disable_irq(VDEC_IRQ_ID);
+			if (rHWLock.bSecureInst == VAL_FALSE)
+				video_dev->svp_mode = 0;
+			else
+				video_dev->svp_mode = 1;
+			pr_debug("[unlock]%s,svp_mode:%d,bSecureInst:%d", __func__,
+				video_dev->svp_mode, rHWLock.bSecureInst);
 
 			/* TODO: check if turning power off is ok */
 #if IS_ENABLED(CONFIG_PM)
@@ -2624,7 +2635,6 @@ static long vcodec_unlocked_ioctl(struct file *file,
 				ret);
 			return ret;
 		}
-		g_svp_mode = 1;
 	}
 	break;
 
@@ -3225,7 +3235,6 @@ static long vcodec_unlocked_compat_ioctl(struct file *file,
 				__func__, __LINE__, ret);
 			return ret;
 		}
-		g_svp_mode = 1;
 		break;
 	}
 	default:
