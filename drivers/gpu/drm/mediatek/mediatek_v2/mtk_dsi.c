@@ -66,6 +66,9 @@
 #include "mtk_dsi.h"
 //#include "mtk_reg_disp_bdg.h"
 /* ************end bridge ic ************* */
+
+#define ALWAYS_PREULTRA 0xFFFF
+
 //#define DSI_SELF_PATTERN
 #define DSI_START 0x00
 #define SKEWCAL_START BIT(4)
@@ -2879,6 +2882,8 @@ static void mtk_dsi_tx_buf_rw(struct mtk_dsi *dsi)
 	u32 fill_rate;
 	u32 sodi_hi, sodi_lo;
 	u32 sram_unit, buffer_unit;
+	u32 preultra_lo_fifo_us, preultra_hi_fifo_us;
+	u32 ultra_lo_fifo_us, ultra_hi_fifo_us;
 	u32 urgent_lo_fifo_us, urgent_hi_fifo_us, output_valid_us;
 	struct mtk_panel_ext *ext = mtk_dsi_get_panel_ext(&dsi->ddp_comp);
 	struct mtk_drm_crtc *mtk_crtc =	dsi->is_slave ?
@@ -2937,6 +2942,14 @@ static void mtk_dsi_tx_buf_rw(struct mtk_dsi *dsi)
 
 	buffer_unit = dsi->driver_data->buffer_unit;
 	sram_unit = dsi->driver_data->sram_unit;
+	preultra_lo_fifo_us = dsi->driver_data->preultra_lo_fifo_us ?
+				dsi->driver_data->preultra_lo_fifo_us : 35;
+	preultra_hi_fifo_us = dsi->driver_data->preultra_hi_fifo_us ?
+				dsi->driver_data->preultra_hi_fifo_us : 36;
+	ultra_lo_fifo_us = dsi->driver_data->ultra_lo_fifo_us ?
+				dsi->driver_data->ultra_lo_fifo_us : 25;
+	ultra_hi_fifo_us = dsi->driver_data->ultra_hi_fifo_us ?
+				dsi->driver_data->ultra_hi_fifo_us : 26;
 	urgent_lo_fifo_us = dsi->driver_data->urgent_lo_fifo_us ?
 				dsi->driver_data->urgent_lo_fifo_us : 11;
 	urgent_hi_fifo_us = dsi->driver_data->urgent_hi_fifo_us ?
@@ -2993,9 +3006,9 @@ static void mtk_dsi_tx_buf_rw(struct mtk_dsi *dsi)
 	rw_times = mtk_dsi_calculate_rw_times(dsi, width, height);
 
 	DDPINFO(
-		"%s,mode=0x%lx,valid_theshold=0x%x,lp_perline_en=%d,1t%dp,buf_con:%d\n",
+		"%s,mode=0x%lx,valid_th=0x%x,lp_perline=%d,1t%dp,buf_con:%d,drate:%d\n",
 		__func__, dsi->mode_flags & MIPI_DSI_MODE_VIDEO, tmp,
-		ext->params->lp_perline_en, dli_relay_1tnp, buf_con);
+		ext->params->lp_perline_en, dli_relay_1tnp, buf_con, dsi->data_rate);
 
 	mtk_dsi_mask(dsi, DSI_BUF_CON1(dsi->driver_data), 0x7fff, tmp);
 	if (dsi->driver_data->new_rst_dsi && !(dsi->ext->params->is_cphy))
@@ -3016,24 +3029,47 @@ static void mtk_dsi_tx_buf_rw(struct mtk_dsi *dsi)
 	if (dsi->ext->params->is_cphy) {
 		sodi_hi = tmp - (12 * (fill_rate - dsi->data_rate * 2 * dsi->lanes / 7
 				/ buffer_unit) / 10);
-		sodi_lo = (23 + 5) * dsi->data_rate * 2 * dsi->lanes / 7 / buffer_unit;
-		preultra_hi = 36 * dsi->data_rate * 2 * dsi->lanes / 7 / buffer_unit;
-		preultra_lo = 35 * dsi->data_rate * 2 * dsi->lanes / 7 / buffer_unit;
-		ultra_hi = 26 * dsi->data_rate * 2 * dsi->lanes / 7 / buffer_unit;
-		ultra_lo = 25 * dsi->data_rate * 2 * dsi->lanes / 7 / buffer_unit;
+		sodi_lo = (ultra_lo_fifo_us + 5) * dsi->data_rate * 2 * dsi->lanes / 7 / buffer_unit;
+		if ((preultra_hi_fifo_us == ALWAYS_PREULTRA) && buf_con &&
+			(comp->id == DDP_COMPONENT_DSI0)) {
+			preultra_hi = buf_con;
+			preultra_lo = buf_con - 1;
+		} else {
+			preultra_hi = preultra_hi_fifo_us * dsi->data_rate * 2 * dsi->lanes / 7 / buffer_unit;
+			preultra_lo = preultra_lo_fifo_us * dsi->data_rate * 2 * dsi->lanes / 7 / buffer_unit;
+		}
+		ultra_hi = ultra_hi_fifo_us * dsi->data_rate * 2 * dsi->lanes / 7 / buffer_unit;
+		ultra_lo = ultra_lo_fifo_us * dsi->data_rate * 2 * dsi->lanes / 7 / buffer_unit;
 		urgent_hi = urgent_hi_fifo_us * dsi->data_rate * 2 * dsi->lanes / 7 / buffer_unit;
 		urgent_lo = urgent_lo_fifo_us * dsi->data_rate * 2 * dsi->lanes / 7 / buffer_unit;
 	} else {
 		sodi_hi = tmp - (12 * (fill_rate - dsi->data_rate * dsi->lanes / 8
 				/ buffer_unit) / 10);
 		/*dsi->driver_data*/
-		sodi_lo = (23 + 5) * dsi->data_rate * dsi->lanes / 8 / buffer_unit;
-		preultra_hi = 36 * dsi->data_rate * dsi->lanes / 8 / buffer_unit;
-		preultra_lo = 35 * dsi->data_rate * dsi->lanes / 8 / buffer_unit;
-		ultra_hi = 26 * dsi->data_rate * dsi->lanes / 8 / buffer_unit;
-		ultra_lo = 25 * dsi->data_rate * dsi->lanes / 8 / buffer_unit;
+		sodi_lo = (ultra_lo_fifo_us + 5) * dsi->data_rate * dsi->lanes / 8 / buffer_unit;
+		if ((preultra_hi_fifo_us == ALWAYS_PREULTRA) && buf_con &&
+			(comp->id == DDP_COMPONENT_DSI0)) {
+			preultra_hi = buf_con;
+			preultra_lo = buf_con - 1;
+		} else {
+			preultra_hi = preultra_hi_fifo_us * dsi->data_rate * dsi->lanes / 8 / buffer_unit;
+			preultra_lo = preultra_lo_fifo_us * dsi->data_rate * dsi->lanes / 8 / buffer_unit;
+		}
+		ultra_hi = ultra_hi_fifo_us * dsi->data_rate * dsi->lanes / 8 / buffer_unit;
+		ultra_lo = ultra_lo_fifo_us * dsi->data_rate * dsi->lanes / 8 / buffer_unit;
 		urgent_hi = urgent_hi_fifo_us * dsi->data_rate * dsi->lanes / 8 / buffer_unit;
 		urgent_lo = urgent_lo_fifo_us * dsi->data_rate * dsi->lanes / 8 / buffer_unit;
+	}
+
+	if (buf_con) {
+		if ((sodi_hi > buf_con) || (sodi_lo > buf_con) || (sodi_hi < sodi_lo))
+			DDPPR_ERR("fifo invalid: sodi(%d,%d)\n", sodi_hi, sodi_lo);
+		if ((preultra_hi > buf_con) || (preultra_lo > buf_con) || (preultra_hi < preultra_lo))
+			DDPPR_ERR("fifo invalid: preultra(%d,%d)\n", preultra_hi, preultra_lo);
+		if ((ultra_hi > buf_con) || (ultra_lo > buf_con) || (ultra_hi < ultra_lo))
+			DDPPR_ERR("fifo invalid: ultra(%d,%d)\n", ultra_hi, ultra_lo);
+		if ((urgent_hi > buf_con) || (urgent_lo > buf_con) || (urgent_hi < urgent_lo))
+			DDPPR_ERR("fifo invalid: urgent(%d,%d)\n", urgent_hi, urgent_lo);
 	}
 
 	writel((sodi_hi & 0xfffff), dsi->regs + DSI_BUF_SODI_HIGH(dsi->driver_data));
@@ -15112,8 +15148,12 @@ static const struct mtk_dsi_driver_data mt6991_dsi_driver_data = {
 	.smi_dbg_disable = true,
 	.buffer_unit = 32,
 	.sram_unit = 32,
-	.urgent_lo_fifo_us = 11,
-	.urgent_hi_fifo_us = 12,
+	.preultra_lo_fifo_us = ALWAYS_PREULTRA,
+	.preultra_hi_fifo_us = ALWAYS_PREULTRA,
+	.ultra_lo_fifo_us = 40,
+	.ultra_hi_fifo_us = 41,
+	.urgent_lo_fifo_us = 17,
+	.urgent_hi_fifo_us = 18,
 	.output_valid_fifo_us = 50,
 	.max_vfp = 0x7ffe,
 	.mmclk_by_datarate = mtk_dsi_set_mmclk_by_datarate_V2,

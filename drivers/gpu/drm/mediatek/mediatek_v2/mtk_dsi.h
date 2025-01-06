@@ -63,6 +63,10 @@ struct mtk_dsi_driver_data {
 	bool new_rst_dsi;
 	const u32 buffer_unit;
 	const u32 sram_unit;
+	const u32 preultra_lo_fifo_us;
+	const u32 preultra_hi_fifo_us;
+	const u32 ultra_lo_fifo_us;
+	const u32 ultra_hi_fifo_us;
 	const u32 urgent_lo_fifo_us;
 	const u32 urgent_hi_fifo_us;
 	const u32 output_valid_fifo_us;
