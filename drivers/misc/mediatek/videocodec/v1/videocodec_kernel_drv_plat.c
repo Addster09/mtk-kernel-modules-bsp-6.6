@@ -630,6 +630,12 @@ static long vcodec_lockhw_vdec(struct VAL_HW_LOCK_T *pHWLock, char *bLockedHW)
 			vdec_power_on(gVCodecDev);
 #endif
 #endif
+			if (pHWLock->bSecureInst == VAL_FALSE)
+				gVCodecDev->svp_mode = 0;
+			else
+				gVCodecDev->svp_mode = 1;
+			pr_debug("[lock]%s,svp_mode:%d,bSecureInst:%d", __func__,
+				gVCodecDev->svp_mode, pHWLock->bSecureInst);
 			//if (pHWLock->bSecureInst == VAL_FALSE) {
 				/* Add one line comment for avoid kernel coding
 				 * style, WARNING:BRACES:
@@ -860,6 +866,13 @@ static long vcodec_lockhw_venc(struct VAL_HW_LOCK_T *pHWLock, char *bLockedHW)
 			venc_power_on(gVCodecDev));
 #endif
 #endif
+			if (pHWLock->bSecureInst == VAL_FALSE)
+				gVCodecDev->svp_mode = 0;
+			else
+				gVCodecDev->svp_mode = 1;
+			pr_debug("[lock]%s,svp_mode:%d,bSecureInst:%d", __func__,
+				gVCodecDev->svp_mode, pHWLock->bSecureInst);
+
 			enable_irq(VENC_IRQ_ID);
 		} else { /* someone use HW, and check timeout value */
 			if (pHWLock->u4TimeoutMs == 0) {
@@ -1103,6 +1116,12 @@ long vcodec_unlockhw(unsigned long arg)
 				 * style, WARNING:BRACES:
 				 */
 				disable_irq(VDEC_IRQ_ID);
+			if (rHWLock.bSecureInst == VAL_FALSE)
+				gVCodecDev->svp_mode = 0;
+			else
+				gVCodecDev->svp_mode = 1;
+			pr_debug("[lock]%s,svp_mode:%d,bSecureInst:%d", __func__,
+				gVCodecDev->svp_mode, rHWLock.bSecureInst);
 			//}
 			/* TODO: check if turning power off is ok */
 #if IS_ENABLED(CONFIG_PM)
@@ -1158,6 +1177,12 @@ long vcodec_unlockhw(unsigned long arg)
 				mutex_unlock(&VcodecDVFSLock);
 			}
 			disable_irq(VENC_IRQ_ID);
+			if (rHWLock.bSecureInst == VAL_FALSE)
+				gVCodecDev->svp_mode = 0;
+			else
+				gVCodecDev->svp_mode = 1;
+			pr_debug("[unlock]%s,svp_mode:%d,bSecureInst:%d", __func__,
+				gVCodecDev->svp_mode, rHWLock.bSecureInst);
 			/* turn venc power off */
 #if IS_ENABLED(CONFIG_PM)
 			ret = pm_runtime_put_sync(gDrvInitParams->vcodec_device2);
