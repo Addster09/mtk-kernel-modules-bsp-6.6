@@ -3537,6 +3537,11 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 		swinf-err-irq-idx-p = <0x52 0x57>;
 	};
 
+	pmic_tia: pmic-tia@1cc000d0 {
+		compatible = "mediatek,pmic_tia";
+		reg = <0 0x1cc000d0 0 0>;
+	};
+
 	firmware: firmware {
 		scmi: scmi {
 			compatible = "arm,scmi";
