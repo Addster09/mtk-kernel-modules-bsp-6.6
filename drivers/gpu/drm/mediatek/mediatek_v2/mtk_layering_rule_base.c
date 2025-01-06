@@ -4567,7 +4567,7 @@ static void check_is_mml_layer(const int disp_idx,
 		return;
 	}
 
-	if (priv->data->skip_trans && !bypass_skip_trans) {
+	if (priv->data->skip_trans && !bypass_skip_trans && !priv->is_tablet) {
 		mode = mtk_drm_crtc_avail_disp_mode(crtc, disp_info->disp_mode_idx[0]);
 		//fps = drm_mode_vrefresh(&crtc->state->adjusted_mode);
 		fps = drm_mode_vrefresh(mode);
