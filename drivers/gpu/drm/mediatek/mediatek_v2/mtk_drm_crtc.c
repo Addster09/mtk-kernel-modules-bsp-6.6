@@ -67,6 +67,7 @@
 #include "mtk_disp_vidle.h"
 #include "mtk_disp_ovl.h"
 #include "mtk_disp_spr.h"
+#include "mtk_disp_bdg.h"
 #if !IS_ENABLED(CONFIG_DRM_MEDIATEK_DPTX_AUTO)
 #include "mtk_dp.h"
 #endif
@@ -2516,7 +2517,7 @@ int mtk_drm_setbacklight(struct drm_crtc *crtc, unsigned int level,
 			DDP_SECOND_PATH, 0);
 	else
 		mtk_crtc_wait_frame_done(mtk_crtc, cmdq_handle,
-			DDP_FIRST_PATH, 0);
+			DDP_FIRST_PATH, is_bdg_supported() ? 1: 0);
 
 	if (is_frame_mode) {
 		cmdq_pkt_clear_event(cmdq_handle,
@@ -2541,8 +2542,17 @@ int mtk_drm_setbacklight(struct drm_crtc *crtc, unsigned int level,
 		&& !(cfg_flag & (0x1<<DISABLE_DYN_ELVSS))) {
 
 		DDPINFO("%s cfg_flag = %d,level=%d\n", __func__, cfg_flag, level);
-		if (comp && comp->funcs && comp->funcs->io_cmd)
-			comp->funcs->io_cmd(comp, cmdq_handle, DSI_SET_BL, &level);
+		if (comp && comp->funcs && comp->funcs->io_cmd) {
+			if (is_bdg_supported()) {
+				comp->funcs->io_cmd(comp, cmdq_handle, DSI_STOP_VDO_MODE, NULL);
+				comp->funcs->io_cmd(comp, cmdq_handle, DSI_SET_BL, &level);
+				comp->funcs->io_cmd(comp, cmdq_handle, DSI_START_VDO_MODE, NULL);
+				mtk_disp_mutex_trigger(mtk_crtc->mutex[0], cmdq_handle);
+				comp->funcs->io_cmd(comp, cmdq_handle, COMP_REG_START, NULL);
+				DDPINFO("%s bdg set backlight\n", __func__);
+			} else
+				comp->funcs->io_cmd(comp, cmdq_handle, DSI_SET_BL, &level);
+		}
 
 		/* Record Vblank end timestamp and calculate duration */
 		mtk_vblank_config_rec_end_cal(mtk_crtc, cmdq_handle, SET_BL);
@@ -13343,9 +13353,11 @@ skip:
 	mtk_disp_channel_srt_bw(mtk_crtc);
 
 	/* 5. Set HRT BW to 0 */
-	if (mtk_drm_helper_get_opt(priv->helper_opt,
-			MTK_DRM_OPT_MMQOS_SUPPORT))
-		mtk_disp_set_hrt_bw(mtk_crtc, 0);
+	if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_MMQOS_SUPPORT)) {
+		if (!(drm_crtc_index(crtc) == 0 && is_bdg_supported() &&
+			priv->data->mmsys_id == MMSYS_MT6768))
+			mtk_disp_set_hrt_bw(mtk_crtc, 0);
+	}
 
 	if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_MAX_CHANNEL_HRT)) {
 		unsigned int channel_hrt[BW_CHANNEL_NR] = { 0 };

@@ -915,6 +915,20 @@ static void mtk_disp_clear_channel_srt_write_bw_MT6991(struct mtk_drm_crtc *mtk_
 		priv->srt_channel_write_bw_sum[crtc_idx][i] = 0;
 }
 
+void mtk_disp_hrt_mmclk_request_release(struct mtk_drm_crtc *mtk_crtc)
+{
+#ifdef CONFIG_MTK_FB_MMDVFS_SUPPORT
+	int ret = 0;
+	struct drm_crtc *crtc = &mtk_crtc->base;
+	struct mtk_drm_private *priv = crtc->dev->dev_private;
+
+	/*release Vcore to lowest level*/
+	if (priv->data->mmsys_id == MMSYS_MT6768)
+		ret = regulator_set_voltage(mm_freq_request, 650000, INT_MAX);
+	DDPMSG("%s: hrt release ret=%d\n", __func__, ret);
+#endif
+}
+
 #ifdef CONFIG_MTK_FB_MMDVFS_SUPPORT
 void mtk_disp_hrt_mmclk_request_mt6768(struct mtk_drm_crtc *mtk_crtc, unsigned int bw)
 {

@@ -55,6 +55,7 @@
 #include "platform/mtk_drm_platform.h"
 #include "mtk_drm_trace.h"
 #include "mtk_disp_gamma.h"
+#include "mtk_disp_pmqos.h"
 
 /* ************ Panel Master ********** */
 #include "mtk_fbconfig_kdebug.h"
@@ -6224,8 +6225,11 @@ static void mtk_dsi_encoder_disable(struct drm_encoder *encoder)
 	CRTC_MMP_MARK(index, dsi_suspend, 2, 0);
 
 	mtk_output_dsi_disable(dsi, NULL, false);
-	if (is_bdg_supported())
+	if (is_bdg_supported()) {
 		bdg_common_deinit(DISP_BDG_DSI0, NULL, dsi);
+		mtk_disp_set_hrt_bw(comp->mtk_crtc, 0);
+		mtk_disp_hrt_mmclk_request_release(comp->mtk_crtc);
+	}
 
 	CRTC_MMP_MARK(index, dsi_suspend, 3, 0);
 
@@ -6265,6 +6269,7 @@ static void mtk_dsi_encoder_enable(struct drm_encoder *encoder)
 	struct mtk_ddp_comp *comp = &dsi->ddp_comp;
 	int index = drm_crtc_index(crtc);
 	int data = MTK_DISP_BLANK_UNBLANK;
+	struct mtk_drm_private *priv = (crtc && crtc->dev) ? crtc->dev->dev_private : NULL;
 
 	CRTC_MMP_EVENT_START(index, dsi_resume,
 			(unsigned long)crtc, index);
@@ -6289,8 +6294,11 @@ static void mtk_dsi_encoder_enable(struct drm_encoder *encoder)
 		DDP_PROFILE("[PROFILE] %s before notify end\n", __func__);
 	}
 
-	if (is_bdg_supported())
+	if (is_bdg_supported()) {
+		if (priv && priv->data->mmsys_id == MMSYS_MT6768) // for dbg lowest vcore request
+			mtk_disp_set_hrt_bw(comp->mtk_crtc, 1);
 		mtk_output_bdg_enable(dsi, false);
+	}
 
 	CRTC_MMP_MARK(index, dsi_resume, 1, 0);
 
@@ -6786,6 +6794,7 @@ static int mtk_dsi_stop_vdo_mode(struct mtk_dsi *dsi, void *handle)
 	struct mtk_drm_crtc *mtk_crtc = comp->mtk_crtc;
 	int need_create_hnd = 0, index = 0;
 	struct cmdq_pkt *cmdq_handle;
+	struct mtk_drm_private *priv = NULL;
 	unsigned char stopdsi[] = {0x00, 0x10, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00}; //ID 0x00
 	unsigned char setcmd[] = {0x14, 0x10, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00}; //ID 0x14
 	unsigned char setrxcmd[] = {0x70, 0x31, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00}; //ID 0x70
@@ -6797,6 +6806,8 @@ static int mtk_dsi_stop_vdo_mode(struct mtk_dsi *dsi, void *handle)
 		return 1;
 	}
 
+	if (mtk_crtc->base.dev)
+		priv = mtk_crtc->base.dev->dev_private;
 	index = drm_crtc_index(&mtk_crtc->base);
 	CRTC_MMP_MARK(index, esd_check, 3, 0);
 	/* Add blocking flush for waiting dsi idle in other gce client */
@@ -6847,6 +6858,11 @@ static int mtk_dsi_stop_vdo_mode(struct mtk_dsi *dsi, void *handle)
 
 	if (is_bdg_supported()) {
 		mipi_dsi_write_6382(dsi, handle, stopdsi, 8);
+		/* wait 5 lines(25us) to make sure vfp line done*/
+		if (priv && priv->data && priv->data->mmsys_id == MMSYS_MT6768)
+			cmdq_pkt_sleep_by_poll(handle, CMDQ_US_TO_TICK(25));
+		else
+			cmdq_pkt_sleep(handle, CMDQ_US_TO_TICK(25), CMDQ_GPR_R07); //need wait 5 lines, 25us
 		mipi_dsi_write_6382(dsi, handle, sw_reset0, 8);
 		mipi_dsi_write_6382(dsi, handle, sw_reset1, 8);
 		mipi_dsi_write_6382(dsi, handle, setcmd, 8);
@@ -8947,7 +8963,7 @@ void mipi_dsi_dcs_write_gce(struct mtk_dsi *dsi, struct cmdq_pkt *handle,
 	}
 
 	mtk_dsi_power_keep_gce(dsi, handle, true);
-	if (mtk_dsi_is_cmd_mode(&dsi->ddp_comp)) {
+	if (mtk_dsi_is_cmd_mode(&dsi->ddp_comp) || is_bdg_supported()) {
 		mtk_dsi_poll_for_idle(dsi, handle);
 		mtk_dsi_cmdq_gce(dsi, handle, &msg);
 		if (dsi->slave_dsi) {
