@@ -416,7 +416,8 @@ static int page_base_free_v2(struct secure_heap_page *sec_heap,
 			++page_count;
 		}
 		/* clean buffer in el2 */
-		__free_pages(pmm_page, get_order(PAGE_SIZE));
+		if (get_order(PAGE_SIZE) < NR_PAGE_ORDERS)
+			__free_pages(pmm_page, get_order(PAGE_SIZE));
 	}
 	kfree(buffer->ssheap);
 
