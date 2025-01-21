@@ -1255,10 +1255,13 @@ static inline void RSC_Prepare_Enable_ccf_clock(void)
 {
 	int ret;
 	/* open order:CG_SCP_SYS_MM0>CG_MM_SMI_COMMON>CG_SCP_SYS_ISP>RSC clk */
-	if (!rsc_use_genpd)
+	if (!rsc_use_genpd) {
 		smi_bus_prepare_enable(SMI_LARB5, "camera_rsc");
-	else
-		pm_runtime_get_sync(RSC_devs->dev);
+	} else {
+		ret = pm_runtime_get_sync(RSC_devs->dev);
+		if (ret)
+			LOG_ERR("pm_runtime_resume_and_get fail.\n");
+	}
 
 	ret = clk_prepare_enable(rsc_clk.CG_IMGSYS_RSC);
 	if (ret)

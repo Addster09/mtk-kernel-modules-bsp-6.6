@@ -1839,10 +1839,13 @@ static inline void Prepare_Enable_ccf_clock(void)
 		LOG_ERR("mtk_smi_larb_get larb5 fail %d\n", ret);
 #endif
 
-	if (!dip_use_genpd)
+	if (!dip_use_genpd) {
 		smi_bus_prepare_enable(SMI_LARB5, DIP_DEV_NAME);
-	else
-		pm_runtime_resume_and_get(dip_devs->dev);
+	} else {
+		ret = pm_runtime_resume_and_get(dip_devs->dev);
+		if (ret)
+			LOG_ERR("pm_runtime_resume_and_get fail.\n");
+	}
 
 	ret = clk_prepare_enable(dip_clk.DIP_IMG_LARB5);
 	if (ret)

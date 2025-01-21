@@ -2961,10 +2961,13 @@ static inline void WPE_Prepare_Enable_ccf_clock(void)
 {
 	int ret;
 
-	if (!wpe_use_genpd)
+	if (!wpe_use_genpd) {
 		smi_bus_prepare_enable(SMI_LARB5, "camera_wpe");
-	else
-		pm_runtime_resume_and_get(WPE_devs->dev);
+	} else {
+		ret = pm_runtime_resume_and_get(WPE_devs->dev);
+		if (ret)
+			LOG_ERR("pm_runtime_resume_and_get fail.\n");
+	}
 
 	/* must keep this clk open order:*/
 	/*CG_SCP_SYS_DIS-> CG_MM_SMI_COMMON ->*/

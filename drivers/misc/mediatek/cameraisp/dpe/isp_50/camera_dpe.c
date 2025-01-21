@@ -1872,10 +1872,13 @@ static inline void DPE_Prepare_Enable_ccf_clock(void)
 	/* must keep this clk open order:
 	 * CG_SCP_SYS_DIS-> CG_MM_SMI_COMMON -> CG_SCP_SYS_ISP -> DPE clk
 	 */
-	if (!dpe_use_genpd)
+	if (!dpe_use_genpd) {
 		smi_bus_prepare_enable(SMI_LARB5, DPE_DEV_NAME);
-	else
-		pm_runtime_resume_and_get(DPE_devs->dev);
+	} else {
+		ret = pm_runtime_resume_and_get(DPE_devs->dev);
+		if (ret)
+			LOG_INF("pm_runtime_resume_and_get fail.\n");
+	}
 
 	ret = clk_prepare_enable(dpe_clk.CG_IMGSYS_DPE);
 	if (ret)

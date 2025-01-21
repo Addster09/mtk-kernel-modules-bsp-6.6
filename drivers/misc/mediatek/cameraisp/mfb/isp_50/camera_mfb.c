@@ -1677,10 +1677,13 @@ static inline void MFB_Prepare_Enable_ccf_clock(void)
 	/* must keep this clk open order:
 	 * CG_SCP_SYS_MM0-> CG_MM_SMI_COMMON -> CG_SCP_SYS_ISP -> MFB clk
 	 */
-	if (!mfb_use_genpd)
+	if (!mfb_use_genpd) {
 		smi_bus_prepare_enable(SMI_LARB5, "camera_mfb");
-	else
-		pm_runtime_resume_and_get(MFB_devs[0].dev);
+	} else {
+		ret = pm_runtime_resume_and_get(MFB_devs[0].dev);
+		if (ret)
+			log_err("pm_runtime_resume_and_get fail.\n");
+	}
 
 	log_inf("MFB_Prepare_Enable_ccf_clock!!");
 
