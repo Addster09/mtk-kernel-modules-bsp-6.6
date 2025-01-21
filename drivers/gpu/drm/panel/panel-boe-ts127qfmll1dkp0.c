@@ -71,6 +71,7 @@ static enum RES_SWITCH_TYPE res_switch_type = RES_SWITCH_NO_USE;
 
 static int current_fps = 144;
 #define SUPPORT_90Hz 0
+#define PREFETCH_TIME 150
 
 struct panel_desc {
 	const struct drm_display_mode *modes;
@@ -1034,6 +1035,7 @@ static struct mtk_panel_params ext_params = {
 	.output_mode = MTK_PANEL_DUAL_PORT,
 	.lcm_cmd_if = MTK_PANEL_DUAL_PORT,
 	.dual_swap = false,
+	.prefetch_time = PREFETCH_TIME,
 	.vdo_per_frame_lp_enable = 1,
 	.cust_esd_check = 0,
 	.esd_check_enable = 0,
@@ -1112,6 +1114,7 @@ static struct mtk_panel_params ext_params_90hz = {
 	.output_mode = MTK_PANEL_DUAL_PORT,
 	.lcm_cmd_if = MTK_PANEL_DUAL_PORT,
 	.dual_swap = false,
+	.prefetch_time = PREFETCH_TIME,
 	.vdo_per_frame_lp_enable = 1,
 	.cust_esd_check = 0,
 	.esd_check_enable = 0,
@@ -1191,6 +1194,7 @@ static struct mtk_panel_params ext_params_120hz = {
 	.output_mode = MTK_PANEL_DUAL_PORT,
 	.lcm_cmd_if = MTK_PANEL_DUAL_PORT,
 	.dual_swap = false,
+	.prefetch_time = PREFETCH_TIME,
 	.vdo_per_frame_lp_enable = 1,
 	.cust_esd_check = 0,
 	.esd_check_enable = 0,
@@ -1268,6 +1272,7 @@ static struct mtk_panel_params ext_params_60hz = {
 	.output_mode = MTK_PANEL_DUAL_PORT,
 	.lcm_cmd_if = MTK_PANEL_DUAL_PORT,
 	.dual_swap = false,
+	.prefetch_time = PREFETCH_TIME,
 	.vdo_per_frame_lp_enable = 1,
 	.cust_esd_check = 0,
 	.esd_check_enable = 0,
@@ -1344,6 +1349,7 @@ static struct mtk_panel_params ext_params_30hz = {
 	.output_mode = MTK_PANEL_DUAL_PORT,
 	.lcm_cmd_if = MTK_PANEL_DUAL_PORT,
 	.dual_swap = false,
+	.prefetch_time = PREFETCH_TIME,
 	.vdo_per_frame_lp_enable = 1,
 	.cust_esd_check = 0,
 	.esd_check_enable = 0,
