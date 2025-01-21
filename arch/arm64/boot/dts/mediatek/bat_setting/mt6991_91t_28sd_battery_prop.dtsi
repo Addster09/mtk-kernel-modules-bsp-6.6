@@ -72,7 +72,7 @@
 	enable-charging-ratio = <(1)>;
 	/* 2.8v shutdown cond */
 	vbat2-det-voltage1 = <(28500)>;
-	vbat2-det-voltage2 = <(26000)>;
+	vbat2-det-voltage2 = <(27500)>;
 	vbat2-det-voltage3 = <(29000)>;
 	bat-voltage-low-bound = <(2800)>;
 	low-tmp-bat-voltage-low-bound = <(2900)>;
