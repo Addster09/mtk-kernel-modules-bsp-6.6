@@ -4811,6 +4811,7 @@
 		multipoint = <1>;
 		num_eps = <16>;
 		pericfg= <&pericfg>;
+		infracg= <&infracfg_ao>;
 		interrupt-names = "mc";
 		phys = <&u2port0 PHY_TYPE_USB2>;
 		dr_mode = "otg";
