@@ -2581,6 +2581,7 @@ static int mt6991_mt6681_dev_probe(struct platform_device *pdev)
 	struct snd_soc_dai_link *dai_link;
 #if IS_ENABLED(CONFIG_MTK_BATTERY_PERCENT_THROTTLING)
 	int is_register_bt_pt;
+	int ret_pt;
 #endif
 
 	dev_info(&pdev->dev, "%s() successfully start\n", __func__);
@@ -2646,25 +2647,6 @@ static int mt6991_mt6681_dev_probe(struct platform_device *pdev)
 	}
 #endif
 
-#if IS_ENABLED(CONFIG_MTK_BATTERY_PERCENT_THROTTLING)
-	/* get low battery power throttling is supported */
-	ret = of_property_read_u32(pdev->dev.of_node, "register-battery-percent-pt", &is_register_bt_pt);
-	if (ret) {
-		dev_info(&pdev->dev, "%s(), get register_bt_pt fail, use defalut 0\n", __func__);
-		is_register_bt_pt = 0;
-	}
-	if (is_register_bt_pt) {
-		last_level = 0;
-		for (i = 0; i < BATTERY_PERCENT_LEVEL_NUM; i++)
-			volume_throttle[i] = 0;
-
-		ret = of_property_read_u32_array(pdev->dev.of_node, "volume-throttle",
-					(unsigned int *)&volume_throttle, BATTERY_PERCENT_LEVEL_NUM);
-
-		register_bp_thl_notify(&audio_pt_battery_percent_cb, BATTERY_PERCENT_PRIO_AUDIO);
-	}
-#endif
-
 	card->dev = &pdev->dev;
 
 	ret = devm_snd_soc_register_card(&pdev->dev, card);
@@ -2674,6 +2656,26 @@ static int mt6991_mt6681_dev_probe(struct platform_device *pdev)
 	else
 		dev_info(&pdev->dev, "%s snd_soc_register_card pss %d\n",
 				__func__, ret);
+
+#if IS_ENABLED(CONFIG_MTK_BATTERY_PERCENT_THROTTLING)
+	/* get low battery power throttling is supported */
+	ret_pt = of_property_read_u32(pdev->dev.of_node, "register-battery-percent-pt", &is_register_bt_pt);
+	if (ret_pt) {
+		dev_info(&pdev->dev, "%s(), get register_bt_pt fail, use defalut 0\n", __func__);
+		is_register_bt_pt = 0;
+	}
+	if (is_register_bt_pt) {
+		last_level = 0;
+		for (i = 0; i < BATTERY_PERCENT_LEVEL_NUM; i++)
+			volume_throttle[i] = 0;
+
+		ret_pt = of_property_read_u32_array(pdev->dev.of_node, "volume-throttle",
+					(unsigned int *)&volume_throttle, BATTERY_PERCENT_LEVEL_NUM);
+
+		register_bp_thl_notify(&audio_pt_battery_percent_cb, BATTERY_PERCENT_PRIO_AUDIO);
+	}
+#endif
+
 	return ret;
 }
 
