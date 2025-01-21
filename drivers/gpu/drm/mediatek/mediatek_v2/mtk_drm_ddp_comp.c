@@ -1776,7 +1776,12 @@ void mtk_ddp_comp_clk_prepare(struct mtk_ddp_comp *comp)
 	if (comp == NULL)
 		return;
 
+#if IS_ENABLED(CONFIG_COMMON_CLK_MT6771)
+	if (comp->larb_dev)
+		smi_bus_prepare_enable(comp->larb_id, MTK_DDP_COMP_USER);
+#else
 	mtk_ddp_comp_larb_get(comp, comp->larb_dev);
+#endif
 
 	if (comp->larb_devs) {
 		for (i = 0 ; i < comp->larb_num ; i++) {
@@ -1809,8 +1814,13 @@ void mtk_ddp_comp_clk_unprepare(struct mtk_ddp_comp *comp)
 	if (comp->clk)
 		clk_disable_unprepare(comp->clk);
 
-
+#if IS_ENABLED(CONFIG_COMMON_CLK_MT6771)
+	if (comp->larb_dev)
+		smi_bus_disable_unprepare(comp->larb_id, MTK_DDP_COMP_USER);
+#else
 	mtk_ddp_comp_larb_put(comp, comp->larb_dev);
+#endif
+
 	if (comp->larb_devs) {
 		for (i = 0 ; i < comp->larb_num ; i++) {
 			larb_dev = comp->larb_devs[i];
