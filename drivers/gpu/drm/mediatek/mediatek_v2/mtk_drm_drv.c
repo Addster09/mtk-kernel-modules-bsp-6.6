@@ -1097,6 +1097,7 @@ static void mtk_atomic_doze_update_pq(struct drm_crtc *crtc, unsigned int stage,
 		DDPPR_ERR("cb data creation failed\n");
 		return;
 	}
+	mtk_drm_idlemgr_kick(__func__, crtc, false);
 
 #ifndef DRM_CMDQ_DISABLE
 	if (bypass)
