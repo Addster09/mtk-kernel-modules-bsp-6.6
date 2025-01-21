@@ -4248,7 +4248,8 @@ static int RPO_rule(struct drm_crtc *crtc,
 			(private->data->mmsys_id == MMSYS_MT6877) ||
 			(private->data->mmsys_id == MMSYS_MT6833) ||
 			(private->data->mmsys_id == MMSYS_MT6853) ||
-			(private->data->mmsys_id == MMSYS_MT6885))))) {
+			(private->data->mmsys_id == MMSYS_MT6885) ||
+			(private->data->mmsys_id == MMSYS_MT6991))))) {
 			if (same_ratio_limitation(crtc, c, RATIO_LIMIT,
 				disp_w, disp_h))
 				continue;
