@@ -290,10 +290,11 @@ void md_dump_register_for_mt6761(struct ccci_modem *md)
 		regmap_write(md->hw_info->plat_val->infra_ao_base, INFRA_PERI2MD_PROT_CLR,
 			(0x1 << INFRA_PERI2MD_PROT_BIT));
 		reg_value1 = 0;
-		while (reg_value1 != (0x1<<INFRA_PERI2MD_PROT_BIT)) {
+		while (1) {
 			regmap_read(md->hw_info->plat_val->infra_ao_base,
 				INFRA_PERI2MD_PROT_RDY, &reg_value1);
-			reg_value1 &= (0x1 << INFRA_MD2PERI_PROT_BIT);
+			if (!(reg_value1 & (0x1 << INFRA_PERI2MD_PROT_BIT)))
+				break;
 		}
 		regmap_read(md->hw_info->plat_val->infra_ao_base, INFRA_PERI2MD_PROT_EN,
 			&reg_value1);
@@ -590,10 +591,11 @@ void md_dump_register_for_mt6765(struct ccci_modem *md)
 		regmap_write(md->hw_info->plat_val->infra_ao_base, INFRA_PERI2MD_PROT_CLR,
 			(0x1 << INFRA_PERI2MD_PROT_BIT));
 		reg_value1 = 0;
-		while (reg_value1 != (0x1<<INFRA_PERI2MD_PROT_BIT)) {
+		while (1) {
 			regmap_read(md->hw_info->plat_val->infra_ao_base,
 				INFRA_PERI2MD_PROT_RDY, &reg_value1);
-			reg_value1 &= (0x1 << INFRA_MD2PERI_PROT_BIT);
+			if (!(reg_value1 & (0x1 << INFRA_PERI2MD_PROT_BIT)))
+				break;
 		}
 		regmap_read(md->hw_info->plat_val->infra_ao_base, INFRA_PERI2MD_PROT_EN,
 			&reg_value1);
@@ -877,11 +879,13 @@ void md_dump_register_for_mt6768(struct ccci_modem *md)
 		regmap_write(md->hw_info->plat_val->infra_ao_base, INFRA_PERI2MD_PROT_CLR,
 			(0x1 << INFRA_PERI2MD_PROT_BIT));
 		reg_value1 = 0;
-		while (reg_value1 != (0x1<<INFRA_PERI2MD_PROT_BIT)) {
+		while (1) {
 			regmap_read(md->hw_info->plat_val->infra_ao_base,
 				INFRA_PERI2MD_PROT_RDY, &reg_value1);
-			reg_value1 &= (0x1 << INFRA_MD2PERI_PROT_BIT);
+			if (!(reg_value1 & (0x1 << INFRA_PERI2MD_PROT_BIT)))
+				break;
 		}
+
 		regmap_read(md->hw_info->plat_val->infra_ao_base, INFRA_PERI2MD_PROT_EN,
 			&reg_value1);
 		regmap_read(md->hw_info->plat_val->infra_ao_base, INFRA_PERI2MD_PROT_RDY,
