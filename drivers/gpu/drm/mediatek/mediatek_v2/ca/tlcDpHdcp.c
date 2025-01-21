@@ -113,6 +113,9 @@ int tee_addDevice(uint32_t version)
 			TEEC_ReleaseSharedMemory(&sSharedMemoryMain);
 			sSharedMemoryMain.buffer = NULL;
 		}
+		TEEC_CloseSession(&sSession);
+		TEEC_FinalizeContext(&sContext);
+		return ret;
 	}
 
 	// Copy parameter for add new device

@@ -84,7 +84,7 @@ void mdrv_DPTx_HDCP1X_SetStartAuth(struct mtk_dp *mtk_dp, bool bEnable)
 
 bool mdrv_DPTx_HDCP1x_Support(struct mtk_dp *mtk_dp)
 {
-	uint8_t bTempBuffer[2];
+	uint8_t bTempBuffer[2] = {0};
 
 	drm_dp_dpcd_read(&mtk_dp->aux, DPCD_68028, bTempBuffer, 0x1);
 
@@ -167,7 +167,8 @@ bool mdrv_DPTx_HDCP1X_Init(struct mtk_dp *mtk_dp)
 
 bool mdrv_DPTx_HDCP1X_ReadSinkBksv(struct mtk_dp *mtk_dp)
 {
-	unsigned char pReadBuffer[5], i;
+	unsigned char pReadBuffer[5] = {0};
+	unsigned char i;
 
 	if (mtk_dp->info.hdcp1x_info.bEnable) {
 		drm_dp_dpcd_read(&mtk_dp->aux, DPCD_68000, pReadBuffer, 5);
@@ -184,7 +185,7 @@ bool mdrv_DPTx_HDCP1X_ReadSinkBksv(struct mtk_dp *mtk_dp)
 
 bool mdrv_DPTx_HDCP1X_CheckSinkKSVReady(struct mtk_dp *mtk_dp)
 {
-	unsigned char pReadBuffer;
+	unsigned char pReadBuffer = 0;
 
 	drm_dp_dpcd_read(&mtk_dp->aux, DPCD_68029, &pReadBuffer, 1);
 
@@ -196,7 +197,7 @@ bool mdrv_DPTx_HDCP1X_CheckSinkKSVReady(struct mtk_dp *mtk_dp)
 
 bool mdrv_DPTx_HDCP1X_CheckSinkCap(struct mtk_dp *mtk_dp)
 {
-	unsigned char  pReadBuffer[0x2];
+	unsigned char  pReadBuffer[0x2] = {0};
 
 	drm_dp_dpcd_read(&mtk_dp->aux, DPCD_68028, pReadBuffer, 1);
 
@@ -209,7 +210,7 @@ bool mdrv_DPTx_HDCP1X_CheckSinkCap(struct mtk_dp *mtk_dp)
 
 bool mdrv_DPTx_HDCP1X_ReadSinkBinfo(struct mtk_dp *mtk_dp)
 {
-	unsigned char pReadBuffer[2];
+	unsigned char pReadBuffer[2] = {0};
 
 	drm_dp_dpcd_read(&mtk_dp->aux, DPCD_6802A, pReadBuffer, 2);
 
@@ -255,7 +256,8 @@ bool mdrv_DPTx_HDCP1X_ReadSinkKSV(struct mtk_dp *mtk_dp,
 
 bool mdrv_DPTx_HDCP1X_ReadSinkSHA_V(struct mtk_dp *mtk_dp)
 {
-	unsigned char pReadBuffer[4], i, j;
+	unsigned char pReadBuffer[4] = {0};
+	unsigned char i, j;
 
 	for (i = 0; i < 5; i++) {
 		drm_dp_dpcd_read(&mtk_dp->aux,
@@ -365,7 +367,7 @@ void mdrv_DPTx_HDCP1X_WriteAn(struct mtk_dp *mtk_dp)
 
 bool mdrv_DPTx_HDCP1X_CheckR0(struct mtk_dp *mtk_dp)
 {
-	unsigned char ubTempValue[2];
+	unsigned char ubTempValue[2] = {0};
 	unsigned char uuRetryCount = 0;
 	bool bSinkR0Available = false;
 

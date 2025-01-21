@@ -180,10 +180,10 @@ void mhal_DPTx_HDCP2_FillStreamType(struct mtk_dp *mtk_dp, BYTE ucType)
 bool HDCPTx_Hdcp2xIncSeqNumM(void)
 {
 	BYTE i = 0;
-	DWORD u32TempValue = 0;
+	uint32_t u32TempValue = 0;
 
 	for (i = 0; i < HDCP2_SEQ_NUM_M_SIZE; i++)
-		u32TempValue |= rhdcp_tx.seq_num_M[i] << (i*8);
+		u32TempValue |= ((uint32_t) (rhdcp_tx.seq_num_M[i])) << (i * 8);
 
 	if (u32TempValue == 0xFFFFFF)
 		return false;
@@ -1071,7 +1071,7 @@ void mdrv_DPTx_HDCP2_SetStartAuth(struct mtk_dp *mtk_dp, bool bEnable)
 
 bool mdrv_DPTx_HDCP2_Support(struct mtk_dp *mtk_dp)
 {
-	uint8_t bTempBuffer[3];
+	uint8_t bTempBuffer[3] = {0};
 
 	if (mtk_dp->info.bForceHDCP1x) {
 		DPTXMSG("Force HDCP1x, not support HDCP2x");
