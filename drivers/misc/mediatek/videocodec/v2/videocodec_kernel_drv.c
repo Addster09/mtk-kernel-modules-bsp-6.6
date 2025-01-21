@@ -67,6 +67,7 @@
 #include "videocodec_kernel_driver.h"
 #include "videocodec_kernel.h"
 //#include "smi_public.h"
+#include <soc/mediatek/smi.h>
 #include <asm/cacheflush.h>
 #include <linux/io.h>
 //#include <asm/sizes.h>
@@ -548,52 +549,53 @@ void vdec_polling_status(void)
 void vdec_power_on(void)
 {
 	int ret = 0;
-	struct mtk_vcodec_pm *pm;
-    pr_debug("+%s,%d,\n", __func__, __LINE__);
 
+	pr_debug("+%s,%d,\n", __func__, __LINE__);
 	mutex_lock(&VdecPWRLock);
 	gu4VdecPWRCounter++;
 	mutex_unlock(&VdecPWRLock);
-	ret = 0;
 
 #if IS_ENABLED(CONFIG_MTK_PMQOS)
 #ifndef VCODEC_DVFS_V2
 	mutex_lock(&DecPMQoSLock);
 	QOS_DEBUG("[PMQoS] set to (0,1) %d, freq = %llu",
-		gVDECLevel, g_dec_freq_steps[gVDECLevel]);
+		  gVDECLevel, g_dec_freq_steps[gVDECLevel]);
 	mtk_pm_qos_update_request(&vcodec_qos_request_f,
-		g_dec_freq_steps[gVDECLevel]);
+				  g_dec_freq_steps[gVDECLevel]);
 	mutex_unlock(&DecPMQoSLock);
 #endif
 #endif
-    pm = &video_dev->pm;
-    if (pm->larbvdecs[0]) {
-	ret = pm_runtime_resume_and_get(pm->larbvdecs[0]);
-	if (ret)
-	    pr_info("Failed to get vdec larb");
-    }
+#if IS_ENABLED(CONFIG_COMMON_CLK_PG_LEGACY_V1) || IS_ENABLED(CONFIG_COMMON_CLK_PG_LEGACY)
+	smi_bus_prepare_enable(SMI_LARB1, "VDEC");
+#else
+	struct mtk_vcodec_pm *pm;
 
+	pm = &video_dev->pm;
+	if (pm->larbvdecs[0]) {
+		ret = pm_runtime_resume_and_get(pm->larbvdecs[0]);
+		if (ret)
+			pr_info("Failed to get vdec larb");
+	}
+#endif
 	ret = clk_prepare_enable(clk_MT_SCP_SYS_DIS);
 	if (ret) {
 		/* print error log & error handling */
 		pr_debug("[VCODEC][ERROR] SCP_SYS_DIS not enabled %d\n",
-			ret);
+			 ret);
 	}
-    /* need new api*/
-	//smi_bus_prepare_enable(SMI_LARB1, "VDEC");
 
 	ret = clk_prepare_enable(clk_MT_SCP_SYS_VDE);
 	if (ret) {
 		/* print error log & error handling */
 		pr_debug("[VCODEC][ERROR] SCP_SYS_VDE not enabled %d\n",
-			ret);
+			 ret);
 	}
 
 	ret = clk_prepare_enable(clk_MT_CG_VDEC);
 	if (ret) {
 		/* print error log & error handling */
 		pr_debug("[VCODEC][ERROR] CG_VDEC not enabled %d\n",
-			ret);
+			 ret);
 	}
 	pr_debug("+%s,%d,\n", __func__, __LINE__);
 }
@@ -640,10 +642,7 @@ vcodec_attr(vcodec_debug);
 
 void vdec_power_off(void)
 {
-    int ret = 0;
-    struct mtk_vcodec_pm *pm;
-
-    pr_debug("+%s,%d,\n", __func__, __LINE__);
+	pr_debug("+%s,%d,\n", __func__, __LINE__);
 	mutex_lock(&VdecPWRLock);
 	if (gu4VdecPWRCounter == 0) {
 		pr_debug("[VCODEC] gu4VdecPWRCounter = 0\n");
@@ -652,19 +651,21 @@ void vdec_power_off(void)
 		gu4VdecPWRCounter--;
 		clk_disable_unprepare(clk_MT_CG_VDEC);
 		clk_disable_unprepare(clk_MT_SCP_SYS_VDE);
-
-	/* need new api*/
-		//smi_bus_disable_unprepare(SMI_LARB1, "VDEC");
-
 		clk_disable_unprepare(clk_MT_SCP_SYS_DIS);
 	}
+#if IS_ENABLED(CONFIG_COMMON_CLK_PG_LEGACY_V1) || IS_ENABLED(CONFIG_COMMON_CLK_PG_LEGACY)
+	smi_bus_disable_unprepare(SMI_LARB1, "VDEC");
+#else
+	int ret = 0;
+	struct mtk_vcodec_pm *pm;
 
 	pm = &video_dev->pm;
-    if (pm->larbvdecs[0]) {
-	ret = pm_runtime_put_sync(pm->larbvdecs[0]);
-	if (ret)
-		pr_info("[error]%s,pm_runtime_put_sync ret:%d", __func__, ret);
-    }
+	if (pm->larbvdecs[0]) {
+		ret = pm_runtime_put_sync(pm->larbvdecs[0]);
+		if (ret)
+			pr_info("[error]%s,pm_runtime_put_sync ret:%d", __func__, ret);
+	}
+#endif
 	mutex_unlock(&VdecPWRLock);
 	mutex_lock(&DecPMQoSLock);
 #if IS_ENABLED(CONFIG_MTK_PMQOS)
@@ -681,30 +682,30 @@ void vdec_power_off(void)
 void venc_power_on(void)
 {
 	int ret = 0;
-    struct mtk_vcodec_pm *pm;
+
 	mutex_lock(&VencPWRLock);
 	gu4VencPWRCounter++;
 	mutex_unlock(&VencPWRLock);
-	ret = 0;
 
 	pr_debug("[VCODEC] %s +\n", __func__);
-    pm = &video_dev->pm;
-    if (pm->larbvencs[0]) {
-	ret = pm_runtime_resume_and_get(pm->larbvencs[0]);
-	if (ret)
-	    pr_info("%s,Failed to get venc larb", __func__);
-    }
+#if IS_ENABLED(CONFIG_COMMON_CLK_PG_LEGACY_V1) || IS_ENABLED(CONFIG_COMMON_CLK_PG_LEGACY)
+	smi_bus_prepare_enable(SMI_LARB4, "VENC");
+#else
+	struct mtk_vcodec_pm *pm;
 
+	pm = &video_dev->pm;
+	if (pm->larbvencs[0]) {
+		ret = pm_runtime_resume_and_get(pm->larbvencs[0]);
+		if (ret)
+			pr_info("[error]%s,pm_runtime_put_sync ret:%d", __func__, ret);
+	}
+#endif
 	ret = clk_prepare_enable(clk_MT_SCP_SYS_DIS);
 	if (ret) {
 		/* print error log & error handling */
 		pr_debug("[VCODEC][ERROR] SCP_SYS_DIS not enabled %d\n",
 			ret);
 	}
-
-	/* need new api*/
-	//smi_bus_prepare_enable(SMI_LARB4, "VENC");
-
 	ret = clk_prepare_enable(clk_MT_SCP_SYS_VEN);
 	if (ret) {
 		/* print error log & error handling */
@@ -724,8 +725,6 @@ void venc_power_on(void)
 
 void venc_power_off(void)
 {
-    int ret = 0;
-    struct mtk_vcodec_pm *pm;
 	mutex_lock(&VencPWRLock);
 	if (gu4VencPWRCounter == 0) {
 		pr_debug("[VCODEC] gu4VencPWRCounter = 0\n");
@@ -735,20 +734,23 @@ void venc_power_off(void)
 
 		clk_disable_unprepare(clk_MT_CG_VENC_VENC);
 		clk_disable_unprepare(clk_MT_SCP_SYS_VEN);
-
-		/* need new api*/
-		//smi_bus_disable_unprepare(SMI_LARB4, "VENC");
-
 		clk_disable_unprepare(clk_MT_SCP_SYS_DIS);
 
 		pr_debug("[VCODEC] %s -\n", __func__);
 	}
-    pm = &video_dev->pm;
-    if (pm->larbvencs[0]) {
-	ret = pm_runtime_put_sync(pm->larbvencs[0]);
-	if (ret)
-		pr_info("[error]%s,pm_runtime_put_sync ret:%d", __func__, ret);
-    }
+#if IS_ENABLED(CONFIG_COMMON_CLK_PG_LEGACY_V1) || IS_ENABLED(CONFIG_COMMON_CLK_PG_LEGACY)
+	smi_bus_disable_unprepare(SMI_LARB4, "VENC");
+#else
+	int ret = 0;
+	struct mtk_vcodec_pm *pm;
+
+	pm = &video_dev->pm;
+	if (pm->larbvencs[0]) {
+		ret = pm_runtime_put_sync(pm->larbvencs[0]);
+		if (ret)
+			pr_info("[error]%s,pm_runtime_put_sync ret:%d", __func__, ret);
+	}
+#endif
 	mutex_unlock(&VencPWRLock);
 	mutex_lock(&EncPMQoSLock);
 #if IS_ENABLED(CONFIG_MTK_PMQOS)
