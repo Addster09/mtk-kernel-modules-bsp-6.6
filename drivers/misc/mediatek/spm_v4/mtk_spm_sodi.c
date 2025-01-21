@@ -77,7 +77,7 @@ struct spm_lp_scen __spm_sodi = {
 
 /* 0:power-down mode, 1:CG mode */
 static bool gSpm_SODI_mempll_pwr_mode;
-static bool gSpm_sodi_en;
+static bool gSpm_sodi_en = true;
 static bool gSpm_lcm_vdo_mode;
 
 #if IS_ENABLED(CONFIG_MTK_TINYSYS_SSPM_SUPPORT)
