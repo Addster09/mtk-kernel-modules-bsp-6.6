@@ -329,7 +329,11 @@ static s32 cmdq_mdp_enable_common_clock(bool enable, u64 engine_flag)
 				return TASK_STATE_ERROR;
 			}
 		}
+#if IS_ENABLED(CONFIG_COMMON_CLK_MT6771)
+		ret = smi_bus_prepare_enable(SMI_LARB0, "CMDQ");
+#else
 		ret = pm_runtime_resume_and_get(larb);
+#endif
 		mdp_dpc_power_keep();
 		mdp_dpc_dc_force_enable(true);
 		cmdq_mdp_get_func()->mdpEnableCommonClock(enable, engine_flag);
@@ -343,7 +347,11 @@ static s32 cmdq_mdp_enable_common_clock(bool enable, u64 engine_flag)
 		cmdq_mdp_get_func()->mdpEnableCommonClock(enable, engine_flag);
 		mdp_dpc_dc_force_enable(false);
 		mdp_dpc_power_release();
+#if IS_ENABLED(CONFIG_COMMON_CLK_MT6771)
+		ret = smi_bus_disable_unprepare(SMI_LARB0, "CMDQ");
+#else
 		pm_runtime_put_sync(larb);
+#endif
 		if (mdpdev) {
 			ret = pm_runtime_put_sync(mdpdev);
 			if (ret) {
