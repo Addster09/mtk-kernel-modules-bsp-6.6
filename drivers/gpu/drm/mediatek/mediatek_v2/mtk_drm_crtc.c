@@ -147,7 +147,9 @@ static unsigned int cmdq_client_num;
 
 struct timespec64 atomic_flush_tval;
 struct timespec64 rdma_sof_tval;
+#if !IS_ENABLED(CONFIG_MTK_PMQOS)
 static void mmqos_hrt_dump(void);
+#endif
 
 bool hdr_en;
 static const char * const crtc_gce_client_str[] = {
@@ -3328,9 +3330,11 @@ void mtk_crtc_prepare_dual_pipe(struct mtk_drm_crtc *mtk_crtc)
 		comp->mtk_crtc = mtk_crtc;
 	}
 
+#if !IS_ENABLED(CONFIG_MTK_PMQOS)
 	if (drm_crtc_index(&mtk_crtc->base) == 0 &&
 		mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_MMQOS_SUPPORT))
 		mtk_mmqos_is_dualpipe_enable(mtk_crtc->is_dual_pipe);
+#endif
 }
 
 static void user_cmd_cmdq_cb(struct cmdq_cb_data data)
@@ -8086,7 +8090,9 @@ static int _mtk_crtc_cmdq_smi_info_dump(void *data)
 			DDPPR_ERR("wait %s fail, ret=%d\n", __func__, ret);
 
 		mtk_smi_dbg_hang_detect("disp_underrun");
+#if !IS_ENABLED(CONFIG_MTK_PMQOS)
 		mmqos_hrt_dump();
+#endif
 		mmdvfs_debug_status_dump(NULL);
 		atomic_set(&mtk_crtc->smi_info_dump_event, 0);
 

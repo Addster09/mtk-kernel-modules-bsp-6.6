@@ -1694,9 +1694,11 @@ int mtk_disp_hrt_cond_init(struct drm_crtc *crtc)
 		mtk_crtc->qos_ctx->last_channel_write_req[i] = 0;
 	}
 
+#if !IS_ENABLED(CONFIG_MTK_PMQOS)
 	if (drm_crtc_index(crtc) == 0 && mtk_drm_helper_get_opt(priv->helper_opt,
 			MTK_DRM_OPT_MMQOS_SUPPORT))
 		mtk_mmqos_register_bw_throttle_notifier(&pmqos_hrt_notifier);
+#endif
 
 	return 0;
 }

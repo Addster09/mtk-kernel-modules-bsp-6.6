@@ -813,6 +813,7 @@ static int layering_get_valid_hrt(struct drm_crtc *crtc,
 			MTK_DRM_OPT_MMQOS_SUPPORT))
 		return 600;
 
+#if !IS_ENABLED(CONFIG_MTK_PMQOS)
 	if (get_layering_opt(LYE_OPT_SPHRT)) {
 		if (priv->pre_defined_bw[disp_idx] != 0xffffffff) {
 			avail_bw = priv->pre_defined_bw[disp_idx];
@@ -878,6 +879,7 @@ static int layering_get_valid_hrt(struct drm_crtc *crtc,
 
 	DDPINFO("disp %u get avail HRT BW:%llu : %llu %llu\n",
 		disp_idx, avail_bw, dvfs_bw, tmp);
+#endif
 
 	return dvfs_bw;
 }
