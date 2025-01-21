@@ -1578,8 +1578,7 @@ static int scan_y_overlap_for_compare(struct drm_mtk_layering_info *disp_info,
 			remove_layer_entry_for_compare(tmp_entry->layer_info, false);
 		}
 
-		if (overlap_w_sum > ovl_overlap_limit_w &&
-		    overlap_w_sum > max_overlap) {
+		if (overlap_w_sum > max_overlap) {
 			tmp_overlap = scan_x_overlap_for_compare(disp_info, disp_index,
 						     ovl_overlap_limit_w);
 		} else {
@@ -1590,7 +1589,7 @@ static int scan_y_overlap_for_compare(struct drm_mtk_layering_info *disp_info,
 			(tmp_overlap > max_overlap) ? tmp_overlap : max_overlap;
 		tmp_entry = tmp_entry->tail;
 	}
-
+	DDPINFO("final max_for_compare=%d\n", max_overlap);
 	return max_overlap;
 }
 
@@ -1613,8 +1612,7 @@ static int scan_y_overlap(struct drm_mtk_layering_info *disp_info,
 			remove_layer_entry(tmp_entry->layer_info, false);
 		}
 
-		if (overlap_w_sum > ovl_overlap_limit_w &&
-		    overlap_w_sum > max_overlap) {
+		if (overlap_w_sum > max_overlap) {
 			tmp_overlap = scan_x_overlap(disp_info, disp_index,
 						     ovl_overlap_limit_w);
 		} else {
@@ -1625,7 +1623,7 @@ static int scan_y_overlap(struct drm_mtk_layering_info *disp_info,
 			(tmp_overlap > max_overlap) ? tmp_overlap : max_overlap;
 		tmp_entry = tmp_entry->tail;
 	}
-
+	DDPINFO("final max=%d\n", max_overlap);
 	return max_overlap;
 }
 
