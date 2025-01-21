@@ -2797,6 +2797,13 @@ def get_overlay_modules_list():
         mgk_64_device_modules.remove("drivers/misc/mediatek/vdec_fmt/vdec-fmt.ko")
         mgk_64_device_modules.remove("drivers/media/platform/mtk-vcodec/mtk-vcodec-dec-v2.ko")
         mgk_64_device_modules.remove("drivers/media/platform/mtk-vcodec/mtk-vcodec-enc-v2.ko")
+        mgk_64_device_modules.remove("drivers/misc/mediatek/vcp/rv/vcp.ko")
+        mgk_64_device_modules.remove("drivers/misc/mediatek/vcp/rv/vcp_status.ko")
+        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-chk-mt6989.ko")
+        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/pd-chk-mt6989.ko")
+        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/clk-chk-mt6991.ko")
+        mgk_64_platform_device_modules.pop("drivers/clk/mediatek/pd-chk-mt6991.ko")
+
         mgk_64_device_modules.remove("drivers/misc/mediatek/mbraink/modules/v6899/mtk_mbraink_v6899.ko")
         mgk_64_device_modules.remove("drivers/misc/mediatek/swpm/modules/debug/v6899/mtk-swpm-dbg-v6899.ko")
         mgk_64_device_modules.remove("drivers/misc/mediatek/swpm/modules/debug/v6899/mtk-swpm-cpu-dbg-v6899.ko")
