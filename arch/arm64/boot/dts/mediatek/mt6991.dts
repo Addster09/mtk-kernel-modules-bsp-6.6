@@ -711,6 +711,9 @@
 		pcie2_calibration: pcie2@330 {
 			reg = <0x330 0x8>;
 		};
+		isp_efuse_data: isp-efuse-data@7d4 {
+			reg = <0x23c 0x4>;
+		};
 	};
 
 
@@ -12092,6 +12095,9 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				"camsys_cam2mm2_gals_cgpdn",
 				"mmdvfs_mux";
 			mboxes = <&gce_m 24 0 CMDQ_THR_PRIO_1>;
+			nvmem-cells = <&isp_efuse_data>;
+			nvmem-cell-names = "isp-efuse-data";
+			nvmem-cell-masks = <0x7>;
 		};
 
 		cam_bwr: cam-bwr@3a00d000 {
