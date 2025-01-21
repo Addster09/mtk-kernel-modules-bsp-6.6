@@ -1554,7 +1554,10 @@ firmware_class.path=/vendor/firmware clk_ignore_unused=1";
 	};
 
 	hwrng: hwrng {
-		compatible = "mediatek,mt67xx-rng";
+		compatible = "arm,sec-rng";
+		methods = "smc";
+		method-fid = /bits/ 16 <0x26a>;
+		quality = /bits/ 16 <900>;
 	};
 
 	bus_dbg@10208000 {
