@@ -9657,11 +9657,14 @@ int mtk_mipi_dsi_write_gce(struct mtk_dsi *dsi,
 		cmdq_pkt_wfe(handle,
 			mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
 		mtk_dsi_stop_vdo_mode(dsi, handle);
+		if (dsi->slave_dsi)
+			mtk_dsi_stop_vdo_mode(dsi->slave_dsi, handle);
 
+		// for dual port mode, alway send cmd to dual port
 		if (dsi->slave_dsi) {
 			cmdq_pkt_write(handle, dsi->slave_dsi->ddp_comp.cmdq_base,
 					dsi->slave_dsi->ddp_comp.regs_pa + DSI_CON_CTRL(dsi->driver_data),
-					0, DSI_DUAL_EN);
+					DSI_DUAL_EN, DSI_DUAL_EN);
 		}
 		for (i = 0; i < cmd_msg->tx_cmd_num; i++) {
 			msg.type = cmd_msg->type[i];
@@ -9669,8 +9672,12 @@ int mtk_mipi_dsi_write_gce(struct mtk_dsi *dsi,
 			msg.tx_buf = cmd_msg->tx_buf[i];
 
 			mtk_dsi_poll_for_idle(dsi, handle);
+			if (dsi->slave_dsi)
+				mtk_dsi_poll_for_idle(dsi->slave_dsi, handle);
 
 			_mtk_mipi_dsi_write_gce(dsi, handle, &msg);
+			if (dsi->slave_dsi)
+				_mtk_mipi_dsi_write_gce(dsi->slave_dsi, handle, &msg);
 
 			cmdq_pkt_write(handle, dsi->ddp_comp.cmdq_base,
 				dsi->ddp_comp.regs_pa + DSI_START, 0x0, ~0);
@@ -9680,6 +9687,8 @@ int mtk_mipi_dsi_write_gce(struct mtk_dsi *dsi,
 				dsi->ddp_comp.regs_pa + DSI_START, 0x0, ~0);
 
 			mtk_dsi_poll_for_idle(dsi, handle);
+			if (dsi->slave_dsi)
+				mtk_dsi_poll_for_idle(dsi->slave_dsi, handle);
 		}
 		if (dsi->slave_dsi) {
 			cmdq_pkt_write(handle, dsi->slave_dsi->ddp_comp.cmdq_base,
@@ -9687,6 +9696,8 @@ int mtk_mipi_dsi_write_gce(struct mtk_dsi *dsi,
 					DSI_DUAL_EN, DSI_DUAL_EN);
 		}
 		mtk_dsi_start_vdo_mode(comp, handle);
+		if (dsi->slave_dsi)
+			mtk_dsi_start_vdo_mode(&dsi->slave_dsi->ddp_comp, handle);
 		mtk_disp_mutex_trigger(comp->mtk_crtc->mutex[0], handle);
 		mtk_dsi_trigger(comp, handle);
 		cmdq_pkt_set_event(handle,
