@@ -214,8 +214,6 @@ static int boe_panel_enable(struct drm_panel *panel)
 	if (ctx->enabled)
 		return 0;
 
-	msleep(130);
-
 	if (ctx->backlight) {
 		ctx->backlight->props.state &= ~BL_CORE_FBBLANK;
 		ctx->backlight->props.power = FB_BLANK_UNBLANK;
