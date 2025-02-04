@@ -2472,7 +2472,7 @@ int __gpufreq_power_control(enum gpufreq_power_state power)
 		__gpufreq_footprint_power_step(0x04);
 
 		/* config ocl timestamp */
-		//__gpufreq_set_timestamp();
+		__gpufreq_set_timestamp();
 		__gpufreq_footprint_power_step(0x05);
 
 		/* free DVFS when power on */
