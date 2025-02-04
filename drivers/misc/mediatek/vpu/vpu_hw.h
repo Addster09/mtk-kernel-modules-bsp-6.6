@@ -28,8 +28,8 @@
 #define VPU_MVA_RESERVED_END			(0x82600000)
 
 //v0 new add
-#define VPU_MVA_RESERVED_START			(0x60000000)
-#define VPU_MVA_RESERVED_BANK			(0x70000000)
+#define VPU_MVA_RESERVED_START			(0x7DA00000)
+#define VPU_MVA_RESERVED_BANK			(0x7F000000)//need to sync with VPU3
 #define VPU_MVA_BANK					(0x0ULL)
 
 /* Sum of all parts */
