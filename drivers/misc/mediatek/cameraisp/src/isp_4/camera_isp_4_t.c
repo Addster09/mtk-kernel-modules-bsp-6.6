@@ -3390,7 +3390,7 @@ static inline void Disable_Unprepare_ccf_clock(void)
 	 * -> CG_SCP_SYS_ISP/CAM -> CG_DISP0_SMI_COMMON -> CG_SCP_SYS_DIS
 	 */
 
-	pr_info("disable CG/MTCMOS through SMI CLK API\n");
+	pr_info("disable CG/MTCMOS through SMI CLK API, G_u4EnableClockCount:%d\n", G_u4EnableClockCount);
 
 	clk_disable_unprepare(isp_clk.ISP_CAM_CAMSV2);
 	clk_disable_unprepare(isp_clk.ISP_CAM_CAMSV1);
@@ -9686,7 +9686,7 @@ static void __exit ISP_Exit(void)
 int32_t ISP_MDPClockOnCallback(uint64_t engineFlag)
 {
 	/* pr_info("ISP_MDPClockOnCallback"); */
-	/*pr_info("+MDPEn:%d", G_u4EnableClockCount);*/
+	pr_info("+MDPEn:%d", G_u4EnableClockCount);
 	ISP_EnableClock(MTRUE);
 
 	return 0;
@@ -9713,7 +9713,7 @@ int32_t ISP_MDPClockOffCallback(uint64_t engineFlag)
 {
 	/* pr_info("ISP_MDPClockOffCallback"); */
 	ISP_EnableClock(MFALSE);
-	/*pr_info("-MDPEn:%d", G_u4EnableClockCount);*/
+	pr_info("-MDPEn:%d", G_u4EnableClockCount);
 	return 0;
 }
 
