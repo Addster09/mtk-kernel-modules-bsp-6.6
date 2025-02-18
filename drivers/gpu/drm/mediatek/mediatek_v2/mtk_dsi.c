@@ -12645,6 +12645,7 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 	unsigned int vfp = 0;
 	unsigned int hfp = 0;
 	unsigned int hbp = 0;
+	unsigned int vbp = 0;
 	unsigned int fps_chg_index = 0;
 	struct cmdq_pkt *handle;
 	struct cmdq_client *client = mtk_crtc->gce_obj.client[CLIENT_DSI_CFG];
@@ -12772,6 +12773,15 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 		dsi->vm.vfront_porch = vfp;
 		if (dsi->slave_dsi)
 			dsi->slave_dsi->vm.vfront_porch = vfp;
+		if (dsi->mipi_hopping_sta && dsi->ext) {
+			DDPINFO("%s,mipi_clk_change_sta\n", __func__);
+			vbp = dsi->ext->params->dyn.vbp;
+		} else
+			vbp = adjusted_mode.vtotal -
+				adjusted_mode.vsync_end;
+		dsi->vm.vback_porch = vbp;
+		if (dsi->slave_dsi)
+			dsi->slave_dsi->vm.vback_porch = vbp;
 
 		mtk_dsi_calc_vdo_timing(dsi);
 		mtk_dsi_porch_setting(comp, handle, DSI_HFP, dsi->hfp_byte);
@@ -12792,6 +12802,10 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 			mtk_dsi_porch_setting(&dsi->slave_dsi->ddp_comp,
 				handle, DSI_VFP, dsi->vfp);
 
+		mtk_dsi_porch_setting(comp, handle, DSI_VBP, dsi->vbp);
+		if (dsi->slave_dsi)
+			mtk_dsi_porch_setting(&dsi->slave_dsi->ddp_comp,
+				handle, DSI_VBP, dsi->vbp);
 		/*1.2 send cmd: send cmd*/
 		mtk_dsi_send_switch_cmd(dsi, handle, mtk_crtc, src_mode,
 					drm_mode_vrefresh(&adjusted_mode));
@@ -12871,6 +12885,25 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 				}
 			}
 		}
+		if (dsi->mipi_hopping_sta) {
+			DDPINFO("%s,mipi_clk_change_sta\n", __func__);
+			hfp = dsi->ext->params->dyn.hfp;
+		} else
+			hfp = adjusted_mode.hsync_start -
+				adjusted_mode.hdisplay;
+		dsi->vm.hfront_porch = hfp;
+		if (dsi->slave_dsi)
+			dsi->slave_dsi->vm.hfront_porch = hfp;
+
+		if (dsi->mipi_hopping_sta) {
+			DDPINFO("%s,mipi_clk_change_sta\n", __func__);
+			hbp = dsi->ext->params->dyn.hbp;
+		} else
+			hbp = adjusted_mode.htotal -
+				adjusted_mode.hsync_end;
+		dsi->vm.hback_porch = hbp;
+		if (dsi->slave_dsi)
+			dsi->slave_dsi->vm.hback_porch = hbp;
 
 		if (dsi && dsi->ext && dsi->ext->params
 			&& (dsi->mipi_hopping_sta
@@ -12884,11 +12917,33 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 		dsi->vm.vfront_porch = vfp;
 		if (dsi->slave_dsi)
 			dsi->slave_dsi->vm.vfront_porch = vfp;
+		if (dsi->mipi_hopping_sta && dsi->ext) {
+			DDPINFO("%s,mipi_clk_change_sta\n", __func__);
+			vbp = dsi->ext->params->dyn.vbp;
+		} else
+			vbp = adjusted_mode.vtotal -
+				adjusted_mode.vsync_end;
+		dsi->vm.vback_porch = vbp;
+		if (dsi->slave_dsi)
+			dsi->slave_dsi->vm.vback_porch = vbp;
 
 		if (is_bdg_supported()) {
 			if (dsi->bdg_mipi_hopping_sta)
 				dsi->vm.vfront_porch = vfp;
 		}
+		mtk_dsi_calc_vdo_timing(dsi);
+		mtk_dsi_porch_setting(comp, handle, DSI_HFP, dsi->hfp_byte);
+		if (dsi->slave_dsi) {
+			mtk_dsi_porch_setting(&dsi->slave_dsi->ddp_comp,
+				handle, DSI_HFP, dsi->hfp_byte);
+		}
+
+		/* Some panel need change HBP at the same time to support dynamic fps */
+		mtk_dsi_porch_setting(comp, handle, DSI_HBP, dsi->hbp_byte);
+		if (dsi->slave_dsi)
+			mtk_dsi_porch_setting(&dsi->slave_dsi->ddp_comp,
+				handle, DSI_HBP, dsi->hbp_byte);
+
 		/* Msync 2.0 ToDo: can we change vm.vfront_porch according msync?
 		 * mmdvfs,dramdvfs according to vm.vfront_porch?
 		 */
@@ -12915,11 +12970,15 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 					vfp = dsi->ext->params->max_vfp_for_msync;
 			}
 		}
-
-		mtk_dsi_porch_setting(comp, handle, DSI_VFP, vfp);
+		/* Some panel need change VFP at the same time to support dynamic fps */
+		mtk_dsi_porch_setting(comp, handle, DSI_VFP, dsi->vfp);
 		if (dsi->slave_dsi)
 			mtk_dsi_porch_setting(&dsi->slave_dsi->ddp_comp,
-				handle, DSI_VFP, vfp);
+				handle, DSI_VFP, dsi->vfp);
+		mtk_dsi_porch_setting(comp, handle, DSI_VBP, dsi->vbp);
+		if (dsi->slave_dsi)
+			mtk_dsi_porch_setting(&dsi->slave_dsi->ddp_comp,
+				handle, DSI_VBP, dsi->vbp);
 
 		if (is_bdg_supported()) {
 			mtk_dsi_vfp_porch_setting_6382(dsi, vfp, handle);
