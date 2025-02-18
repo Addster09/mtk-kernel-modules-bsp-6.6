@@ -5445,7 +5445,7 @@ static int ISP_suspend(
 {
 	unsigned int regVal;
 	unsigned int IrqType;
-	int ret, module;
+	int ret, module, _UserCnt;
 	char moduleName[128] = {'\0'};
 
 	unsigned int regTGSt, loopCnt;
@@ -5464,6 +5464,10 @@ static int ISP_suspend(
 	/* Check clock counter instead of check IspInfo.UserCount
 	 *  for ensuring current clocks are on or off
 	 */
+	spin_lock(&(IspInfo.SpinLockIspRef));
+	_UserCnt = IspInfo.UserCount;
+	spin_unlock(&(IspInfo.SpinLockIspRef));
+
 	spin_lock(&(IspInfo.SpinLockClock));
 	if (!G_u4EnableClockCount) {
 		spin_unlock(&(IspInfo.SpinLockClock));
@@ -5471,14 +5475,13 @@ static int ISP_suspend(
 		if (strcmp(moduleName,
 		    IRQ_CB_TBL[ISP_IRQ_TYPE_INT_CAM_A_ST].device_name) == 0) {
 			LOG_DBG("%s - X. UserCount=%d,wakelock:%d,devct:%d\n",
-				moduleName, IspInfo.UserCount,
+				moduleName, _UserCnt,
 				G_u4EnableClockCount,
 				atomic_read(&G_u4DevNodeCt));
-		} else if (IspInfo.UserCount != 0) {
+		} else if (_UserCnt != 0) {
 			LOG_INF(
 			    "%s - X. UserCount=%d,G_u4EnableClockCount=0,wakelock:%d,devct:%d\n",
-			    moduleName,
-			    IspInfo.UserCount,
+			    moduleName, _UserCnt,
 			    G_u4EnableClockCount,
 			    atomic_read(&G_u4DevNodeCt));
 		}
@@ -5628,7 +5631,7 @@ static int ISP_resume(struct platform_device *pDev)
 {
 	unsigned int regVal;
 	unsigned int IrqType;
-	int ret, module;
+	int ret, module, _UserCnt;
 	char moduleName[128] = {'\0'};
 
 	ret = 0;
@@ -5639,7 +5642,11 @@ static int ISP_resume(struct platform_device *pDev)
 	/* update device node count*/
 	atomic_inc(&G_u4DevNodeCt);
 
-	if (IspInfo.UserCount == 0) {
+	spin_lock(&(IspInfo.SpinLockIspRef));
+	_UserCnt = IspInfo.UserCount;
+	spin_unlock(&(IspInfo.SpinLockIspRef));
+
+	if (_UserCnt == 0) {
 		/* Only print cama log */
 		if (strcmp(moduleName,
 			IRQ_CB_TBL[ISP_IRQ_TYPE_INT_CAM_A_ST].device_name) == 0)
