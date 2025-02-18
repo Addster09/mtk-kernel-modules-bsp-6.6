@@ -4136,6 +4136,12 @@ def get_overlay_modules_list():
     if "mt6781_overlay_usnd_legacy.config" in DEFCONFIG_OVERLAYS:
         mgk_64_device_modules.append("sound/soc/mediatek/ultrasound/ultra_common/mtk-scp-ultra.ko")
         mgk_64_device_modules.append("sound/soc/mediatek/ultrasound/ultra_scp/snd-soc-mtk-scp-ultra.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/vow/ver01/mtk-vow.ko")
+        mgk_64_device_modules.append("sound/soc/mediatek/vow/mtk-scp-vow.ko")
+
+    if "mt6781_overlay_vow_legacy.config" in DEFCONFIG_OVERLAYS:
+        mgk_64_device_modules.append("drivers/misc/mediatek/vow/ver01/mtk-vow.ko")
+        mgk_64_device_modules.append("sound/soc/mediatek/vow/mtk-scp-vow.ko")
 
     if "mt8786p2_overlay.config" in DEFCONFIG_OVERLAYS:
         mgk_64_device_modules.append("drivers/video/backlight/sgm37604a.ko")
