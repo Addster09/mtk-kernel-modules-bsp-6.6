@@ -2111,6 +2111,46 @@ void mt6877_mtk_sodi_config(struct drm_device *drm, enum mtk_ddp_comp_id id,
 	}
 }
 
+void mt6771_mtk_sodi_config(struct drm_device *drm, enum mtk_ddp_comp_id id,
+			    struct cmdq_pkt *handle, void *data)
+{
+	struct mtk_drm_private *priv = drm->dev_private;
+	unsigned int sodi_req_val = 0, sodi_req_mask = 0;
+	bool en = *((bool *)data);
+
+	if (id == DDP_COMPONENT_ID_MAX) { /* config when top clk on */
+		if (!en)
+			return;
+		SET_VAL_MASK(sodi_req_val, sodi_req_mask, 0x3,
+					REG_FLD(5,0));
+	} else if (id == DDP_COMPONENT_RDMA0) {
+		if(en == 1) {
+			SET_VAL_MASK(sodi_req_val, sodi_req_mask, 0x1,
+						FLD_SODI_RDMA0_REQ_MASKEN);
+			SET_VAL_MASK(sodi_req_val, sodi_req_mask, 0x3,
+						FLD_SODI_RDMA0_REQ_MASKVAL);
+		}else {
+			SET_VAL_MASK(sodi_req_val, sodi_req_mask, 0x3,
+					FLD_SODI_RDMA0_REQ_MASKEN);
+			SET_VAL_MASK(sodi_req_val, sodi_req_mask, 0x0,
+					FLD_SODI_RDMA0_REQ_MASKVAL);
+		}
+	} else
+		return;
+
+	if (handle == NULL) {
+		unsigned int v;
+
+		v = (readl(priv->config_regs + MT6771_MMSYS_SODI_REQ_MASK)
+			& (~sodi_req_mask));
+		v += (sodi_req_val & sodi_req_mask);
+		writel_relaxed(v, priv->config_regs + MT6771_MMSYS_SODI_REQ_MASK);
+	} else {
+		cmdq_pkt_write(handle, NULL, priv->config_regs_pa +
+			MT6771_MMSYS_SODI_REQ_MASK, sodi_req_val, sodi_req_mask);
+	}
+}
+
 void mt6781_mtk_sodi_config(struct drm_device *drm, enum mtk_ddp_comp_id id,
 			    struct cmdq_pkt *handle, void *data)
 {

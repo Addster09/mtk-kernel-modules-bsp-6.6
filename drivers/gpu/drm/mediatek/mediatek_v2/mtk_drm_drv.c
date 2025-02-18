@@ -6859,6 +6859,7 @@ static const struct mtk_mmsys_driver_data mt6771_mmsys_driver_data = {
 	.ext_path_data = &mt6771_mtk_ext_path_data,
 	.third_path_data = &mt6771_mtk_third_path_data,
 	.mmsys_id = MMSYS_MT6771,
+	.sodi_config = mt6771_mtk_sodi_config,
 	.mode_tb = mt6771_mode_tb,
 	.has_smi_limitation = false,
 	.doze_ctrl_pmic = false,

@@ -72,6 +72,7 @@ struct drm_crtc_state;
 
 #define MMSYS_MISC                                0xF0
 #define MMSYS_SODI_REQ_MASK                       0xF4
+#define MT6771_MMSYS_SODI_REQ_MASK                0xF8
 #define MMSYS_EMI_REQ_CTL                         0xF8
 
 #define OVLSYS_EXRDMA_ULTRA_SEL0                  0x40
@@ -104,6 +105,11 @@ struct drm_crtc_state;
 
 #define SODI_REQ_SEL_APSRC				          REG_FLD_MSB_LSB(0, 0)
 #define SODI_REQ_SEL_DDREN				          REG_FLD_MSB_LSB(1, 1)
+
+#define FLD_SODI_RDMA0_REQ_MASKEN		REG_FLD_MSB_LSB(9, 8)
+#define FLD_SODI_RDMA1_REQ_MASKEN		REG_FLD_MSB_LSB(11, 10)
+#define FLD_SODI_RDMA0_REQ_MASKVAL		REG_FLD_MSB_LSB(13, 12)
+#define FLD_SODI_RDMA1_REQ_MASKVAL		REG_FLD_MSB_LSB(15, 14)
 
 #define SODI_REQ_SEL_ALL                          REG_FLD_MSB_LSB(11, 8)
 	#define SODI_REQ_SEL_RDMA0_PD_MODE            REG_FLD_MSB_LSB(8, 8)
@@ -1575,6 +1581,8 @@ void mt6873_mtk_sodi_config(struct drm_device *drm, enum mtk_ddp_comp_id id,
 void mt6853_mtk_sodi_config(struct drm_device *drm, enum mtk_ddp_comp_id id,
 			    struct cmdq_pkt *handle, void *data);
 void mt6833_mtk_sodi_config(struct drm_device *drm, enum mtk_ddp_comp_id id,
+			    struct cmdq_pkt *handle, void *data);
+void mt6771_mtk_sodi_config(struct drm_device *drm, enum mtk_ddp_comp_id id,
 			    struct cmdq_pkt *handle, void *data);
 void mt6879_mtk_sodi_config(struct drm_device *drm, enum mtk_ddp_comp_id id,
 			    struct cmdq_pkt *handle, void *data);

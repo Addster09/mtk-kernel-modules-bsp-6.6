@@ -402,7 +402,8 @@ static irqreturn_t mtk_disp_rdma_irq_handler(int irq, void *dev_id)
 			set_ovl_reset_flag(mtk_crtc);
 		if (drm_priv && (drm_priv->data->mmsys_id == MMSYS_MT6768
 			|| drm_priv->data->mmsys_id == MMSYS_MT6765
-			|| drm_priv->data->mmsys_id == MMSYS_MT6761))
+			|| drm_priv->data->mmsys_id == MMSYS_MT6761
+			|| drm_priv->data->mmsys_id == MMSYS_MT6771))
 			DDPMSG("%s: pix(%d,%d,%d,%d)\n", mtk_dump_comp_str(rdma),
 				readl(MT6768_DISP_REG_RDMA_IN_P_CNT + rdma->regs),
 				readl(MT6768_DISP_REG_RDMA_IN_LINE_CNT + rdma->regs),
@@ -1991,6 +1992,7 @@ static const struct mtk_disp_rdma_data mt6771_rdma_driver_data = {
 	.ultra_high_us = 60,
 	.urgent_low_us = 30,
 	.urgent_high_us = 35,
+	.sodi_config = mt6771_mtk_sodi_config,
 	.support_shadow = false,
 	.need_bypass_shadow = false,
 	.has_greq_urg_num = false,
