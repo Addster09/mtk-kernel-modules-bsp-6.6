@@ -4139,6 +4139,8 @@ int get_addon_path_wait_event(struct drm_crtc *crtc,
 			return mtk_crtc->gce_obj.event[EVENT_WDMA0_EOF];
 		if (comp->id == DDP_COMPONENT_OVLSYS_WDMA0)
 			return mtk_crtc->gce_obj.event[EVENT_OVLSYS_WDMA0_EOF];
+		if (comp->id == DDP_COMPONENT_WDMA4)
+			return mtk_crtc->gce_obj.event[EVENT_WDMA4_EOF];
 	}
 	if (priv->data->mmsys_id == MMSYS_MT6989 ||
 		priv->data->mmsys_id == MMSYS_MT6899) {
@@ -19869,6 +19871,10 @@ static void mtk_crtc_get_event_name(struct mtk_drm_crtc *mtk_crtc, char *buf,
 		break;
 	case EVENT_WDMA0_EOF:
 		len = snprintf(buf, buf_len, "disp_wdma0_eof%d",
+			       drm_crtc_index(&mtk_crtc->base));
+		break;
+	case EVENT_WDMA4_EOF:
+		len = snprintf(buf, buf_len, "disp_wdma4_eof%d",
 			       drm_crtc_index(&mtk_crtc->base));
 		break;
 	case EVENT_WDMA1_EOF:
