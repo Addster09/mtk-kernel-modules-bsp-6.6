@@ -190,6 +190,10 @@ static int mtk_gpt_clkevt_shutdown(struct clock_event_device *clk)
 
 	return 0;
 }
+static int mtk_gpt_clkevt_oneshot(struct clock_event_device *clk)
+{
+	return 0;
+}
 
 static int mtk_gpt_clkevt_set_periodic(struct clock_event_device *clk)
 {
@@ -231,9 +235,12 @@ __init mtk_gpt_setup(struct timer_of *to, u8 timer, u8 option)
 {
 	writel(GPT_CTRL_CLEAR | GPT_CTRL_DISABLE,
 	       timer_of_base(to) + GPT_CTRL_REG(timer));
-
-	writel(GPT_CLK_SRC(GPT_CLK_SRC_SYS13M) | GPT_CLK_DIV1,
-	       timer_of_base(to) + GPT_CLK_REG(timer));
+	if (timer == TIMER_CLK_SRC)
+		writel(GPT_CLK_SRC(GPT_CLK_SRC_SYS13M) | GPT_CLK_DIV1,
+			timer_of_base(to) + GPT_CLK_REG(timer));
+	if (timer == TIMER_CLK_EVT)
+		writel(GPT_CLK_SRC(GPT_CLK_SRC_RTC32K) | GPT_CLK_DIV1,
+			timer_of_base(to) + GPT_CLK_REG(timer));
 
 	writel(0x0, timer_of_base(to) + GPT_CMP_REG(timer));
 
@@ -322,7 +329,7 @@ static int __init mtk_gpt_init(struct device_node *node)
 	to.clkevt.features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT;
 	to.clkevt.set_state_shutdown = mtk_gpt_clkevt_shutdown;
 	to.clkevt.set_state_periodic = mtk_gpt_clkevt_set_periodic;
-	to.clkevt.set_state_oneshot = mtk_gpt_clkevt_shutdown;
+	to.clkevt.set_state_oneshot = mtk_gpt_clkevt_oneshot;
 	to.clkevt.tick_resume = mtk_gpt_clkevt_shutdown;
 	to.clkevt.set_next_event = mtk_gpt_clkevt_next_event;
 	to.clkevt.suspend = mtk_gpt_suspend;
@@ -342,7 +349,7 @@ static int __init mtk_gpt_init(struct device_node *node)
 	sched_clock_register(mtk_gpt_read_sched_clock, 32, timer_of_rate(&to));
 
 	/* Configure clock event */
-	mtk_gpt_setup(&to, TIMER_CLK_EVT, GPT_CTRL_OP_REPEAT);
+	mtk_gpt_setup(&to, TIMER_CLK_EVT, GPT_CTRL_OP_ONESHOT);
 	clockevents_config_and_register(&to.clkevt, timer_of_rate(&to),
 					TIMER_SYNC_TICKS, 0xffffffff);
 
