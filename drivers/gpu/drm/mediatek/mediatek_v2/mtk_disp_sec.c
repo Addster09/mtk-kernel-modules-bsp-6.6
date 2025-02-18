@@ -362,6 +362,8 @@ int mtk_disp_mtee_cmdq_secure_start(int value, struct cmdq_pkt *cmdq_handle,
 		}
 		else if (priv && priv->data->mmsys_id == MMSYS_MT6765)
 			sec_disp_port = ((1LL << CMDQ_SEC_DISP_2L_OVL0) | (1LL << CMDQ_SEC_DISP_OVL0));
+		else if (priv && priv->data->mmsys_id == MMSYS_MT6771)
+			sec_disp_port = 1LL << CMDQ_SEC_DISP_OVL0;
 		else
 			sec_disp_port = 0;
 		sec_disp_dapc = 0;
