@@ -3674,6 +3674,7 @@ static void mtk_dsi_set_interrupt_enable(struct mtk_dsi *dsi)
 	} else {
 		inten |= TE_RDY_INT_FLAG;
 		if (priv && (priv->data->mmsys_id == MMSYS_MT6989 ||
+						priv->data->mmsys_id == MMSYS_MT6899 ||
 						priv->data->mmsys_id == MMSYS_MT6991))
 			inten |= TARGET_LINE_INT_FLAG;
 	}
