@@ -946,10 +946,10 @@ void mtk_dp_intf_unprepare_clk(void)
 	struct mtk_drm_private *priv;
 	int ret = 0;
 
-	mtk_crtc = g_dp_intf->ddp_comp.mtk_crtc;
-	priv = mtk_crtc->base.dev->dev_private;
-	/* disable dp intf clk */
 	if (g_dp_intf != NULL) {
+		mtk_crtc = g_dp_intf->ddp_comp.mtk_crtc;
+		priv = mtk_crtc->base.dev->dev_private;
+		/* disable dp intf clk */
 		if (priv->data->mmsys_id == MMSYS_MT6991) {
 			ret = clk_set_rate(g_dp_intf->pclk_src[MT6991_TVDPLL_PLL], 594000000);
 			if (ret)
