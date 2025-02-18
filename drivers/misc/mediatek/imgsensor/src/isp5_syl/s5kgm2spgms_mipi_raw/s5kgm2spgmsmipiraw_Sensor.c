@@ -4495,7 +4495,7 @@ static void preview_setting(void)
   write_cmos_sensor(0x602A, 0x3682);
   write_cmos_sensor(0x6F12, 0xB134);
   write_cmos_sensor(0x6F12, 0x0000);
-  write_cmos_sensor_8(0x0100, 0x01);
+  //write_cmos_sensor_8(0x0100, 0x01);
 }	/* preview_setting  */
 
 static void capture_setting(void)
@@ -4651,7 +4651,7 @@ static void capture_setting(void)
 		  write_cmos_sensor(0x602A, 0x3682);
 		  write_cmos_sensor(0x6F12, 0xB134);
 		  write_cmos_sensor(0x6F12, 0x0000);
-		  write_cmos_sensor_8(0x0100, 0x01);
+		  //write_cmos_sensor_8(0x0100, 0x01);
 		}
 
 
@@ -4806,7 +4806,7 @@ static void normal_video_setting(void)
 		  write_cmos_sensor(0x602A, 0x3682);
 		  write_cmos_sensor(0x6F12, 0xB134);
 		  write_cmos_sensor(0x6F12, 0x0000);
-		  write_cmos_sensor_8(0x0100, 0x01);
+		  //write_cmos_sensor_8(0x0100, 0x01);
 		}
 
 
@@ -4961,7 +4961,7 @@ static void hs_video_setting(void)
 		  write_cmos_sensor(0x602A, 0x3682);
 		  write_cmos_sensor(0x6F12, 0xB134);
 		  write_cmos_sensor(0x6F12, 0x0000);
-		  write_cmos_sensor_8(0x0100, 0x01);
+		  //write_cmos_sensor_8(0x0100, 0x01);
 		}
 
 
