@@ -340,6 +340,18 @@ static const struct mtk_iommu_iova_region mt8192_multi_dom[] = {
 	#endif
 };
 
+/*
+ * 0,NORMAL:         0x0000_0000~0x7D9F_FFFF
+ *                   0x8260_0000~0xFFFF_FFFF
+ * 1.VPU:            0x7DA0_0000~0x825F_FFFF(76MB)
+ */
+static const struct mtk_iommu_iova_region mt6771_multi_dom[] = {
+#if IS_ENABLED(CONFIG_ARCH_DMA_ADDR_T_64BIT)
+	{ .iova_base = 0, .size = SZ_4G}, /*0, NORMAL */
+	{ .iova_base = 0x7DA00000, .size = 0x4C00000}, /* 1,VPU */
+#endif
+};
+
 /* use the same data as mt6853 */
 static struct mtk_iommu_iova_region mt6833_multi_dom[] __maybe_unused = {
 	{ .iova_base = 0x0, .size = SZ_4G},	      /* disp : 0 ~ 4G */
@@ -3603,8 +3615,8 @@ static const struct mtk_iommu_plat_data mt6771_data = {
 			 NOT_STD_AXI_MODE | SHARE_PGTABLE | HAS_EMI_PM |
 			 PGTABLE_PA_35_EN,
 	.inv_sel_reg   = REG_MMU_INV_SEL_GEN1,
-	.iova_region   = single_domain,
-	.iova_region_nr = ARRAY_SIZE(single_domain),
+	.iova_region   = mt6771_multi_dom,
+	.iova_region_nr = ARRAY_SIZE(mt6771_multi_dom),
 	.iommu_id	= DISP_IOMMU,
 	.iommu_type     = MM_IOMMU,
 };
