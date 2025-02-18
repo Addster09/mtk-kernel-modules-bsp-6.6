@@ -2597,6 +2597,7 @@ int mtk_drm_setbacklight(struct drm_crtc *crtc, unsigned int level,
 
 	if (cmdq_pkt_flush_threaded(cmdq_handle, bl_cmdq_cb, cb_data) < 0) {
 		DDPPR_ERR("failed to flush bl_cmdq_cb\n");
+		kfree(cb_data);
 		ret = -EINVAL;
 	}
 	if (lock)
@@ -3482,22 +3483,28 @@ int mtk_crtc_user_cmd_impl(struct drm_crtc *crtc, struct mtk_ddp_comp *comp,
 				cb_data->crtc = crtc;
 				cb_data->cmdq_handle = cmdq_handle;
 				if (cmdq_pkt_flush_threaded(cmdq_handle,
-					user_cmd_cmdq_cb, cb_data) < 0)
+					user_cmd_cmdq_cb, cb_data) < 0) {
 					DDPPR_ERR("failed to flush user_cmd\n");
+					kfree(cb_data);
+				}
 			}
 		} else {
 			cb_data->crtc = crtc;
 			cb_data->cmdq_handle = cmdq_handle;
 			if (cmdq_pkt_flush_threaded(cmdq_handle,
-				user_cmd_cmdq_cb, cb_data) < 0)
+				user_cmd_cmdq_cb, cb_data) < 0) {
 				DDPPR_ERR("failed to flush user_cmd\n");
+				kfree(cb_data);
+			}
 		}
 	} else {
 		cb_data->crtc = crtc;
 		cb_data->cmdq_handle = cmdq_handle;
 		cb_data->misc = user_cmd_cnt - 1;
-		if (cmdq_pkt_flush_threaded(cmdq_handle, user_cmd_cmdq_cb, cb_data) < 0)
+		if (cmdq_pkt_flush_threaded(cmdq_handle, user_cmd_cmdq_cb, cb_data) < 0) {
 			DDPPR_ERR("failed to flush user_cmd\n");
+			kfree(cb_data);
+		}
 	}
 
 	CRTC_MMP_EVENT_END(index, user_cmd, 0, (unsigned long)params);
@@ -8420,8 +8427,10 @@ void mtk_crtc_dc_prim_path_update(struct drm_crtc *crtc)
 
 	cb_data->crtc = crtc;
 	cb_data->cmdq_handle = cmdq_handle;
-	if (cmdq_pkt_flush_threaded(cmdq_handle, sub_cmdq_cb, cb_data) < 0)
+	if (cmdq_pkt_flush_threaded(cmdq_handle, sub_cmdq_cb, cb_data) < 0) {
 		DDPPR_ERR("failed to flush sub\n");
+		kfree(cb_data);
+	}
 end:
 	DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
 }
@@ -12375,8 +12384,10 @@ void mtk_crtc_clr_set_dirty(struct mtk_drm_crtc *mtk_crtc)
 
 	cb_data->cmdq_handle = cmdq_handle;
 	if (cmdq_pkt_flush_threaded(cmdq_handle,
-	    clr_set_dirty_cmdq_cb, cb_data) < 0)
+	    clr_set_dirty_cmdq_cb, cb_data) < 0) {
 		DDPPR_ERR("failed to flush clr_set_dirty\n");
+		kfree(cb_data);
+	}
 }
 
 static void set_dirty_cmdq_cb(struct cmdq_cb_data data)
@@ -12425,8 +12436,10 @@ void mtk_crtc_set_dirty(struct mtk_drm_crtc *mtk_crtc)
 
 	cb_data->cmdq_handle = cmdq_handle;
 	if (cmdq_pkt_flush_threaded(cmdq_handle,
-	    set_dirty_cmdq_cb, cb_data) < 0)
+	    set_dirty_cmdq_cb, cb_data) < 0) {
 		DDPPR_ERR("failed to flush set_dirty\n");
+		kfree(cb_data);
+	}
 }
 
 static int __mtk_check_trigger(struct mtk_drm_crtc *mtk_crtc)
@@ -18165,8 +18178,10 @@ int mtk_crtc_gce_flush(struct drm_crtc *crtc, void *gce_cb,
 	if (cmdq_pkt_flush_async(cmdq_handle, gce_cb, cb_data) < 0)
 		DDPPR_ERR("failed to flush gce_cb async\n");
 #else
-	if (cmdq_pkt_flush_threaded(cmdq_handle, gce_cb, cb_data) < 0)
+	if (cmdq_pkt_flush_threaded(cmdq_handle, gce_cb, cb_data) < 0) {
 		DDPPR_ERR("failed to flush gce_cb threaded\n");
+		kfree(cb_data);
+	}
 #endif
 #else
 	cmdq_pkt_flush(cmdq_handle);
@@ -18193,8 +18208,10 @@ int mtk_crtc_gce_flush(struct drm_crtc *crtc, void *gce_cb,
 		CRTC_MMP_MARK(crtc_index, discrete, 0,
 			(unsigned long)pending_handle);
 		if (cmdq_pkt_flush_threaded(pending_handle,
-			mtk_drm_discrete_cb, discrete_cb_data) < 0)
+			mtk_drm_discrete_cb, discrete_cb_data) < 0) {
 			DDPPR_ERR("failed to flush gce_cb threaded\n");
+			kfree(cb_data);
+		}
 	}
 
 	/* For DL write-back path */
@@ -18247,8 +18264,10 @@ int mtk_crtc_gce_flush(struct drm_crtc *crtc, void *gce_cb,
 		wb_cb_data->wb_scn = mtk_crtc_wb_get_scn(state);
 		CRTC_MMP_MARK(crtc_index, wbBmpDump, (unsigned long)handle,
 							wb_cb_data->wb_fence_idx);
-		if (cmdq_pkt_flush_threaded(handle, mtk_drm_wb_cb, wb_cb_data) < 0)
+		if (cmdq_pkt_flush_threaded(handle, mtk_drm_wb_cb, wb_cb_data) < 0) {
 			DDPPR_ERR("failed to flush gce_cb threaded\n");
+			kfree(wb_cb_data);
+		}
 	} else if (state->prop_val[CRTC_PROP_OUTPUT_ENABLE]
 		&& crtc_index == 0 && !is_from_dal && mtk_crtc->wb_error) {
 		fence_idx = state->prop_val[CRTC_PROP_OUTPUT_FENCE_IDX];
@@ -18707,8 +18726,10 @@ static void mtk_crtc_partial_update_set_wait(struct mtk_drm_crtc *mtk_crtc)
 	cb_data->cmdq_handle = cmdq_handle;
 	cb_data->crtc = &mtk_crtc->base;
 	if (cmdq_pkt_flush_threaded(cmdq_handle,
-	    set_wait_cmdq_cb, cb_data) < 0)
+	    set_wait_cmdq_cb, cb_data) < 0) {
 		DDPPR_ERR("failed to flush set_dirty\n");
+		kfree(cb_data);
+	}
 }
 
 int mtk_drm_crtc_set_partial_update(struct drm_crtc *crtc,
@@ -19593,8 +19614,10 @@ static void mtk_drm_crtc_atomic_flush(struct drm_crtc *crtc,
 		}
 		msync_cb_data->cmdq_handle = cmdq_handle;
 		if (cmdq_pkt_flush_threaded(cmdq_handle,
-			msync_cmdq_cb, msync_cb_data) < 0)
+			msync_cmdq_cb, msync_cb_data) < 0) {
 			DDPPR_ERR("failed to flush msync_cmdq_cb\n");
+			kfree(msync_cb_data);
+		}
 	}
 
 	/* When open VDS path switch feature, After VDS created
@@ -20401,8 +20424,10 @@ static void mtk_drm_cwb_give_buf(struct drm_crtc *crtc)
 		}
 	}
 	cb_data->cmdq_handle = handle;
-	if (cmdq_pkt_flush_threaded(handle, mtk_drm_cwb_cb, cb_data) < 0)
+	if (cmdq_pkt_flush_threaded(handle, mtk_drm_cwb_cb, cb_data) < 0) {
 		DDPPR_ERR("failed to flush write_back\n");
+		kfree(cb_data);
+	}
 
 	//2. idx change
 	cwb_info->buf_idx = next_idx;

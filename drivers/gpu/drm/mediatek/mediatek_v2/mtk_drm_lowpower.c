@@ -1787,6 +1787,7 @@ int mtk_drm_idlemgr_init(struct drm_crtc *crtc, int index)
 	struct mtk_ddp_comp *output_comp = NULL;
 	bool mode = false;
 	char name[LEN] = {0};
+	int len = 0;
 
 	idlemgr = kzalloc(sizeof(*idlemgr), GFP_KERNEL);
 	idlemgr_ctx = kzalloc(sizeof(*idlemgr_ctx), GFP_KERNEL);
@@ -1808,14 +1809,18 @@ int mtk_drm_idlemgr_init(struct drm_crtc *crtc, int index)
 	idlemgr_ctx->cur_lp_cust_mode = 0;
 	idlemgr_ctx->idle_check_interval = 50;
 
-	snprintf(name, LEN, "mtk_drm_disp_idlemgr-%d", index);
+	len = snprintf(name, LEN, "mtk_drm_disp_idlemgr-%d", index);
+	if(len < 0 || len >= LEN)
+		DDPMSG("%s: snprintf failed, %d\n", __func__, len);
 	idlemgr->idlemgr_task =
 			kthread_create(mtk_drm_idlemgr_monitor_thread, crtc, name);
 	init_waitqueue_head(&idlemgr->idlemgr_wq);
 	atomic_set(&idlemgr->idlemgr_task_active, 1);
 	wake_up_process(idlemgr->idlemgr_task);
 
-	snprintf(name, LEN, "dis_ki-%d", index);
+	len = snprintf(name, LEN, "dis_ki-%d", index);
+	if(len < 0 || len >= LEN)
+		DDPMSG("%s: snprintf failed, %d\n", __func__, len);
 	idlemgr->kick_task =
 			kthread_create(mtk_drm_async_kick_idlemgr_thread, crtc, name);
 	init_waitqueue_head(&idlemgr->kick_wq);
@@ -1841,7 +1846,9 @@ int mtk_drm_idlemgr_init(struct drm_crtc *crtc, int index)
 		init_waitqueue_head(&idlemgr->async_event_wq);
 		atomic_set(&idlemgr->async_ref, 0);
 
-		snprintf(name, LEN, "dis_async-%d", index);
+		len = snprintf(name, LEN, "dis_async-%d", index);
+		if(len < 0 || len >= LEN)
+			DDPMSG("%s: snprintf failed, %d\n", __func__, len);
 		idlemgr->async_handler_task =
 			kthread_create(mtk_drm_async_handler_thread, crtc, name);
 		init_waitqueue_head(&idlemgr->async_handler_wq);
@@ -1852,7 +1859,9 @@ int mtk_drm_idlemgr_init(struct drm_crtc *crtc, int index)
 
 		if (idlemgr_ctx->priv.vblank_async == true) {
 			DDPMSG("%s, %d, init vblank async\n", __func__, __LINE__);
-			snprintf(name, LEN, "dis_vblank-%d", index);
+			len = snprintf(name, LEN, "dis_vblank-%d", index);
+			if(len < 0 || len >= LEN)
+				DDPMSG("%s: snprintf failed, %d\n", __func__, len);
 			idlemgr->async_vblank_task =
 				kthread_create(mtk_drm_async_vblank_thread, crtc, name);
 			init_waitqueue_head(&idlemgr->async_vblank_wq);
@@ -3083,8 +3092,10 @@ void mtk_drm_idlemgr_wb_enter(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *cm
 
 		cb_data->cmdq_handle = cmdq_handle;
 		cb_data->crtc = crtc;
-		if (cmdq_pkt_flush_threaded(cmdq_handle, mtk_drm_idlemgr_wb_cmdq_cb, cb_data) < 0)
+		if (cmdq_pkt_flush_threaded(cmdq_handle, mtk_drm_idlemgr_wb_cmdq_cb, cb_data) < 0) {
 			DDPPR_ERR("%s,[IWB] %d, failed to flush cmdq pkt\n", __func__, __LINE__);
+			kfree(cb_data);
+		}
 	}
 	mtk_crtc->idlemgr->idlemgr_ctx->wb_entered = true;
 }

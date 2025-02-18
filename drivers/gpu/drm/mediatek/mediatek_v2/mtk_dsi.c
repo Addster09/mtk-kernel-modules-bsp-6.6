@@ -13016,8 +13016,10 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 	cb_data->crtc = &mtk_crtc->base;
 	cb_data->mmclk_req_idx = (mtk_crtc->qos_ctx) ? mtk_crtc->qos_ctx->last_mmclk_req_idx : 0;
 	if (cmdq_pkt_flush_threaded(handle,
-		mtk_dsi_dy_fps_cmdq_cb, cb_data) < 0)
+		mtk_dsi_dy_fps_cmdq_cb, cb_data) < 0) {
 		DDPPR_ERR("failed to flush dsi_dy_fps\n");
+		kfree(cb_data);
+	}
 	if (is_bdg_supported()) {
 		CRTC_MMP_MARK(index, mode_switch, 3, 0);
 	}

@@ -1128,8 +1128,10 @@ static void mtk_atomic_doze_update_pq(struct drm_crtc *crtc, unsigned int stage,
 		}
 	}
 
-	if (cmdq_pkt_flush_threaded(cmdq_handle, pq_bypass_cmdq_cb, cb_data) < 0)
+	if (cmdq_pkt_flush_threaded(cmdq_handle, pq_bypass_cmdq_cb, cb_data) < 0) {
 		DDPPR_ERR("failed to flush user_cmd\n");
+		kfree(cb_data);
+	}
 
 #ifndef DRM_CMDQ_DISABLE
 	if (bypass)
@@ -10066,6 +10068,7 @@ static int mtk_drm_se_plane_config(struct mtk_drm_crtc *mtk_crtc)
 	ret = cmdq_pkt_flush_threaded(cmdq_handle, mtk_drm_se_cmdq_cb, cb_data);
 	if (ret < 0) {
 		DDPMSG("%s[%d] cmdq_pkt_flush_threaded failed!\n", __func__, __LINE__);
+		kfree(cb_data);
 		return -EINVAL;
 	}
 
