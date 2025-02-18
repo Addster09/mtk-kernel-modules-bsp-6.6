@@ -34,15 +34,32 @@ static char bl_tb0[] = {0x51, 0xf, 0xff};
 #ifdef AP_RESOLUTION_SWITCH
 #define FHD_FRAME_WIDTH    (2240)
 #define FHD_HFP            (25)
+#define FHD_HFP_120        (80)
+#define FHD_HFP_60         (80)
+#define FHD_HFP_30         (80)
 #define FHD_HSA            (10)
 #define FHD_HBP            (24)
-#define FHD_HTOTAL         (FHD_FRAME_WIDTH + FHD_HFP + FHD_HSA + FHD_HBP)
+#define FHD_HBP_120        (80)
+#define FHD_HBP_60         (80)
+#define FHD_HBP_30         (80)
+#define FHD_HTOTAL             (FHD_FRAME_WIDTH + FHD_HFP + FHD_HSA + FHD_HBP)
+#define FHD_HTOTAL_120         (FHD_FRAME_WIDTH + FHD_HFP_120 + FHD_HSA + FHD_HBP_120)
+#define FHD_HTOTAL_60          (FHD_FRAME_WIDTH + FHD_HFP_60 + FHD_HSA + FHD_HBP_60)
+#define FHD_HTOTAL_30          (FHD_FRAME_WIDTH + FHD_HFP_30 + FHD_HSA + FHD_HBP_30)
 #define FHD_FRAME_HEIGHT   (1400)
 #define FHD_VFP            (26)
+#define FHD_VFP_60          (2076)
+#define FHD_VFP_30          (6176)
 #define FHD_VSA            (2)
 #define FHD_VBP            (182)
-#define FHD_VTOTAL         (FHD_FRAME_HEIGHT + FHD_VFP + FHD_VSA + FHD_VBP)
-#define FHD_FRAME_TOTAL    (FHD_HTOTAL * FHD_VTOTAL)
+#define FHD_VTOTAL             (FHD_FRAME_HEIGHT + FHD_VFP + FHD_VSA + FHD_VBP)
+#define FHD_VTOTAL_120         (FHD_FRAME_HEIGHT + FHD_VFP + FHD_VSA + FHD_VBP)
+#define FHD_VTOTAL_60          (FHD_FRAME_HEIGHT + FHD_VFP_60 + FHD_VSA + FHD_VBP)
+#define FHD_VTOTAL_30          (FHD_FRAME_HEIGHT + FHD_VFP_30 + FHD_VSA + FHD_VBP)
+#define FHD_FRAME_TOTAL        (FHD_HTOTAL * FHD_VTOTAL)
+#define FHD_FRAME_TOTAL_120    (FHD_HTOTAL_120 * FHD_VTOTAL_120)
+#define FHD_FRAME_TOTAL_60     (FHD_HTOTAL_60 * FHD_VTOTAL_60)
+#define FHD_FRAME_TOTAL_30     (FHD_HTOTAL_60 * FHD_VTOTAL_60)
 #define FHD_PLL_CLOCK      (491)
 #define FHD_VREFRESH_DEF   (144)
 #define FHD_VREFRESH_120   (120)
@@ -50,11 +67,10 @@ static char bl_tb0[] = {0x51, 0xf, 0xff};
 #define FHD_VREFRESH_60    (60)
 #define FHD_VREFRESH_30    (30)
 #define FHD_CLK_DEF_X10    ((FHD_FRAME_TOTAL * FHD_VREFRESH_DEF) / 100)
-#define FHD_CLK_120_X10     ((FHD_FRAME_TOTAL * FHD_VREFRESH_120) / 100)
+#define FHD_CLK_120_X10     ((FHD_FRAME_TOTAL_120 * FHD_VREFRESH_120) / 100)
 #define FHD_CLK_90_X10     ((FHD_FRAME_TOTAL * FHD_VREFRESH_90) / 100)
-#define FHD_CLK_60_X10     ((FHD_FRAME_TOTAL * FHD_VREFRESH_60) / 100)
-#define FHD_CLK_30_X10     ((FHD_FRAME_TOTAL * FHD_VREFRESH_30) / 100)
-
+#define FHD_CLK_60_X10     ((FHD_FRAME_TOTAL_60 * FHD_VREFRESH_60) / 100)
+#define FHD_CLK_30_X10     ((FHD_FRAME_TOTAL_30 * FHD_VREFRESH_30) / 100)
 #define FHD_CLK_DEF		(((FHD_CLK_DEF_X10 % 10) != 0) ?             \
 			(FHD_CLK_DEF_X10 / 10 + 1) : (FHD_CLK_DEF_X10 / 10))
 #define FHD_CLK_120		(((FHD_CLK_120_X10 % 10) != 0) ?              \
@@ -65,8 +81,7 @@ static char bl_tb0[] = {0x51, 0xf, 0xff};
 			(FHD_CLK_60_X10 / 10 + 1) : (FHD_CLK_60_X10 / 10))
 #define FHD_CLK_30		(((FHD_CLK_30_X10 % 10) != 0) ?              \
 			(FHD_CLK_30_X10 / 10 + 1) : (FHD_CLK_30_X10 / 10))
-
-static enum RES_SWITCH_TYPE res_switch_type = RES_SWITCH_NO_USE;
+static enum RES_SWITCH_TYPE res_switch_type = RES_SWITCH_ON_AP;
 #endif
 
 static int current_fps = 144;
@@ -990,9 +1005,9 @@ static const struct drm_display_mode fhd_mode_90 = {
 static const struct drm_display_mode fhd_mode_120 = {
 	.clock = FHD_CLK_120,
 	.hdisplay = FHD_FRAME_WIDTH,
-	.hsync_start = FHD_FRAME_WIDTH + FHD_HFP,
-	.hsync_end = FHD_FRAME_WIDTH + FHD_HFP + FHD_HSA,
-	.htotal = FHD_FRAME_WIDTH + FHD_HFP + FHD_HSA + FHD_HBP,
+	.hsync_start = FHD_FRAME_WIDTH + FHD_HFP_120,
+	.hsync_end = FHD_FRAME_WIDTH + FHD_HFP_120 + FHD_HSA,
+	.htotal = FHD_FRAME_WIDTH + FHD_HFP_120 + FHD_HSA + FHD_HBP_120,
 	.vdisplay = FHD_FRAME_HEIGHT,
 	.vsync_start = FHD_FRAME_HEIGHT + FHD_VFP,
 	.vsync_end = FHD_FRAME_HEIGHT + FHD_VFP + FHD_VSA,
@@ -1002,25 +1017,25 @@ static const struct drm_display_mode fhd_mode_120 = {
 static const struct drm_display_mode fhd_mode_60 = {
 	.clock = FHD_CLK_60,
 	.hdisplay = FHD_FRAME_WIDTH,
-	.hsync_start = FHD_FRAME_WIDTH + FHD_HFP,
-	.hsync_end = FHD_FRAME_WIDTH + FHD_HFP + FHD_HSA,
-	.htotal = FHD_FRAME_WIDTH + FHD_HFP + FHD_HSA + FHD_HBP,
+	.hsync_start = FHD_FRAME_WIDTH + FHD_HFP_60,
+	.hsync_end = FHD_FRAME_WIDTH + FHD_HFP_60 + FHD_HSA,
+	.htotal = FHD_FRAME_WIDTH + FHD_HFP_60 + FHD_HSA + FHD_HBP_60,
 	.vdisplay = FHD_FRAME_HEIGHT,
-	.vsync_start = FHD_FRAME_HEIGHT + FHD_VFP,
-	.vsync_end = FHD_FRAME_HEIGHT + FHD_VFP + FHD_VSA,
-	.vtotal = FHD_FRAME_HEIGHT + FHD_VFP + FHD_VSA + FHD_VBP,
+	.vsync_start = FHD_FRAME_HEIGHT + FHD_VFP_60,
+	.vsync_end = FHD_FRAME_HEIGHT + FHD_VFP_60 + FHD_VSA,
+	.vtotal = FHD_FRAME_HEIGHT + FHD_VFP_60 + FHD_VSA + FHD_VBP,
 };
 
 static const struct drm_display_mode fhd_mode_30 = {
 	.clock = FHD_CLK_30,
 	.hdisplay = FHD_FRAME_WIDTH,
-	.hsync_start = FHD_FRAME_WIDTH + FHD_HFP,
-	.hsync_end = FHD_FRAME_WIDTH + FHD_HFP + FHD_HSA,
-	.htotal = FHD_FRAME_WIDTH + FHD_HFP + FHD_HSA + FHD_HBP,
+	.hsync_start = FHD_FRAME_WIDTH + FHD_HFP_30,
+	.hsync_end = FHD_FRAME_WIDTH + FHD_HFP_30 + FHD_HSA,
+	.htotal = FHD_FRAME_WIDTH + FHD_HFP_30 + FHD_HSA + FHD_HBP_30,
 	.vdisplay = FHD_FRAME_HEIGHT,
-	.vsync_start = FHD_FRAME_HEIGHT + FHD_VFP,
-	.vsync_end = FHD_FRAME_HEIGHT + FHD_VFP + FHD_VSA,
-	.vtotal = FHD_FRAME_HEIGHT + FHD_VFP + FHD_VSA + FHD_VBP,
+	.vsync_start = FHD_FRAME_HEIGHT + FHD_VFP_30,
+	.vsync_end = FHD_FRAME_HEIGHT + FHD_VFP_30 + FHD_VSA,
+	.vtotal = FHD_FRAME_HEIGHT + FHD_VFP_30 + FHD_VSA + FHD_VBP,
 };
 
 #endif
