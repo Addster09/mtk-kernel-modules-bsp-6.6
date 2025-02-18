@@ -367,10 +367,10 @@ int semi_touch_create_apk_proc(struct sm_touch_dev* st_dev)
     semi_touch_create_work_queue(work_queue_custom_work, typename(work_queue_custom_work));
     
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0))
-    st_dev->proc_entry = proc_create(SEMI_TOUCH_PROC_NAME, 0777, NULL, &semi_touch_proc_opts);
+	st_dev->proc_entry = proc_create(SEMI_TOUCH_PROC_NAME, 0770, NULL, &semi_touch_proc_opts);
     check_return_if_zero(st_dev->proc_entry, NULL);
 #else
-    st_dev->proc_entry = create_proc_entry(SEMI_TOUCH_PROC_NAME, 0777, NULL);
+	st_dev->proc_entry = create_proc_entry(SEMI_TOUCH_PROC_NAME, 0770, NULL);
     check_return_if_zero(st_dev->proc_entry, NULL);
     //st_dev->proc_entry->write_proc = semi_touch_proc_write;
     //st_dev->proc_entry->read_proc = semi_touch_proc_read;

@@ -824,7 +824,7 @@ static const struct proc_ops wtk_tp_info_proc_fops = {
 
 int wtk_creat_proc_tp_info(void)
 {
-	struct proc_dir_entry *tp_info_entry = proc_create("wtk_tpInfo", 0444, NULL, &wtk_tp_info_proc_fops);
+	struct proc_dir_entry *tp_info_entry = proc_create("wtk_tpInfo", 0440, NULL, &wtk_tp_info_proc_fops);
 	if (tp_info_entry == NULL)
 		printk("create /proc/wtk_tpInfo fail\n");
 	

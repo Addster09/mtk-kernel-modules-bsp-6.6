@@ -49,7 +49,7 @@ static int semi_touch_register_nodefun_imp(enum entry_type etype, char* node_nam
 static int semi_touch_register_nodefun_imp(enum entry_type etype, char* node_name, const struct file_operations* opt_addr)
 #endif
 {
-    struct proc_dir_entry* entry = proc_create(node_name, 0777, st_dev.chsc_nodes_dir, opt_addr);
+	struct proc_dir_entry *entry = proc_create(node_name, 0770, st_dev.chsc_nodes_dir, opt_addr);
     check_return_if_zero(entry, NULL);
 
     custom_proc_entry[etype] = entry;
