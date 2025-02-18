@@ -10,6 +10,10 @@ ifneq ($(wildcard $(srctree)/$(src)/k6985v1_64_alpha),)
 obj-$(CONFIG_TOUCHSCREEN_MT6985_ALPHA_SUPPORT) += k6985v1_64_alpha/
 endif
 
+ifneq ($(wildcard $(srctree)/$(src)/k6991v1_64_91t_vdo_1k5_alpha),)
+obj-$(CONFIG_TOUCHSCREEN_MT6985_ALPHA_SUPPORT) += k6991v1_64_91t_vdo_1k5_alpha/
+endif
+
 obj-$(CONFIG_TOUCHSCREEN_BOTAI_MULTI_TOUCH) += BoTai_Multi_Touch/
 obj-$(CONFIG_TOUCHSCREEN_GT9XX) += gt9xx/
 obj-$(CONFIG_TOUCHSCREEN_GOODIX_BRL) += GT9966/
