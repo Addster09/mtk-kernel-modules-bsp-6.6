@@ -660,6 +660,7 @@ static struct platform_driver helio_dvfsrc_driver = {
 static int __init helio_dvfsrc_init(void)
 {
 	int ret = 0;
+	int remove_ret = 0;
 
 	ret = devfreq_add_governor(&helio_dvfsrc_governor);
 	if (ret) {
@@ -668,8 +669,14 @@ static int __init helio_dvfsrc_init(void)
 	}
 
 	ret = platform_driver_register(&helio_dvfsrc_driver);
-	if (ret)
-		devfreq_remove_governor(&helio_dvfsrc_governor);
+	if (ret) {
+		pr_info("%s: failed to register platform driver: %d\n", __func__, ret);
+		remove_ret = devfreq_remove_governor(&helio_dvfsrc_governor);
+		if (remove_ret)
+			pr_info("%s: failed to remove devfreq governor: %d\n", __func__, remove_ret);
+
+		return ret;
+	}
 
 	return ret;
 }
