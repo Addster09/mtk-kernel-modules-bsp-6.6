@@ -537,6 +537,19 @@ static s32 hdr_config_frame(struct mml_comp *comp, struct mml_task *task,
 	regs = result->hdr_regs;
 	curve = result->hdr_curve;
 
+	// for debug ALPS09743178, will remove later :
+	// hdr_regs[HDR_TOP] value that bit 0 (hdr_en) should not be 0
+	if (result->hdr_reg_cnt > 1 &&
+		(regs[1].value & 0x1) == 0 &&
+		regs[1].offset == 0) {
+		mml_pq_err("%s:result_id[%llu] [regs][%x] = %#x mask(%#x)",
+			__func__, task->pq_task->comp_config.job_id,
+			regs[0].offset, regs[0].value, regs[0].mask);
+		mml_pq_err("%s:result_id[%llu] [regs][%x] = %#x mask(%#x)",
+			__func__, task->pq_task->comp_config.job_id,
+			regs[1].offset, regs[1].value, regs[1].mask);
+	}
+
 	/* TODO: use different regs */
 	mml_pq_msg("%s:config hdr regs, count: %d", __func__, result->hdr_reg_cnt);
 	for (i = 0; i < result->hdr_reg_cnt; i++) {
@@ -976,6 +989,19 @@ static s32 hdr_reconfig_frame(struct mml_comp *comp, struct mml_task *task,
 
 	regs = result->hdr_regs;
 	curve = result->hdr_curve;
+
+	// for debug ALPS09743178, will remove later :
+	// hdr_regs[HDR_TOP] value that bit 0 (hdr_en) should not be 0
+	if (result->hdr_reg_cnt > 1 &&
+		(regs[1].value & 0x1) == 0 &&
+		regs[1].offset == 0) {
+		mml_pq_err("%s:result_id[%llu] [regs][%x] = %#x mask(%#x)",
+			__func__, task->pq_task->comp_config.job_id,
+			regs[0].offset, regs[0].value, regs[0].mask);
+		mml_pq_err("%s:result_id[%llu] [regs][%x] = %#x mask(%#x)",
+			__func__, task->pq_task->comp_config.job_id,
+			regs[1].offset, regs[1].value, regs[1].mask);
+	}
 
 	if (mode == MML_MODE_MML_DECOUPLE || mode == MML_MODE_MML_DECOUPLE2) {
 		val_idx = 0;
