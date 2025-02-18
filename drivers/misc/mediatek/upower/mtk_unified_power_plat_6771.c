@@ -426,6 +426,8 @@ void get_original_table(void)
 
 	idx = mt_cpufreq_get_cpu_level_upower();
 
+	if (idx >= NR_UPOWER_TBL_LIST)
+		idx = 0;
 	/* get location of reference table */
 	upower_tbl_infos = &upower_tbl_infos_list[idx][0];
 
