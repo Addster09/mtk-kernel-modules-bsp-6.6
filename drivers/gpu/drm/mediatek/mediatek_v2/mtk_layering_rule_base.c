@@ -2864,7 +2864,7 @@ static int mtk_lye_get_comp_id(int disp_idx, int disp_list, struct drm_device *d
 	}
 	/* TODO: The component ID should be changed by ddp path and platforms */
 	if (disp_idx == 0) {
-		if (HRT_GET_FIRST_SET_BIT(ovl_mapping_tb) >= layer_map_idx)
+		if (HRT_GET_FIRST_SET_BIT(ovl_mapping_tb) >= layer_map_idx && priv->data->mmsys_id != MMSYS_MT6771)
 			return DDP_COMPONENT_DMDP_RDMA0;
 		/* When open VDS path switch feature, primary OVL have OVL0 only */
 		else if (mtk_drm_helper_get_opt(priv->helper_opt,
