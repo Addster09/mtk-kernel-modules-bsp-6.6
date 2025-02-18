@@ -493,8 +493,15 @@ static int panel_ext_reset(struct drm_panel *panel, int on)
 	return 0;
 }
 
+static int panel_ata_check(struct drm_panel *panel)
+{
+	/* Customer test by own ATA tool */
+	return 1;
+}
+
 static struct mtk_panel_funcs ext_funcs = {
 	.reset = panel_ext_reset,
+	.ata_check = panel_ata_check,
 };
 #endif
 
