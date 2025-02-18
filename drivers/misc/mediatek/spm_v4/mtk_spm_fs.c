@@ -22,7 +22,7 @@
 	static struct kobj_attribute _name##_attr = {	\
 		.attr	= {				\
 			.name = #_name,			\
-			.mode = 0444,			\
+			.mode = 0440,			\
 		},					\
 		.show	= _name##_show,			\
 	}
@@ -31,7 +31,7 @@
 	static struct kobj_attribute _name##_attr = {	\
 		.attr	= {				\
 			.name = #_name,			\
-			.mode = 0644,			\
+			.mode = 0640,			\
 		},					\
 		.show	= _name##_show,			\
 		.store	= _name##_store,		\
