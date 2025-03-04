@@ -4613,6 +4613,14 @@ static void check_is_mml_layer(const int disp_idx,
 		mml_ctx = mtk_drm_get_mml_drm_ctx(dev, crtc);
 		if (!mml_ctx) {
 			DDPPR_ERR("%s !mml_ctx\n", __func__);
+			for (i = 0; i < disp_info->layer_num[disp_idx]; i++) {
+				c = &disp_info->input_config[disp_idx][i];
+				if (MTK_CLIENT_CLEAR_LAYER & c->layer_caps) {
+					DDPINFO("disp_idx %d/L%d caps clear MTK_CLIENT_CLEAR_LAYER\n",
+						disp_idx, i, c->layer_caps);
+					c->layer_caps &= ~MTK_CLIENT_CLEAR_LAYER;
+				}
+			}
 			rollback_all_to_GPU(&layering_info, HRT_PRIMARY);
 			vfree(multi_mml_info);
 			return;
