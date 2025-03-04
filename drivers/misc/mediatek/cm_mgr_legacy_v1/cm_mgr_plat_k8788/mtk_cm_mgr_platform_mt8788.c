@@ -109,6 +109,16 @@ CM_MGR_MET_REG_FN_VALUE(cm_mgr_valid);
 /********************* MET END *********************/
 #endif /* MET_SUPPORT */
 
+int cm_mgr_cpu_opp_to_dram[16] = {0,0,1,1,1,1,2,2,2,2,2,2,2,2,2,2};
+int cm_mgr_cpu_opp_size = 16;
+int cm_mgr_use_cpu_to_dram_map = 1;
+int cm_mgr_cpu_to_dram_opp;
+int ddr_opp_req_by_cpu_opp_initialized;
+int cm_mgr_cpu_map_dram_enable = 1;
+static struct delayed_work cm_mgr_work;
+static void cm_mgr_update_dram_by_cpu_opp(int cpu_opp);
+static struct mtk_pm_qos_request ddr_opp_req_by_cpu_opp;
+static DEFINE_MUTEX(cm_mgr_cpu_to_dram_lock);
 
 #if IS_ENABLED(CONFIG_MEDIATEK_CPU_DVFS)
 static unsigned int prev_freq_idx[CM_MGR_CPU_CLUSTER];
@@ -120,7 +130,6 @@ struct tracepoints_table {
 	bool registered;
 };
 
-//static void cm_mgr_update_dram_by_cpu_opp(int cpu_opp);
 static void cm_mgr_cpu_frequency_tracer(void *ignore, unsigned int frequency,
 		unsigned int cpu_id);
 
@@ -187,14 +196,75 @@ static void cm_mgr_cpu_frequency_tracer(void *ignore, unsigned int frequency,
 		prev_freq_idx[cluster] = cpufreq_frequency_table_target(
 			policy, frequency, CPUFREQ_RELATION_L);
 		prev_freq[cluster] = frequency;
-//		if (cm_mgr_use_cpu_to_dram_map)
-//			cm_mgr_update_dram_by_cpu_opp(prev_freq_idx[CM_MGR_CPU_CLUSTER - 1]);
+		if (cm_mgr_use_cpu_to_dram_map)
+			cm_mgr_update_dram_by_cpu_opp(prev_freq_idx[CM_MGR_CPU_CLUSTER - 1]);
 		check_cm_mgr_status_internal();
 		cpufreq_cpu_put(policy);
 	}
 }
 #endif
 
+static void cm_mgr_process(struct work_struct *work)
+{
+	mutex_lock(&cm_mgr_cpu_to_dram_lock);
+	if(ddr_opp_req_by_cpu_opp_initialized==1){
+		mtk_pm_qos_update_request(&ddr_opp_req_by_cpu_opp,cm_mgr_cpu_to_dram_opp);
+
+#ifdef USE_DEBUG_LOG
+		pr_info("%s,cm_mgr_cpu_to_dram_opp=%d\n",__func__,cm_mgr_cpu_to_dram_opp);
+#endif
+	}
+	mutex_unlock(&cm_mgr_cpu_to_dram_lock);
+}
+
+static void cm_mgr_update_dram_by_cpu_opp(int cpu_opp)
+{
+	int ret __maybe_unused = 0;
+	int dram_opp = 0;
+
+	mutex_lock(&cm_mgr_cpu_to_dram_lock);
+#ifdef USE_DEBUG_LOG
+	pr_info("%s, cpu_opp = %d\n",__func__, cpu_opp);
+#endif
+
+	//cm_mgr_blank_status=1,screen off
+	if (cm_mgr_disable_fb == 1 && cm_mgr_blank_status == 1) {
+		if (cm_mgr_cpu_to_dram_opp != CM_MGR_EMI_OPP) {
+			cm_mgr_cpu_to_dram_opp = CM_MGR_EMI_OPP;
+			ret = schedule_delayed_work(&cm_mgr_work, 1);
+		}
+		mutex_unlock(&cm_mgr_cpu_to_dram_lock);
+		return;
+	}
+
+	//for adb use,TBD
+	if (!cm_mgr_cpu_map_dram_enable) {
+		if (cm_mgr_cpu_to_dram_opp != CM_MGR_EMI_OPP) {
+			cm_mgr_cpu_to_dram_opp = CM_MGR_EMI_OPP;
+			ret = schedule_delayed_work(&cm_mgr_work, 1);
+		}
+		mutex_unlock(&cm_mgr_cpu_to_dram_lock);
+		return;
+	}
+
+	if ((cpu_opp >= 0) && (cpu_opp < cm_mgr_cpu_opp_size))
+		dram_opp = cm_mgr_cpu_opp_to_dram[cpu_opp];
+
+	if (cm_mgr_cpu_to_dram_opp == dram_opp){
+		mutex_unlock(&cm_mgr_cpu_to_dram_lock);
+		return;
+	}
+
+	cm_mgr_cpu_to_dram_opp = dram_opp;
+	ret = schedule_delayed_work(&cm_mgr_work, 1);
+	mutex_unlock(&cm_mgr_cpu_to_dram_lock);
+}
+
+static void cm_mgr_add_cpu_opp_to_ddr_req(void)
+{
+	mtk_pm_qos_add_request(&ddr_opp_req_by_cpu_opp, MTK_PM_QOS_EMI_OPP,MTK_PM_QOS_EMI_OPP_DEFAULT_VALUE);
+	ddr_opp_req_by_cpu_opp_initialized = 1;
+}
 
 void cm_mgr_update_met(void)
 {
@@ -928,6 +998,10 @@ int cm_mgr_platform_init(void)
 		cm_mgr_tracepoints[0].registered = true;
 #endif /* CONFIG_MEDIATEK_CPU_DVFS */
 
+	if (cm_mgr_use_cpu_to_dram_map) {
+		cm_mgr_add_cpu_opp_to_ddr_req();
+		INIT_DELAYED_WORK(&cm_mgr_work, cm_mgr_process);
+	}
 #if IS_ENABLED(CONFIG_MTK_DVFSRC_V1)
 	mtk_pm_qos_add_request(&ddr_opp_req, MTK_PM_QOS_EMI_OPP,
 			MTK_PM_QOS_EMI_OPP_DEFAULT_VALUE);
