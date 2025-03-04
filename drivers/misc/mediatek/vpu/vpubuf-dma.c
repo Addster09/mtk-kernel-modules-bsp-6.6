@@ -370,7 +370,6 @@ static dma_addr_t vpu_map_sg_to_iova(
 		if (iova != given_iova) {
 			LOG_INF("%s: given iova: %llx, apu_bmap_alloc returned: %llx\n",
 				__func__, (u64)given_iova, (u64)iova);
-			apu_bmap_free(&vpu_device->ab, iova, len);
 			goto err;
 		}
 	} else {  /* Dynamic IOVA allocation */
