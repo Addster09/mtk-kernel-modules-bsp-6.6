@@ -1803,8 +1803,8 @@ static inline void MFB_Reset(void)
 	spin_lock(&(MFBInfo.SpinLockMFBRef));
 
 	if (MFBInfo.UserCount > 1) {
-		spin_unlock(&(MFBInfo.SpinLockMFBRef));
 		log_dbg("Curr UserCount(%d) users exist", MFBInfo.UserCount);
+		spin_unlock(&(MFBInfo.SpinLockMFBRef));
 	} else {
 		spin_unlock(&(MFBInfo.SpinLockMFBRef));
 
@@ -2866,11 +2866,10 @@ static signed int MFB_open(struct inode *pInode, struct file *pFile)
 	/*int q = 0, p = 0;*/
 	struct MFB_USER_INFO_STRUCT *pUserInfo;
 
-	log_dbg("- E. UserCount: %d.", MFBInfo.UserCount);
-
-
 	/*  */
 	spin_lock(&(MFBInfo.SpinLockMFBRef));
+
+	log_dbg("- E. UserCount: %d.", MFBInfo.UserCount);
 
 	pFile->private_data = NULL;
 	pFile->private_data = kmalloc(
@@ -2892,17 +2891,17 @@ static signed int MFB_open(struct inode *pInode, struct file *pFile)
 	/*  */
 	if (MFBInfo.UserCount > 0) {
 		MFBInfo.UserCount++;
-		spin_unlock(&(MFBInfo.SpinLockMFBRef));
 		log_dbg("Curr UserCount(%d), (process, pid, tgid)=(%s, %d, %d), users exist",
 			MFBInfo.UserCount, current->comm,
 			current->pid, current->tgid);
+		spin_unlock(&(MFBInfo.SpinLockMFBRef));
 		goto EXIT;
 	} else {
 		MFBInfo.UserCount++;
-		spin_unlock(&(MFBInfo.SpinLockMFBRef));
 		log_dbg("Curr UserCount(%d), (process, pid, tgid)=(%s, %d, %d), first user",
 			MFBInfo.UserCount, current->comm,
 			current->pid, current->tgid);
+		spin_unlock(&(MFBInfo.SpinLockMFBRef));
 	}
 
 	/* do wait queue head init when re-enter in camera */
@@ -2950,11 +2949,10 @@ static signed int MFB_open(struct inode *pInode, struct file *pFile)
 #endif
 	/*  */
 EXIT:
-
-
-
-
+	spin_lock(&(MFBInfo.SpinLockMFBRef));
 	log_dbg("- X. Ret: %d. UserCount: %d.", Ret, MFBInfo.UserCount);
+	spin_unlock(&(MFBInfo.SpinLockMFBRef));
+
 	return Ret;
 
 }
@@ -2967,8 +2965,6 @@ static signed int MFB_release(struct inode *pInode, struct file *pFile)
 	struct MFB_USER_INFO_STRUCT __maybe_unused *pUserInfo;
 	/*unsigned int Reg;*/
 
-	log_dbg("- E. UserCount: %d.", MFBInfo.UserCount);
-
 	/*  */
 	if (pFile->private_data != NULL) {
 		pUserInfo =
@@ -2978,20 +2974,21 @@ static signed int MFB_release(struct inode *pInode, struct file *pFile)
 	}
 	/*  */
 	spin_lock(&(MFBInfo.SpinLockMFBRef));
+	log_dbg("- E. UserCount: %d.", MFBInfo.UserCount);
 	MFBInfo.UserCount--;
 
 	if (MFBInfo.UserCount > 0) {
-		spin_unlock(&(MFBInfo.SpinLockMFBRef));
 		log_dbg("Curr UserCount(%d), (process, pid, tgid)=(%s, %d, %d), users exist",
 			MFBInfo.UserCount, current->comm,
 			current->pid, current->tgid);
-		goto EXIT;
-	} else
 		spin_unlock(&(MFBInfo.SpinLockMFBRef));
+		goto EXIT;
+	}
+
 	/*  */
 	log_dbg("Curr UserCount(%d), (process, pid, tgid)=(%s, %d, %d), last user",
 		MFBInfo.UserCount, current->comm, current->pid, current->tgid);
-
+	spin_unlock(&(MFBInfo.SpinLockMFBRef));
 
 	/* Disable clock. */
 	MFB_EnableClock(MFALSE);
@@ -2999,9 +2996,10 @@ static signed int MFB_release(struct inode *pInode, struct file *pFile)
 
 	/*  */
 EXIT:
-
-
+	spin_lock(&(MFBInfo.SpinLockMFBRef));
 	log_dbg("- X. UserCount: %d.", MFBInfo.UserCount);
+	spin_unlock(&(MFBInfo.SpinLockMFBRef));
+
 	return 0;
 }
 
