@@ -3441,8 +3441,13 @@ void mt6991_mtk_sodi_config(struct drm_device *drm, enum mtk_ddp_comp_id id,
 			writel_relaxed(0x44, priv->ovlsys1_regs + OVLSYS_EXRDMA_PREULTRA_SEL1);
 		}
 #endif
-		if (priv->side_config_regs)
+		if (priv->side_config_regs) {
 			writel_relaxed(0x17, priv->side_config_regs + MMSYS1_BUF_UNDERRUN_ID0);
+
+			/* follow the mtcmos on to request emireq and ddrsrc */
+			writel_relaxed(0x101, priv->side_config_regs + MMSYS_MISC);
+			writel_relaxed(0x101, priv->side_config_regs + MMSYS_SODI_REQ_MASK);
+		}
 	} else {
 #if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
 		if (priv->ovlsys1_regs) {
