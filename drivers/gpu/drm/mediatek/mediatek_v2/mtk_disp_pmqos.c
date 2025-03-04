@@ -1090,7 +1090,11 @@ void mtk_disp_hrt_mmclk_request_mt6765(struct mtk_drm_crtc *mtk_crtc, unsigned i
 	} /*(max_fps >= 90)*/
 
 	if (layer_num <= req_level[0].layer_num) {
-		icc_set_bw(priv->hrt_bw_request, 0, disp_perfs[HRT_LEVEL_LEVEL2]);
+		if (max_fps >= 90)
+			icc_set_bw(priv->hrt_bw_request, 0, disp_perfs[HRT_LEVEL_LEVEL1]);
+		else
+			icc_set_bw(priv->hrt_bw_request, 0, disp_perfs[HRT_LEVEL_LEVEL2]);
+
 		ret = regulator_set_voltage(mm_freq_request, req_level[0].volt, INT_MAX);
 		if (ret)
 			DDPPR_ERR("%s:regulator_set_voltage fail\n", __func__);
