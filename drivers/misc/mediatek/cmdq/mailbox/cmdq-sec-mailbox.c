@@ -851,20 +851,15 @@ static s32 cmdq_sec_session_init(struct cmdq_sec_context *context)
 #endif
 
 #ifdef CMDQ_SECURE_MTEE_SUPPORT
-		if (!is_pkvm_enabled()) {
-			if (!context->mtee_iwc_msg ||
-				!context->mtee_iwc_ex1 || !context->mtee_iwc_ex2) {
-				err = cmdq_sec_mtee_allocate_wsm(&context->mtee,
-					&context->mtee_iwc_msg,
-					sizeof(struct iwcCmdqMessage_t),
-					&context->mtee_iwc_ex1,
-					sizeof(struct iwcCmdqMessageEx_t),
-					&context->mtee_iwc_ex2,
-					sizeof(struct iwcCmdqMessageEx2_t));
-				if (err)
-					break;
-			}
-		}
+		err = cmdq_sec_mtee_register_wsm(&context->mtee,
+			&context->mtee_iwc_msg,
+			sizeof(struct iwcCmdqMessage_t),
+			&context->mtee_iwc_ex1,
+			sizeof(struct iwcCmdqMessageEx_t),
+			&context->mtee_iwc_ex2,
+			sizeof(struct iwcCmdqMessageEx2_t));
+		if (err)
+			break;
 #endif
 		else {
 			if (!context->pkvm_iwc_msg ||
