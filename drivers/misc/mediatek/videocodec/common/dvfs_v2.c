@@ -657,7 +657,7 @@ int est_freq(void *handle, struct codec_job **job, struct codec_history *head)
  */
 u64 match_freq(int target_mhz, u64 *freq_list, u32 freq_cnt)
 {
-	u64 res_mhz = DEFAULT_MHZ;
+	u64 res_mhz = DEFAULT_MHZ, max_freq = 0;
 	int i;
 	u64 target64 __maybe_unused;
 
@@ -672,8 +672,14 @@ u64 match_freq(int target_mhz, u64 *freq_list, u32 freq_cnt)
 	}
 
 	/* target_mhz is higher than all available frequency, choose max freq */
-	if (res_mhz == DEFAULT_MHZ)
-		res_mhz = freq_list[0];
+	if (res_mhz == DEFAULT_MHZ) {
+		max_freq = freq_list[0];
+		for (i = 0; i < freq_cnt; i++) {
+			if (freq_list[i] > max_freq)
+				max_freq = freq_list[i];
+		}
+		res_mhz = max_freq;
+	}
 
 #if SHOW_ALGO_INFO
 	pr_info("%s %d -> %llu\n", __func__, target_mhz, res_mhz);
