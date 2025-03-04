@@ -118,7 +118,7 @@ int cm_mgr_cpu_map_dram_enable = 1;
 static struct delayed_work cm_mgr_work;
 static void cm_mgr_update_dram_by_cpu_opp(int cpu_opp);
 static struct mtk_pm_qos_request ddr_opp_req_by_cpu_opp;
-static DEFINE_MUTEX(cm_mgr_cpu_to_dram_lock);
+//static DEFINE_MUTEX(cm_mgr_cpu_to_dram_lock);
 
 #if IS_ENABLED(CONFIG_MEDIATEK_CPU_DVFS)
 static unsigned int prev_freq_idx[CM_MGR_CPU_CLUSTER];
@@ -206,7 +206,6 @@ static void cm_mgr_cpu_frequency_tracer(void *ignore, unsigned int frequency,
 
 static void cm_mgr_process(struct work_struct *work)
 {
-	mutex_lock(&cm_mgr_cpu_to_dram_lock);
 	if(ddr_opp_req_by_cpu_opp_initialized==1){
 		mtk_pm_qos_update_request(&ddr_opp_req_by_cpu_opp,cm_mgr_cpu_to_dram_opp);
 
@@ -214,7 +213,6 @@ static void cm_mgr_process(struct work_struct *work)
 		pr_info("%s,cm_mgr_cpu_to_dram_opp=%d\n",__func__,cm_mgr_cpu_to_dram_opp);
 #endif
 	}
-	mutex_unlock(&cm_mgr_cpu_to_dram_lock);
 }
 
 static void cm_mgr_update_dram_by_cpu_opp(int cpu_opp)
@@ -222,7 +220,6 @@ static void cm_mgr_update_dram_by_cpu_opp(int cpu_opp)
 	int ret __maybe_unused = 0;
 	int dram_opp = 0;
 
-	mutex_lock(&cm_mgr_cpu_to_dram_lock);
 #ifdef USE_DEBUG_LOG
 	pr_info("%s, cpu_opp = %d\n",__func__, cpu_opp);
 #endif
@@ -233,7 +230,6 @@ static void cm_mgr_update_dram_by_cpu_opp(int cpu_opp)
 			cm_mgr_cpu_to_dram_opp = CM_MGR_EMI_OPP;
 			ret = schedule_delayed_work(&cm_mgr_work, 1);
 		}
-		mutex_unlock(&cm_mgr_cpu_to_dram_lock);
 		return;
 	}
 
@@ -243,7 +239,6 @@ static void cm_mgr_update_dram_by_cpu_opp(int cpu_opp)
 			cm_mgr_cpu_to_dram_opp = CM_MGR_EMI_OPP;
 			ret = schedule_delayed_work(&cm_mgr_work, 1);
 		}
-		mutex_unlock(&cm_mgr_cpu_to_dram_lock);
 		return;
 	}
 
@@ -251,13 +246,11 @@ static void cm_mgr_update_dram_by_cpu_opp(int cpu_opp)
 		dram_opp = cm_mgr_cpu_opp_to_dram[cpu_opp];
 
 	if (cm_mgr_cpu_to_dram_opp == dram_opp){
-		mutex_unlock(&cm_mgr_cpu_to_dram_lock);
 		return;
 	}
 
 	cm_mgr_cpu_to_dram_opp = dram_opp;
 	ret = schedule_delayed_work(&cm_mgr_work, 1);
-	mutex_unlock(&cm_mgr_cpu_to_dram_lock);
 }
 
 static void cm_mgr_add_cpu_opp_to_ddr_req(void)
