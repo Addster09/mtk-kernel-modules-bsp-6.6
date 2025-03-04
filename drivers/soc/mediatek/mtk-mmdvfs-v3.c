@@ -1844,6 +1844,16 @@ static void mmdvfs_vcp_notifier_callback_ready(void)
 
 void mmdvfs_disp_boot_ready(void)
 {
+	int retry = 0;
+
+	while (!mmdvfs_is_init_done()) {
+		if (++retry > 100) {
+			MMDVFS_ERR("mmdvfs is not ready yet");
+			return;
+		}
+		msleep(50);
+	}
+
 	if (!mmdvfs_disp_boot) {
 		mmdvfs_vcp_notifier_callback_ready();
 		mmdvfs_disp_boot = true;
@@ -1981,11 +1991,11 @@ static int mmdvfs_vcp_init_thread(void *data)
 	MMDVFS_DBG("mmup_ena:%d", mmup_ena);
 
 	while (!mmdebug_is_init_done()) {
-		if (++retry > 100) {
+		if (++retry > 2000) {
 			MMDVFS_ERR("mmdebug is not ready yet");
 			return -ETIMEDOUT;
 		}
-		ssleep(1);
+		msleep(50);
 	}
 
 	retry = 0;
