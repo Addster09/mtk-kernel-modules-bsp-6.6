@@ -50,10 +50,6 @@
 #ifndef ASOC_TEMP_BYPASS
 #include "mtk_mcdi_api.h"
 
-__weak bool system_idle_hint_request(unsigned int id, bool value)
-{
-	return false;
-}
 #endif
 
 #ifdef DEBUG_DEEP_BUFFER_DL

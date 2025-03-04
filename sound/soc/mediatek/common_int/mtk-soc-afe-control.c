@@ -342,7 +342,9 @@ int InitAfeControl(struct device *pDev)
 	/* first time to init , reg init. */
 	AfeGlobalVarInit();
 	Auddrv_Reg_map(pDev);
-	//AudDrv_Clk_Global_Variable_Init();
+#if IS_ENABLED(CONFIG_SND_SOC_MT6771)
+	AudDrv_Clk_Global_Variable_Init();
+#endif
 	AudDrv_Bus_Init();
 	Auddrv_Read_Efuse_HPOffset();
 	AfeControlMutexLock();
