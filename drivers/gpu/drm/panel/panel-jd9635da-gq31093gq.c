@@ -482,6 +482,13 @@ static struct mtk_panel_params ext_params = {
 	.pll_clk = 210,
 	.physical_width_um = 108000,
 	.physical_height_um = 173000,
+	.cust_esd_check = 1,
+	.esd_check_enable = 1,
+	.lcm_esd_check_table[0] = {
+		.cmd = 0x0A,
+		.count = 1,
+		.para_list[0] = 0x1c,
+	},
 };
 
 static int panel_ext_reset(struct drm_panel *panel, int on)
