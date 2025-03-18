@@ -4098,6 +4098,7 @@ static void mtk_addon_path_io_cmd(struct drm_crtc *crtc, const enum addon_scenar
 	const struct mtk_addon_module_data *addon_module;
 	const struct mtk_addon_path_data *path_data;
 	struct mtk_ddp_comp *comp = NULL;
+	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
 
 	addon_data = mtk_addon_get_scenario_data(__func__, crtc, scn);
 	if (!addon_data)
@@ -4114,6 +4115,24 @@ static void mtk_addon_path_io_cmd(struct drm_crtc *crtc, const enum addon_scenar
 			mtk_ddp_comp_io_cmd(comp, NULL, io_cmd, params);
 		}
 	}
+		if (mtk_crtc->is_dual_pipe) {
+			addon_data = mtk_addon_get_scenario_data_dual
+				(__func__, crtc, scn);
+			if (!addon_data)
+				return;
+			for (i = 0; i < addon_data->module_num; i++) {
+				addon_module = &addon_data->module_data[i];
+				path_data = mtk_addon_module_get_path(addon_module->module);
+				for (j = 0; j < path_data->path_len; j++) {
+					if (mtk_ddp_comp_get_type(path_data->path[j]) ==
+						MTK_DISP_VIRTUAL)
+						continue;
+					comp = priv->ddp_comp[path_data->path[j]];
+					mtk_ddp_comp_io_cmd(comp, NULL, io_cmd, params);
+				}
+			}
+		}
+
 }
 
 int get_addon_path_wait_event(struct drm_crtc *crtc,
@@ -4144,6 +4163,10 @@ int get_addon_path_wait_event(struct drm_crtc *crtc,
 			return mtk_crtc->gce_obj.event[EVENT_OVLSYS_WDMA0_EOF];
 		if (comp->id == DDP_COMPONENT_WDMA4)
 			return mtk_crtc->gce_obj.event[EVENT_WDMA4_EOF];
+		if (comp->id == DDP_COMPONENT_WDMA2)
+			return mtk_crtc->gce_obj.event[EVENT_WDMA1_EOF];
+		if (comp->id == DDP_COMPONENT_OVLSYS_WDMA2)
+			return mtk_crtc->gce_obj.event[EVENT_OVLSYS1_WDMA0_EOF];
 	}
 	if (priv->data->mmsys_id == MMSYS_MT6989 ||
 		priv->data->mmsys_id == MMSYS_MT6899) {

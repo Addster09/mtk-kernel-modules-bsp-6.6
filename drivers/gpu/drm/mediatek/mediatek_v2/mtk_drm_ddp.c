@@ -27371,6 +27371,8 @@ void mtk_gce_event_config_MT6991(struct drm_device *drm)
 			off <= MT6991_DISP1_GCE_FRAME_DONE_SEL15; off += 0x4)
 		writel(~0, priv->side_config_regs + off);
 #else
+	writel(MT6991_DISP1_GCE_FRAME_DONE_SEL6_WDMA2_FRAME_DONE,
+		priv->side_config_regs + MT6991_DISP1_GCE_FRAME_DONE_SEL6);
 	for (off = MT6991_DISP1_GCE_FRAME_DONE_SEL8;
 			off <= MT6991_DISP1_GCE_FRAME_DONE_SEL15; off += 0x4)
 		writel(~0, priv->side_config_regs + off);
@@ -27390,11 +27392,12 @@ void mtk_gce_event_config_MT6991(struct drm_device *drm)
 	value = 0;
 	SET_VAL_MASK(value, mask,
 		MT6991_OVLSYS1_GCE_FRAME_DONE_SEL0_WDMA0, GCE_FRAME_DONE_SEL0);
-	SET_VAL_MASK(value, mask, 0x3F, GCE_FRAME_DONE_SEL1);
+	SET_VAL_MASK(value, mask,
+		MT6991_OVLSYS1_GCE_FRAME_DONE_SEL0_WDMA0, GCE_FRAME_DONE_SEL1);
 	SET_VAL_MASK(value, mask, 0x3F, GCE_FRAME_DONE_SEL2);
 	SET_VAL_MASK(value, mask, 0x3F, GCE_FRAME_DONE_SEL3);
 	writel(value, priv->ovlsys1_regs + MT6991_OVLSYS_GCE_FRAME_DONE_SEL0);
-	writel(~0, priv->ovlsys1_regs + MT6991_OVLSYS_GCE_FRAME_DONE_SEL1);
+	writel(value, priv->ovlsys1_regs + MT6991_OVLSYS_GCE_FRAME_DONE_SEL1);
 	writel(~0, priv->ovlsys1_regs + MT6991_OVLSYS_GCE_FRAME_DONE_SEL2);
 	writel(~0, priv->ovlsys1_regs + MT6991_OVLSYS_GCE_FRAME_DONE_SEL3);
 

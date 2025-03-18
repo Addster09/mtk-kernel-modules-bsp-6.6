@@ -4159,8 +4159,16 @@ static const struct mtk_addon_module_data mt6991_addon_wdma0_data[] = {
 	{DISP_WDMA0_v6, ADDON_AFTER, DDP_COMPONENT_SPLITTER0_OUT_CB9},
 };
 
+static const struct mtk_addon_module_data mt6991_addon_wdma1_data[] = {
+	/* Liber CWB */
+	{DISP_WDMA0_v7, ADDON_AFTER, DDP_COMPONENT_SPLITTER0_OUT_CB10},
+};
+
 static const struct mtk_addon_module_data mt6991_addon_mid_wdma_data[] = {
 	{DISP_WDMA_MID, ADDON_AFTER, DDP_COMPONENT_PQ0_OUT_CB0},
+};
+static const struct mtk_addon_module_data mt6991_addon_mid_dual_wdma_data[] = {
+	{DISP_WDMA_MID_DUAL, ADDON_AFTER, DDP_COMPONENT_PQ0_OUT_CB1},
 };
 
 static const struct mtk_addon_module_data mt6989_addon_ovl_ufbc_wdma0_data[] = {
@@ -4186,6 +4194,10 @@ static const struct mtk_addon_module_data mt6991_addon_ovlsys_wdma0_dl_data[] = 
 
 static const struct mtk_addon_module_data mt6991_addon_ovlsys_wdma0_data[] = {
 	{DISP_OVLSYS_WDMA0_v3, ADDON_AFTER, DDP_COMPONENT_OVL0_OUTPROC0},
+};
+
+static const struct mtk_addon_module_data mt6991_addon_ovlsys1_wdma0_data[] = {
+	{DISP_OVLSYS_WDMA0_v4, ADDON_AFTER, DDP_COMPONENT_OVL1_OUTPROC0},
 };
 
 static const struct mtk_addon_module_data mt6985_addon_ovlsys_wdma2_data[] = {
@@ -4726,6 +4738,20 @@ static const struct mtk_addon_scenario_data mt6991_addon_main_dual[ADDON_SCN_NR]
 	[ONE_SCALING] = {
 		.module_num = ARRAY_SIZE(mt6991_addon_ovl_rsz1_data),
 		.module_data = mt6991_addon_ovl_rsz1_data,
+		.hrt_type = HRT_TB_TYPE_GENERAL1,
+	},
+	[WDMA_WRITE_BACK] = {
+		.module_num = ARRAY_SIZE(mt6991_addon_wdma1_data),
+		.module_data = mt6991_addon_wdma1_data,
+		.hrt_type = HRT_TB_TYPE_GENERAL1,
+	},
+	[WDMA_WRITE_BACK_MID] = {
+		.module_num = ARRAY_SIZE(mt6991_addon_mid_dual_wdma_data),
+		.module_data = mt6991_addon_mid_dual_wdma_data,
+	},
+	[WDMA_WRITE_BACK_OVL] = {
+		.module_num = ARRAY_SIZE(mt6991_addon_ovlsys1_wdma0_data),
+		.module_data = mt6991_addon_ovlsys1_wdma0_data,
 		.hrt_type = HRT_TB_TYPE_GENERAL1,
 	},
 };

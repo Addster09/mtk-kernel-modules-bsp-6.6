@@ -468,6 +468,10 @@ static void mtk_ovl_outproc_addon_config(struct mtk_ddp_comp *comp,
 	struct mtk_drm_crtc *mtk_crtc = comp->mtk_crtc;
 	struct drm_crtc *crtc = &mtk_crtc->base;
 
+#if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+	return;
+#endif
+
 	width = addon_config->addon_wdma_config.wdma_dst_roi.width;
 	height = addon_config->addon_wdma_config.wdma_dst_roi.height;
 

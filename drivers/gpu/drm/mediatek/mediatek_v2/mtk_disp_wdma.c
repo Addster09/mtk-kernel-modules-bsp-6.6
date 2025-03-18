@@ -380,7 +380,7 @@ static irqreturn_t mtk_wdma_irq_handler(int irq, void *dev_id)
 		if (wdma->mtk_crtc)
 			drm_priv = wdma->mtk_crtc->base.dev->dev_private;
 		if (wdma->mtk_crtc && drm_priv &&
-			drm_priv->data->mmsys_id == MMSYS_MT6899) {
+			(drm_priv->data->mmsys_id == MMSYS_MT6899 || drm_priv->data->mmsys_id == MMSYS_MT6991)) {
 			mtk_dump_analysis(wdma);
 			mtk_dump_reg(wdma);
 		}
@@ -2428,6 +2428,10 @@ static int mtk_wdma_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
 					wdma->info_data->force_ostdl_bw, bw);
 				comp->last_hrt_bw = ostdl_bw;
 			}
+#if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
+			if (wdma->data->hrt_channel)
+				mtk_vidle_channel_bw_set(bw, wdma->data->hrt_channel(comp));
+#endif
 		}
 		ret = WDMA_REQ_HRT;
 		break;
