@@ -113,6 +113,8 @@ static struct mtk_afe_adda_priv *get_adda_priv_by_name(struct mtk_base_afe *afe,
 	else if (strncmp(name, "aud_dl1_dac_hires_clk", 21) == 0 ||
 		 strncmp(name, "aud_ul1_adc_hires_clk", 21) == 0)
 		dai_id = MT6991_DAI_ADDA_CH34;
+	else if (strncmp(name, "aud_ul2_adc_hires_clk", 21) == 0)
+		dai_id = MT6991_DAI_ADDA_CH56;
 	else
 		return NULL;
 
@@ -391,6 +393,11 @@ static int mtk_adda_ul_src_dmic(struct mtk_base_afe *afe, int id)
 		reg_con0 = AFE_ADDA_UL1_SRC_CON0;
 		reg_con1 = AFE_ADDA_UL1_SRC_CON1;
 		break;
+	case MT6991_DAI_ADDA_CH56:
+	case MT6991_DAI_AP_DMIC_CH56:
+		reg_con0 = AFE_ADDA_UL2_SRC_CON0;
+		reg_con1 = AFE_ADDA_UL2_SRC_CON1;
+		break;
 	default:
 		return -EINVAL;
 	}
@@ -554,6 +561,7 @@ static int mtk_adda_ch56_ul_event(struct snd_soc_dapm_widget *w,
 	struct mtk_base_afe *afe = snd_soc_component_get_drvdata(cmpnt);
 	struct mt6991_afe_private *afe_priv = afe->platform_priv;
 	int mtkaif_dmic = afe_priv->mtkaif_dmic;
+	int mtkaif_adda6_only = afe_priv->mtkaif_adda6_only;
 
 	dev_info(afe->dev, "%s(), name %s, event 0x%x, mtkaif_dmic %d\n",
 		 __func__, w->name, event, mtkaif_dmic);
@@ -561,6 +569,32 @@ static int mtk_adda_ch56_ul_event(struct snd_soc_dapm_widget *w,
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
 		mt6991_afe_gpio_request(afe, true, MT6991_DAI_ADDA_CH56, 1);
+
+		/* update setting to dmic */
+		if (mtkaif_dmic) {
+			/* mtkaif_rxif_data_mode = 1, dmic */
+			regmap_update_bits(afe->regmap,
+					   AFE_MTKAIF1_RX_CFG0,
+					   0x1, 0x1);
+
+			/* dmic mode, 3.25M*/
+			regmap_update_bits(afe->regmap,
+					   AFE_MTKAIF1_RX_CFG0,
+					   RG_MTKAIF1_RXIF_VOICE_MODE_MASK_SFT,
+					   0x0);
+			mtk_adda_ul_src_dmic(afe, MT6991_DAI_ADDA_CH34);
+		}
+
+		/* when using adda6 without adda enabled,
+		 * RG_ADDA6_MTKAIF_RX_SYNC_WORD2_DISABLE_SFT need to be set or
+		 * data cannot be received.
+		 */
+		if (mtkaif_adda6_only) {
+			regmap_update_bits(afe->regmap,
+					   AFE_MTKAIF1_RX_CFG2,
+					   RG_MTKAIF1_RXIF_SYNC_WORD1_DISABLE_MASK_SFT,
+					   0x1);
+		}
 		break;
 	case SND_SOC_DAPM_POST_PMD:
 		/* should delayed 1/fs(smallest is 8k) = 125us before afe off */
@@ -569,6 +603,12 @@ static int mtk_adda_ch56_ul_event(struct snd_soc_dapm_widget *w,
 
 		/* reset dmic */
 		afe_priv->mtkaif_dmic = 0;
+		if (mtkaif_adda6_only) {
+			regmap_update_bits(afe->regmap,
+					   AFE_MTKAIF1_RX_CFG2,
+					   RG_MTKAIF1_RXIF_SYNC_WORD1_DISABLE_MASK_SFT,
+					   0x0);
+		}
 		break;
 	default:
 		break;
@@ -590,7 +630,6 @@ static int mtk_adda_ul_ap_dmic_event(struct snd_soc_dapm_widget *w,
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
 		mt6991_afe_gpio_request(afe, true, MT6991_DAI_ADDA, 1);
-		//mtk_adda_ul_src_dmic(afe, MT6991_DAI_AP_DMIC);
 		mt6991_afe_gpio_request(afe, true, MT6991_DAI_AP_DMIC, 1);
 		break;
 	case SND_SOC_DAPM_POST_PMD:
@@ -598,7 +637,6 @@ static int mtk_adda_ul_ap_dmic_event(struct snd_soc_dapm_widget *w,
 		udelay(125);
 		mt6991_afe_gpio_request(afe, false, MT6991_DAI_ADDA, 1);
 		mt6991_afe_gpio_request(afe, false, MT6991_DAI_AP_DMIC, 1);
-
 		break;
 	default:
 		break;
@@ -631,6 +669,37 @@ static int mtk_adda_ch34_ul_ap_dmic_event(struct snd_soc_dapm_widget *w,
 		udelay(125);
 		mt6991_afe_gpio_request(afe, false, MT6991_DAI_ADDA_CH34, 1);
 		mt6991_afe_gpio_request(afe, false, MT6991_DAI_AP_DMIC_CH34, 1);
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
+
+static int mtk_adda_ch56_ul_ap_dmic_event(struct snd_soc_dapm_widget *w,
+				  struct snd_kcontrol *kcontrol,
+				  int event)
+{
+	struct snd_soc_component *cmpnt = snd_soc_dapm_to_component(w->dapm);
+	struct mtk_base_afe *afe = snd_soc_component_get_drvdata(cmpnt);
+	struct mt6991_afe_private *afe_priv = afe->platform_priv;
+	int mtkaif_adda6_only = afe_priv->mtkaif_adda6_only;
+
+	dev_info(afe->dev,
+		 "%s(), name %s, event 0x%x, mtkaif_adda6_only %d\n",
+		 __func__, w->name, event, mtkaif_adda6_only);
+
+	switch (event) {
+	case SND_SOC_DAPM_PRE_PMU:
+		mt6991_afe_gpio_request(afe, true, MT6991_DAI_ADDA_CH56, 1);
+		mt6991_afe_gpio_request(afe, true, MT6991_DAI_AP_DMIC_CH56, 1);
+		break;
+	case SND_SOC_DAPM_POST_PMD:
+		/* should delayed 1/fs(smallest is 8k) = 125us before afe off */
+		udelay(125);
+		mt6991_afe_gpio_request(afe, false, MT6991_DAI_ADDA_CH56, 1);
+		mt6991_afe_gpio_request(afe, false, MT6991_DAI_AP_DMIC_CH56, 1);
 		break;
 	default:
 		break;
@@ -1359,7 +1428,7 @@ static const struct snd_soc_dapm_widget mtk_dai_adda_widgets[] = {
 			      mtk_adda_ch34_ul_event,
 			      SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_SUPPLY_S("ADDA CH56 Capture Enable", SUPPLY_SEQ_ADDA_UL_ON,
-			      AFE_ADDA_UL1_SRC_CON0,
+			      AFE_ADDA_UL2_SRC_CON0,
 			      UL_SRC_ON_TMP_CTL_SFT, 0,
 			      mtk_adda_ch56_ul_event,
 			      SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
@@ -1405,13 +1474,21 @@ static const struct snd_soc_dapm_widget mtk_dai_adda_widgets[] = {
 			      UL_AP_DMIC_ON_SFT, 0,
 			      mtk_adda_ch34_ul_ap_dmic_event,
 			      SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-
+	SND_SOC_DAPM_SUPPLY_S("AP_DMIC_CH56_EN", SUPPLY_SEQ_ADDA_AP_DMIC,
+			      AFE_ADDA_UL2_SRC_CON0,
+			      UL_AP_DMIC_ON_SFT, 0,
+			      mtk_adda_ch56_ul_ap_dmic_event,
+			      SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_SUPPLY_S("ADDA_FIFO", SUPPLY_SEQ_ADDA_FIFO,
 			      AFE_ADDA_UL0_SRC_CON1,
 			      FIFO_SOFT_RST_SFT, 1,
 			      NULL, 0),
 	SND_SOC_DAPM_SUPPLY_S("ADDA_CH34_FIFO", SUPPLY_SEQ_ADDA_FIFO,
 			      AFE_ADDA_UL1_SRC_CON1,
+			      FIFO_SOFT_RST_SFT, 1,
+			      NULL, 0),
+	SND_SOC_DAPM_SUPPLY_S("ADDA_CH56_FIFO", SUPPLY_SEQ_ADDA_FIFO,
+			      AFE_ADDA_UL2_SRC_CON1,
 			      FIFO_SOFT_RST_SFT, 1,
 			      NULL, 0),
 	SND_SOC_DAPM_SUPPLY_S("VS1_VOTER_DL", SUPPLY_SEQ_ADDA_AFE_ON,
@@ -1433,6 +1510,7 @@ static const struct snd_soc_dapm_widget mtk_dai_adda_widgets[] = {
 
 	SND_SOC_DAPM_INPUT("AP_DMIC_INPUT"),
 	SND_SOC_DAPM_INPUT("AP_DMIC_CH34_INPUT"),
+	SND_SOC_DAPM_INPUT("AP_DMIC_CH56_INPUT"),
 
 	/* stf */
 	SND_SOC_DAPM_SWITCH_E("Sidetone Filter",
@@ -1462,6 +1540,8 @@ static const struct snd_soc_dapm_widget mtk_dai_adda_widgets[] = {
 	SND_SOC_DAPM_CLOCK_SUPPLY("aud_ul0_adc_hires_clk"),
 	SND_SOC_DAPM_CLOCK_SUPPLY("aud_ul1_adc_clk"),
 	SND_SOC_DAPM_CLOCK_SUPPLY("aud_ul1_adc_hires_clk"),
+	SND_SOC_DAPM_CLOCK_SUPPLY("aud_ul2_adc_clk"),
+	SND_SOC_DAPM_CLOCK_SUPPLY("aud_ul2_adc_hires_clk"),
 #endif
 };
 
@@ -1629,6 +1709,7 @@ static const struct snd_soc_dapm_route mtk_dai_adda_routes[] = {
 	{"ADDA_CH34_UL_Mux", "AP_DMIC", "AP DMIC CH34 Capture"},
 
 	{"ADDA_CH56_UL_Mux", "MTKAIF", "ADDA CH56 Capture"},
+	{"ADDA_CH56_UL_Mux", "AP_DMIC", "AP DMIC CH56 Capture"},
 
 	{"ADDA Capture", NULL, "ADDA Enable"},
 	{"ADDA Capture", NULL, "ADDA Capture Enable"},
@@ -1666,9 +1747,14 @@ static const struct snd_soc_dapm_route mtk_dai_adda_routes[] = {
 	{"ADDA CH56 Capture", NULL, "ADDA7_MTKAIF_CFG"},
 	{"ADDA CH56 Capture", NULL, "VS1_VOTER_UL"},
 
+	{"AP DMIC CH56 Capture", NULL, "ADDA Enable"},
+	{"AP DMIC CH56 Capture", NULL, "ADDA CH56 Capture Enable"},
+	{"AP DMIC CH56 Capture", NULL, "ADDA_CH56_FIFO"},
+	{"AP DMIC CH56 Capture", NULL, "AP_DMIC_CH56_EN"},
 
 	{"AP DMIC Capture", NULL, "AP_DMIC_INPUT"},
 	{"AP DMIC CH34 Capture", NULL, "AP_DMIC_CH34_INPUT"},
+	{"AP DMIC CH56 Capture", NULL, "AP_DMIC_CH56_INPUT"},
 
 	/* sidetone filter */
 	{"Sidetone Filter", "Switch", "STF_CH1"},
@@ -1869,13 +1955,13 @@ static int mtk_dai_adda_hw_params(struct snd_pcm_substream *substream,
 			if (afe_priv->mtkaif_dmic) {
 				regmap_update_bits(afe->regmap,
 					AFE_MTKAIF1_RX_CFG0,
-					0x1 << 0,
-					0x1 << 0);
+					RG_MTKAIF1_RXIF_DATA_MODE_MASK_SFT,
+					0x1 << RG_MTKAIF1_RXIF_DATA_MODE_SFT);
 			} else {
 				regmap_update_bits(afe->regmap,
 					AFE_MTKAIF1_RX_CFG0,
-					0x1 << 0,
-					0x0 << 0);
+					RG_MTKAIF1_RXIF_DATA_MODE_MASK_SFT,
+					0x0 << RG_MTKAIF1_RXIF_DATA_MODE_SFT);
 			}
 
 			/* 35Hz @ 48k */
@@ -1901,13 +1987,13 @@ static int mtk_dai_adda_hw_params(struct snd_pcm_substream *substream,
 			if (afe_priv->mtkaif_dmic) {
 				regmap_update_bits(afe->regmap,
 					AFE_MTKAIF0_RX_CFG0,
-					0x1 << 0,
-					0x1 << 0);
+					RG_MTKAIF0_RXIF_DATA_MODE_MASK_SFT,
+					0x1 << RG_MTKAIF0_RXIF_DATA_MODE_SFT);
 			} else {
 				regmap_update_bits(afe->regmap,
 					AFE_MTKAIF0_RX_CFG0,
-					0x1 << 0,
-					0x0 << 0);
+					RG_MTKAIF0_RXIF_DATA_MODE_MASK_SFT,
+					0x0 << RG_MTKAIF0_RXIF_DATA_MODE_SFT);
 			}
 			break;
 
@@ -1927,6 +2013,7 @@ static int mtk_dai_adda_hw_params(struct snd_pcm_substream *substream,
 					RG_MTKAIF0_RXIF_BYPASS_SRC_MASK_SFT,
 					0x0 << RG_MTKAIF0_RXIF_BYPASS_SRC_SFT);
 #endif
+
 			/* 35Hz @ 48k */
 			regmap_write(afe->regmap,
 				     AFE_ADDA_UL1_IIR_COEF_02_01, 0x00000000);
@@ -1948,9 +2035,9 @@ static int mtk_dai_adda_hw_params(struct snd_pcm_substream *substream,
 
 			/* mtkaif_rxif_data_mode = 0, amic */
 			regmap_update_bits(afe->regmap,
-					   AFE_MTKAIF1_RX_CFG0,
-					   0x1 << 0,
-					   0x0 << 0);
+					AFE_MTKAIF1_RX_CFG0,
+					RG_MTKAIF1_RXIF_DATA_MODE_MASK_SFT,
+					0x0 << RG_MTKAIF1_RXIF_DATA_MODE_SFT);
 
 			/* 35Hz @ 48k */
 			regmap_write(afe->regmap,
@@ -1974,8 +2061,8 @@ static int mtk_dai_adda_hw_params(struct snd_pcm_substream *substream,
 			/* mtkaif_rxif_data_mode = 0, amic */
 			regmap_update_bits(afe->regmap,
 					AFE_MTKAIF0_RX_CFG0,
-					0x1 << 0,
-					0x0 << 0);
+					RG_MTKAIF0_RXIF_DATA_MODE_MASK_SFT,
+					0x0 << RG_MTKAIF0_RXIF_DATA_MODE_SFT);
 			break;
 		case MT6991_DAI_ADDA_CH34:
 #ifdef MTKAIF4
@@ -2019,13 +2106,13 @@ static int mtk_dai_adda_hw_params(struct snd_pcm_substream *substream,
 			if (afe_priv->mtkaif_dmic) {
 				regmap_update_bits(afe->regmap,
 					AFE_MTKAIF1_RX_CFG0,
-					0x1 << 0,
-					0x1 << 0);
+					RG_MTKAIF1_RXIF_DATA_MODE_MASK_SFT,
+					0x1 << RG_MTKAIF1_RXIF_DATA_MODE_SFT);
 			} else {
 				regmap_update_bits(afe->regmap,
 					AFE_MTKAIF1_RX_CFG0,
-					0x1 << 0,
-					0x0 << 0);
+					RG_MTKAIF1_RXIF_DATA_MODE_MASK_SFT,
+					0x0 << RG_MTKAIF1_RXIF_DATA_MODE_SFT);
 			}
 			break;
 		case MT6991_DAI_AP_DMIC_CH34:
@@ -2043,6 +2130,7 @@ static int mtk_dai_adda_hw_params(struct snd_pcm_substream *substream,
 					0x0 << RG_MTKAIF1_RXIF_BYPASS_SRC_SFT);
 
 #endif
+
 			/* 35Hz @ 48k */
 			regmap_write(afe->regmap,
 				     AFE_ADDA_UL1_IIR_COEF_02_01, 0x00000000);
@@ -2065,8 +2153,8 @@ static int mtk_dai_adda_hw_params(struct snd_pcm_substream *substream,
 			/* mtkaif_rxif_data_mode = 0, amic */
 			regmap_update_bits(afe->regmap,
 					AFE_MTKAIF1_RX_CFG0,
-					0x1 << 0,
-					0x0 << 0);
+					RG_MTKAIF1_RXIF_DATA_MODE_MASK_SFT,
+					0x0 << RG_MTKAIF1_RXIF_DATA_MODE_SFT);
 
 			break;
 		case MT6991_DAI_ADDA_CH56:
@@ -2100,6 +2188,48 @@ static int mtk_dai_adda_hw_params(struct snd_pcm_substream *substream,
 					ADDA6_MTKAIFV4_RXIF_EN_SEL_MASK_SFT,
 					0x1 << ADDA6_MTKAIFV4_RXIF_EN_SEL_SFT);
 			break;
+		case MT6991_DAI_AP_DMIC_CH56:
+#ifdef MTKAIF4
+			regmap_update_bits(afe->regmap, AFE_ADDA_MTKAIFV4_RX_CFG0,
+					MTKAIFV4_UL_CH1CH2_IN_EN_SEL_MASK_SFT,
+					0x0 << MTKAIFV4_UL_CH1CH2_IN_EN_SEL_SFT);
+			regmap_update_bits(afe->regmap, AFE_ADDA_MTKAIFV4_RX_CFG0,
+					MTKAIFV4_UL_CH3CH4_IN_EN_SEL_MASK_SFT,
+					0x0 << MTKAIFV4_UL_CH3CH4_IN_EN_SEL_SFT);
+			regmap_update_bits(afe->regmap, AFE_ADDA_MTKAIFV4_RX_CFG0,
+					MTKAIFV4_UL_CH5CH6_IN_EN_SEL_MASK_SFT,
+					0x0 << MTKAIFV4_UL_CH5CH6_IN_EN_SEL_SFT);
+#else
+			regmap_update_bits(afe->regmap,
+					AFE_MTKAIF1_CFG0,
+					RG_MTKAIF1_RXIF_BYPASS_SRC_MASK_SFT,
+					0x0 << RG_MTKAIF1_RXIF_BYPASS_SRC_SFT);
+#endif
+
+			/* 35Hz @ 48k */
+			regmap_write(afe->regmap,
+				     AFE_ADDA_UL2_IIR_COEF_02_01, 0x00000000);
+			regmap_write(afe->regmap,
+				     AFE_ADDA_UL2_IIR_COEF_04_03, 0x00003FB8);
+			regmap_write(afe->regmap,
+				     AFE_ADDA_UL2_IIR_COEF_06_05, 0x3FB80000);
+			regmap_write(afe->regmap,
+				     AFE_ADDA_UL2_IIR_COEF_08_07, 0x3FB80000);
+			regmap_write(afe->regmap,
+				     AFE_ADDA_UL2_IIR_COEF_10_09, 0x0000C048);
+
+			regmap_update_bits(afe->regmap,
+				     AFE_ADDA_UL2_SRC_CON0,
+				     UL_IIR_ON_TMP_CTL_MASK_SFT |
+				     UL_IIRMODE_CTL_MASK_SFT |
+				     UL_VOICE_MODE_CH1_CH2_CTL_MASK_SFT,
+				     ul_src_con0);
+
+			/* mtkaif_rxif_data_mode = 0, amic */
+			regmap_update_bits(afe->regmap,
+					AFE_MTKAIF1_RX_CFG0,
+					RG_MTKAIF1_RXIF_DATA_MODE_MASK_SFT,
+					0x0 << RG_MTKAIF1_RXIF_DATA_MODE_SFT);
 			break;
 		default:
 			break;
@@ -2110,6 +2240,7 @@ static int mtk_dai_adda_hw_params(struct snd_pcm_substream *substream,
 		switch (id) {
 		case MT6991_DAI_AP_DMIC:
 		case MT6991_DAI_AP_DMIC_CH34:
+		case MT6991_DAI_AP_DMIC_CH56:
 			mtk_adda_ul_src_dmic(afe, id);
 			break;
 		default:
@@ -2215,6 +2346,18 @@ static struct snd_soc_dai_driver mtk_dai_adda_driver[] = {
 		},
 		.ops = &mtk_dai_adda_ops,
 	},
+	{
+		.name = "AP_DMIC_CH56",
+		.id = MT6991_DAI_AP_DMIC_CH56,
+		.capture = {
+			.stream_name = "AP DMIC CH56 Capture",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = MTK_ADDA_CAPTURE_RATES,
+			.formats = MTK_ADDA_FORMATS,
+		},
+		.ops = &mtk_dai_adda_ops,
+	},
 };
 
 int mt6991_dai_adda_register(struct mtk_base_afe *afe)
@@ -2271,6 +2414,8 @@ int mt6991_dai_adda_register(struct mtk_base_afe *afe)
 		afe_priv->dai_priv[MT6991_DAI_ADDA];
 	afe_priv->dai_priv[MT6991_DAI_AP_DMIC_CH34] =
 		afe_priv->dai_priv[MT6991_DAI_ADDA_CH34];
+	afe_priv->dai_priv[MT6991_DAI_AP_DMIC_CH56] =
+		afe_priv->dai_priv[MT6991_DAI_ADDA_CH56];
 
 	return 0;
 }

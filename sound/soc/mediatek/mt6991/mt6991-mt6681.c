@@ -901,6 +901,10 @@ SND_SOC_DAILINK_DEFS(ap_dmic_ch34,
 	DAILINK_COMP_ARRAY(COMP_CPU("AP_DMIC_CH34")),
 	DAILINK_COMP_ARRAY(COMP_DUMMY()),
 	DAILINK_COMP_ARRAY(COMP_EMPTY()));
+SND_SOC_DAILINK_DEFS(ap_dmic_ch56,
+	DAILINK_COMP_ARRAY(COMP_CPU("AP_DMIC_CH56")),
+	DAILINK_COMP_ARRAY(COMP_DUMMY()),
+	DAILINK_COMP_ARRAY(COMP_EMPTY()));
 SND_SOC_DAILINK_DEFS(i2sin0,
 	DAILINK_COMP_ARRAY(COMP_CPU("I2SIN0")),
 	DAILINK_COMP_ARRAY(COMP_DUMMY()),
@@ -1860,6 +1864,13 @@ static struct snd_soc_dai_link mt6991_mt6681_dai_links[] = {
 		.dpcm_capture = 1,
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(ap_dmic_ch34),
+	},
+	{
+		.name = "AP_DMIC_CH56",
+		.no_pcm = 1,
+		.dpcm_capture = 1,
+		.ignore_suspend = 1,
+		SND_SOC_DAILINK_REG(ap_dmic_ch56),
 	},
 	{
 		.name = "I2SIN0",
