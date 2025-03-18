@@ -581,7 +581,9 @@ static int disp_chist_set_config(struct mtk_ddp_comp *comp,
 		memset(&(chist_data->primary_data->chist_config[channel_id]), 0,
 			sizeof(struct drm_mtk_channel_config));
 		chist_data->primary_data->chist_config[channel_id].channel_id = channel_id;
-		chist_data->primary_data->frame_cnt[channel_id] = 0;
+		//if CALLER_RESTORE, should not clear frame_cnt to 0
+		if (config->caller != MTK_DRM_CHIST_CALLER_RESTORE)
+			chist_data->primary_data->frame_cnt[channel_id] = 0;
 		memset(&(chist_data->primary_data->block_config[channel_id]), 0,
 			sizeof(struct mtk_disp_block_config));
 		mutex_unlock(&chist_data->primary_data->data_lock);
@@ -718,6 +720,7 @@ static void disp_chist_restore_setting(struct mtk_ddp_comp *comp, struct cmdq_pk
 	struct mtk_disp_chist *chist_data = comp_to_chist(comp);
 
 	config.config_channel_count = DISP_CHIST_CHANNEL_COUNT;
+	config.caller = MTK_DRM_CHIST_CALLER_RESTORE;
 	for (; i < DISP_CHIST_CHANNEL_COUNT; i++) {
 		mutex_lock(&chist_data->primary_data->data_lock);
 		memcpy(&(config.chist_config[i]), &(chist_data->primary_data->chist_config[i]),
@@ -1122,10 +1125,8 @@ static void disp_chist_get_hist(struct mtk_ddp_comp *comp)
 	}
 	if (cur_present_fence != 0) {
 		// 2nd trigger of Frame N, the hist info is already for Content N
-		if (last_present_fence == cur_present_fence)
-			prim_data->present_fence = cur_present_fence;
-		else // 1st trigger of Frame N, the hist info is for Content N-1
-			prim_data->present_fence = cur_present_fence - 1;
+		// 1st trigger of Frame N, the hist info maybe Content N-1 or N
+		prim_data->present_fence = cur_present_fence;
 
 		DDPINFO("%s: comp->id:%d hist_fence:%d cur_pf:%d last_pf:%d\n",
 			__func__, comp->id, prim_data->present_fence, cur_present_fence, last_present_fence);
