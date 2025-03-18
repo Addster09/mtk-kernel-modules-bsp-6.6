@@ -295,6 +295,58 @@
 			};
 		};
 
+		qm42639: qm42639 {
+			vid = <0x03>;
+			pid = <0x03>;
+			flag = <0x00000000>;
+
+			/* [0] 0x03: PAEN
+			 * [1] 0x02: LNAEN
+			 * [2] 0x04: BTEN
+			 * [3] 0x0e: SEL4
+			 */
+			pins = <0x03 0x02 0x04 0x0e>;
+
+			truth-table =
+				<0x00 0x08>,	/* ISO - ISO */
+				<0x10 0x00>,	/* BYP - WIFI_RX_BYP */
+				<0x11 0x0a>,	/* RxL - WIFI_RX_G0 */
+				<0x12 0x02>,	/* RxH - WIFI_RX_G1 */
+				<0x20 0x07>,	/* TxL - WIFI_TX_LF_G0 */
+				<0x21 0x09>,	/* TxMD - WIFI_TX_LF_G1 */
+				<0x22 0x05>,	/* TxM - WIFI_TX_LF_G2 */
+				<0x23 0x0d>,	/* TxHD - WIFI_TX_LF_G3 */
+				<0x24 0x01>,	/* TxH - WIFI_TX_LF_G4 */
+				<0x90 0x04>,	/* BTL - BT_TX_G0 */
+				<0x91 0x0e>,	/* BTHD - BT_TX_G1 */
+				<0x92 0x06>;	/* BTH - BT_TX_G2 */
+
+			states-set {
+				qm42639_default: qm42639-default {
+					fem = <&qm42639>;
+					cat-names = "cat-iso", "cat-rx", "cat-tx-lf";
+					cat-iso {
+						cat-id = <0x00>;
+						states =
+							<0x10>;	/* BYP */
+					};
+					cat-rx {
+						cat-id = <0x01>;
+						states =
+							<0x10>,	/* BYP */
+							<0x11>;	/* RxL */
+					};
+					cat-tx-lf {
+						cat-id = <0x02>;
+						states =
+							<0x20>,	/* TxL */
+							<0x22>,	/* TxM */
+							<0x24>;	/* TxH */
+					};
+				};
+			};
+		};
+
 		qm45639: qm45639 {
 			vid = <0x03>;
 			pid = <0x04>;
