@@ -6309,6 +6309,8 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				"clk_top_univpll_d6_d2_208m",
 				"clk_top_univpll_d6_d4_104m",
 				"clk_top_tck_26m_mx9";
+			baud-rate = <1>; /* 0: 12m, 1: 24m */
+			wakeup-mode = <1>; /* 0: sw, 1: hw */
 		};
 
 		ssusb: usb0@16701000 {
