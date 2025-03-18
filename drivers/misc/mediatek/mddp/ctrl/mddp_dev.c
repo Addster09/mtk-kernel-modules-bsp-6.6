@@ -281,7 +281,7 @@ static int32_t em_cmd_status;
 static ssize_t
 em_test_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	return scnprintf(buf, PAGE_SIZE, "staus:%d, cmd_buf:%s\n",
+	return scnprintf(buf, PAGE_SIZE, "status:%d, cmd_buf:%s\n",
 			em_cmd_status, em_cmd_buf);
 }
 
@@ -298,7 +298,6 @@ em_test_store(struct device *dev,
 	unsigned int            str_len;
 
 	str_len = strlen(buf);
-
 	snprintf(em_cmd_buf, EM_CMD_BUF_SZ, "%.*s",
 			(int)min(count, sizeof(em_cmd_buf) - 1), buf);
 	strsep_buf_p = em_cmd_buf;
@@ -392,7 +391,6 @@ md_log_store(struct device *dev,
 	return count;
 }
 static DEVICE_ATTR_RW(md_log);
-
 
 static struct attribute *mddp_attrs[] = {
 	&dev_attr_version.attr,
@@ -1113,7 +1111,6 @@ static long mddp_dev_ioctl(struct file *file, unsigned int cmd, unsigned long ar
 			}
 		}
 		break;
-
 	default:
 		MDDP_C_LOG(MDDP_LL_WARN, "%s: Invalid command(%d)!\n",
 				__func__, dev_req.msg);
@@ -1123,7 +1120,7 @@ static long mddp_dev_ioctl(struct file *file, unsigned int cmd, unsigned long ar
 
 ioctl_error:
 	MDDP_C_LOG(MDDP_LL_INFO,
-			"%s: cmd(%d) app_type(%d), ret (%ld).\n",
+			"%s: cmd(%d), app_type(%d), ret (%ld).\n",
 			__func__, dev_req.msg, dev_req.app_type, ret);
 	return ret;
 }
