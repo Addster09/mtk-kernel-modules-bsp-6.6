@@ -18096,6 +18096,14 @@ connsys_emi_config_hyp: connsys-emi-config-hyp {
 				<&dvfsrc_freq_opp8>;
 	};
 
+	wifi_page_pool: wifi-page-pool {
+		compatible = "mediatek,wifi_page_pool";
+		cma-mem = <0>;
+		emi-size = <0x0>;
+		mpu-protect = <0>;
+		dynamic-alloc = <1>;
+	};
+
 	wifi_tx_cma: wifi-tx-cma {
 		compatible = "mediatek,wifi_tx_cma";
 		emi-size = <0x5400000>;
