@@ -12779,7 +12779,10 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 					mtk_dsi_phy_timconfig(dsi->slave_dsi, NULL);
 			}
 		}
-		if (dsi->mipi_hopping_sta) {
+		if (dsi && dsi->ext && dsi->ext->params
+			&& (dsi->mipi_hopping_sta
+			|| (is_bdg_supported() && dsi->bdg_mipi_hopping_sta)
+			) && dsi->ext->params->dyn.hfp) {
 			DDPINFO("%s,mipi_clk_change_sta\n", __func__);
 			hfp = dsi->ext->params->dyn.hfp;
 		} else
@@ -12789,7 +12792,10 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 		if (dsi->slave_dsi)
 			dsi->slave_dsi->vm.hfront_porch = hfp;
 
-		if (dsi->mipi_hopping_sta) {
+		if (dsi && dsi->ext && dsi->ext->params
+			&& (dsi->mipi_hopping_sta
+			|| (is_bdg_supported() && dsi->bdg_mipi_hopping_sta)
+			) && dsi->ext->params->dyn.hbp) {
 			DDPINFO("%s,mipi_clk_change_sta\n", __func__);
 			hbp = dsi->ext->params->dyn.hbp;
 		} else
@@ -12799,7 +12805,10 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 		if (dsi->slave_dsi)
 			dsi->slave_dsi->vm.hback_porch = hbp;
 
-		if (dsi->mipi_hopping_sta && dsi->ext) {
+		if (dsi && dsi->ext && dsi->ext->params
+			&& (dsi->mipi_hopping_sta
+			|| (is_bdg_supported() && dsi->bdg_mipi_hopping_sta)
+			) && dsi->ext->params->dyn.vfp) {
 			DDPINFO("%s,mipi_clk_change_sta\n", __func__);
 			vfp = dsi->ext->params->dyn.vfp;
 		} else
@@ -12808,7 +12817,10 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 		dsi->vm.vfront_porch = vfp;
 		if (dsi->slave_dsi)
 			dsi->slave_dsi->vm.vfront_porch = vfp;
-		if (dsi->mipi_hopping_sta && dsi->ext) {
+		if (dsi && dsi->ext && dsi->ext->params
+			&& (dsi->mipi_hopping_sta
+			|| (is_bdg_supported() && dsi->bdg_mipi_hopping_sta)
+			) && dsi->ext->params->dyn.vbp) {
 			DDPINFO("%s,mipi_clk_change_sta\n", __func__);
 			vbp = dsi->ext->params->dyn.vbp;
 		} else
@@ -12920,7 +12932,10 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 				}
 			}
 		}
-		if (dsi->mipi_hopping_sta) {
+		if (dsi && dsi->ext && dsi->ext->params
+			&& (dsi->mipi_hopping_sta
+			|| (is_bdg_supported() && dsi->bdg_mipi_hopping_sta)
+			) && dsi->ext->params->dyn.hfp) {
 			DDPINFO("%s,mipi_clk_change_sta\n", __func__);
 			hfp = dsi->ext->params->dyn.hfp;
 		} else
@@ -12930,7 +12945,10 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 		if (dsi->slave_dsi)
 			dsi->slave_dsi->vm.hfront_porch = hfp;
 
-		if (dsi->mipi_hopping_sta) {
+		if (dsi && dsi->ext && dsi->ext->params
+			&& (dsi->mipi_hopping_sta
+			|| (is_bdg_supported() && dsi->bdg_mipi_hopping_sta)
+			) && dsi->ext->params->dyn.hbp) {
 			DDPINFO("%s,mipi_clk_change_sta\n", __func__);
 			hbp = dsi->ext->params->dyn.hbp;
 		} else
@@ -12952,7 +12970,10 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 		dsi->vm.vfront_porch = vfp;
 		if (dsi->slave_dsi)
 			dsi->slave_dsi->vm.vfront_porch = vfp;
-		if (dsi->mipi_hopping_sta && dsi->ext) {
+		if (dsi && dsi->ext && dsi->ext->params
+			&& (dsi->mipi_hopping_sta
+			|| (is_bdg_supported() && dsi->bdg_mipi_hopping_sta)
+			) && dsi->ext->params->dyn.vbp) {
 			DDPINFO("%s,mipi_clk_change_sta\n", __func__);
 			vbp = dsi->ext->params->dyn.vbp;
 		} else
