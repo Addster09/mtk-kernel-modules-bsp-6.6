@@ -84,6 +84,9 @@ struct mml_m2m_ctx {
 	struct mutex q_mutex;
 	struct kref ref;
 	struct completion destroy;	/* ready for destroy */
+
+	atomic_t run_count;
+	struct wait_queue_head run_wq;
 };
 
 static void m2m_ctx_complete(struct kref *ref)
@@ -136,10 +139,14 @@ static void m2m_task_submit_done(struct mml_task *task)
 
 static void mml_m2m_process_done(struct mml_task *task, enum vb2_buffer_state vb_state)
 {
+	struct mml_m2m_ctx *mctx = container_of(task->ctx, struct mml_m2m_ctx, ctx);
+
 	v4l2_m2m_buf_done(task->src_buf, vb_state);
 	v4l2_m2m_buf_done(task->dst_buf, vb_state);
 	task->src_buf = NULL;
 	task->dst_buf = NULL;
+	if (atomic_dec_and_test(&mctx->run_count))
+		wake_up_interruptible(&mctx->run_wq);
 	mml_mmp(m2m_process_done, MMPROFILE_FLAG_PULSE, task->job.jobid, 0);
 }
 
@@ -436,6 +443,7 @@ static int mml_m2m_start_streaming(struct vb2_queue *q, unsigned int count)
 				dest->compose.width, dest->compose.height);
 			return ret;
 		}
+		atomic_set(&ctx->run_count, 0);
 	}
 
 	return 0;
@@ -466,6 +474,8 @@ static void mml_m2m_stop_streaming(struct vb2_queue *q)
 		v4l2_m2m_buf_done(vbuf, VB2_BUF_STATE_ERROR);
 		vbuf = mml_m2m_buf_remove(ctx, q->type);
 	}
+
+	wait_event_interruptible(ctx->run_wq, !atomic_read(&ctx->run_count));
 }
 
 static int mml_m2m_queue_setup(struct vb2_queue *q, unsigned int *num_buffers,
@@ -1501,6 +1511,7 @@ static struct mml_m2m_ctx *m2m_ctx_create(struct mml_dev *mml)
 	mutex_init(&ctx->q_mutex);
 	kref_init(&ctx->ref);
 	init_completion(&ctx->destroy);
+	init_waitqueue_head(&ctx->run_wq);
 
 	return ctx;
 }
@@ -1843,6 +1854,7 @@ static void mml_m2m_device_run(void *priv)
 	/* hold mctx to avoid release from v4l2 before call submit_done */
 	kref_get(&mctx->ref);
 
+	atomic_inc(&mctx->run_count);
 	src_buf = v4l2_m2m_src_buf_remove(mctx->m2m_ctx);
 	dst_buf = v4l2_m2m_dst_buf_remove(mctx->m2m_ctx);
 	if (!src_buf || !dst_buf) {
@@ -2033,6 +2045,8 @@ err_buf_exit:
 			cfg->cfg_ops->put(cfg);
 	}
 
+	if (atomic_dec_and_test(&mctx->run_count))
+		wake_up_interruptible(&mctx->run_wq);
 	kref_put(&mctx->ref, m2m_ctx_complete);
 }
 
