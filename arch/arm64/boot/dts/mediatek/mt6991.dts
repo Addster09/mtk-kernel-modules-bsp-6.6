@@ -58,6 +58,7 @@
 			scp-i2c1 = &scp_i2c1;
 			dli-async13 = &ovl_dli_async1;
 			wdma1 = &disp_wdma1;
+			wdma2 = &disp_wdma2;
 			wdma4 = &disp_wdma4;
 			exdma0 = &disp_ovl0_exdma0;
 			exdma2 = &disp_ovl0_exdma2;
@@ -8700,6 +8701,7 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				"disp_token_esd_eof3",
 				"disp_rdma0_eof0",
 				"disp_wdma0_eof0",
+				"disp_wdma1_eof0",
 				"disp_token_stream_block0",
 				"disp_token_stream_block1",
 				"disp_token_stream_block3",
@@ -8725,6 +8727,7 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				"disp_gpio_te2",
 				"disp_dsi0_targetline0",
 				"disp_ovlsys_wdma0_eof0",
+				"disp_ovlsys_wdma2_eof0",
 				"disp_token_disp_v_idle_power_on0",
 				"disp_token_disp_check_trigger_merge0",
 				"dpc_disp1_prete",
@@ -8757,6 +8760,7 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				<&gce CMDQ_SYNC_TOKEN_ESD_EOF_3>,
 				<&gce CMDQ_EVENT_DISP1_FRAME_DONE_SEL3>,
 				<&gce CMDQ_EVENT_DISP1_FRAME_DONE_SEL4>,
+				<&gce CMDQ_EVENT_DISP1_FRAME_DONE_SEL6>,
 				<&gce CMDQ_SYNC_TOKEN_STREAM_BLOCK>,
 				<&gce CMDQ_SYNC_TOKEN_STREAM_BLOCK_1>,
 				<&gce CMDQ_SYNC_TOKEN_STREAM_BLOCK_3>,
@@ -8782,6 +8786,7 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				<&gce CMDQ_EVENT_DSI2_TE_I_DSI2_TE_I>,
 				<&gce CMDQ_EVENT_DISP1_DISP_DSI0_ENG_EVENT2>,
 				<&gce CMDQ_EVENT_OVL0_FRAME_DONE_SEL1>,
+				<&gce CMDQ_EVENT_OVL1_FRAME_DONE_SEL1>,
 				<&gce CMDQ_SYNC_TOKEN_VIDLE_POWER_ON>,
 				<&gce CMDQ_SYNC_TOKEN_CHECK_TRIGGER_MERGE>,
 				<&gce CMDQ_EVENT_DPC_DT_DONE6_0_MERGE>,
@@ -9138,6 +9143,26 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 			interconnects = <&mmqos MASTER_LARB_PORT(SMMU_L33_P10_DISP1_WDMA1)
 					 &mmqos SLAVE_COMMON(1)>;
 			interconnect-names = "DDP_COMPONENT_WDMA1_hrt_qos";
+		};
+
+		disp_wdma2: disp1-wdma2@325b0000 {
+			compatible = "mediatek,disp_wdma2",
+					"mediatek,mt6991-disp-wdma";
+			reg = <0 0x325b0000 0 0x1000>;
+			interrupts = <GIC_SPI 462 IRQ_TYPE_LEVEL_HIGH 0>;
+			clocks = <&dispsys1_config_clk CLK_MM1_DISP_WDMA2_DISP>;
+			fifo-size-1plane = <2177>;
+			fifo-size-2plane = <800>;
+			fifo-size-uv-2plane = <400>;
+			fifo-size-3plane = <797>;
+			fifo-size-uv-3plane = <198>;
+			mediatek,larb = <&smi_larb33 SMMU_L33_P11_DISP1_WDMA2>;
+			mediatek,smi-id = <33>;
+			mtk,smmu-shared = <&mm_smmu_disp>;
+			mtk,smmu-shared-sec = <&mm_smmu_svp_disp>;
+			interconnects = <&mmqos MASTER_LARB_PORT(SMMU_L33_P11_DISP1_WDMA2)
+					 &mmqos SLAVE_COMMON(1)>;
+			interconnect-names = "DDP_COMPONENT_WDMA2_hrt_qos";
 		};
 
 		disp_wdma4: disp1-wdma4@325d0000 {
@@ -9915,10 +9940,13 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 			fifo-size-uv-2plane = <318>;
 			fifo-size-3plane = <633>;
 			fifo-size-uv-3plane = <157>;
-			mediatek,larb = <&smi_larb37>;
+			mediatek,larb = <&smi_larb37 SMMU_L37_P8_DISP_WDMA0>;
 			mediatek,smi-id = <37>;
 			mtk,smmu-shared = <&mm_smmu_disp>;
-			mtk,smmu-shared-sec = <&mm_smmu_hdcp_disp>;
+			mtk,smmu-shared-sec = <&mm_smmu_svp_disp>;
+			interconnects = <&mmqos MASTER_LARB_PORT(SMMU_L37_P8_DISP_WDMA0)
+					 &mmqos SLAVE_COMMON(0)>;
+			interconnect-names = "DDP_COMPONENT_OVLSYS_WDMA2_hrt_qos";
 		};
 
 		ovl1_wdma1: disp-wdma2@32e00000 {
