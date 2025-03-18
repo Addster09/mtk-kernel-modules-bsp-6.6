@@ -13783,11 +13783,11 @@ connsys_emi_config_hyp: connsys-emi-config-hyp {
 					<&gce_m 22 3000 CMDQ_THR_PRIO_1>,
 					<&gce_m 23 3000 CMDQ_THR_PRIO_1>,
 					/* power thread */
-					<&gce_m 25 CMDQ_NO_TIMEOUT CMDQ_THR_PRIO_1>,
+					<&gce_m 25 CMDQ_NO_TIMEOUT CMDQ_THR_PRIO_2>,
 					<&gce_m 26 CMDQ_NO_TIMEOUT CMDQ_THR_PRIO_1>,
-					<&gce_m 27 CMDQ_NO_TIMEOUT CMDQ_THR_PRIO_1>,
-					<&gce_m 30 CMDQ_NO_TIMEOUT CMDQ_THR_PRIO_1>,
-					<&gce_m 31 CMDQ_NO_TIMEOUT CMDQ_THR_PRIO_1>,
+					<&gce_m 27 CMDQ_NO_TIMEOUT CMDQ_THR_PRIO_2>,
+					<&gce_m 30 CMDQ_NO_TIMEOUT CMDQ_THR_PRIO_2>,
+					<&gce_m 31 CMDQ_NO_TIMEOUT CMDQ_THR_PRIO_2>,
 					/* qos thread */
 					<&gce_m 6 CMDQ_NO_TIMEOUT CMDQ_THR_PRIO_1>,
 					/* secure thread */
