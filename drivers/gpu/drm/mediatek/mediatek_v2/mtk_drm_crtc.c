@@ -15526,6 +15526,15 @@ void mml_cmdq_pkt_init(struct drm_crtc *crtc, struct cmdq_pkt *cmdq_handle)
 		}
 		fallthrough;
 	case MML_DIRECT_LINKING:
+		if (mtk_crtc->is_mml) { // mml IR mode
+			//make sure dpc has been enabled, before wait pre-TE
+			if (mtk_vidle_is_ff_enabled()) {
+				cmdq_pkt_clear_event(cmdq_handle,
+						mtk_crtc->gce_obj.event[EVENT_DPC_DISP1_PRETE]);
+				cmdq_pkt_wfe(cmdq_handle,
+						mtk_crtc->gce_obj.event[EVENT_DPC_DISP1_PRETE]);
+			}
+		}
 		mml_drm_racing_config_sync(mml_ctx, cmdq_handle);
 		break;
 	case MML_DC_ENTERING:
