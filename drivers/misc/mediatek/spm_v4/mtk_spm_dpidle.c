@@ -585,6 +585,8 @@ unsigned int spm_go_to_sleep_dpidle(u32 spm_flags, u32 spm_data)
 		wd_api->wd_suspend_notify();
 	} else
 		spm_crit2("FAILED TO GET WD API\n");
+#else
+	SMC_CALL(MTK_SIP_KERNEL_SPM_ARGS, SPM_ARGS_PCM_WDT, 1, 30);
 #endif
 
 	spin_lock_irqsave(&__spm_lock, flags);
@@ -658,6 +660,8 @@ unsigned int spm_go_to_sleep_dpidle(u32 spm_flags, u32 spm_data)
 				  pwrctrl->wdt_disable);
 		wd_api->wd_spmwdt_mode_config(WD_REQ_DIS, WD_REQ_RST_MODE);
 	}
+#else
+	SMC_CALL(MTK_SIP_KERNEL_SPM_ARGS, SPM_ARGS_PCM_WDT, 0, 0);
 #endif
 
 	/* restore original dpidle setting */
