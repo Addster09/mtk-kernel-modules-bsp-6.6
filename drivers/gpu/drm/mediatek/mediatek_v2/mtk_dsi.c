@@ -244,7 +244,7 @@
 
 #define DSI_TIME_CON0(data)	(data->dsi_time_con ? data->dsi_time_con : 0xA0)
 #define FLD_SKEWCAL_PRD REG_FLD_MSB_LSB(31, 16)
-#define DSI_TIME_CON1(data)	(data->dsi_time_con ? data->dsi_time_con + 0x4 : 0xAA)
+#define DSI_TIME_CON1(data)	(data->dsi_time_con ? data->dsi_time_con + 0x4 : 0xA4)
 #define PREFETCH_EN BIT(31)
 #define FLD_PREFETCH_TIME REG_FLD_MSB_LSB(30, 16)
 #define DSI_RESERVED(data)	(data->dsi_reserved ? data->dsi_reserved : 0xF0)
