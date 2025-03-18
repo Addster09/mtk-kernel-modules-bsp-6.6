@@ -183,6 +183,7 @@ static int mtk_disp_splitter_remove(struct platform_device *pdev)
 
 static const struct of_device_id mtk_disp_splitter_driver_dt_match[] = {
 	{.compatible = "mediatek,mt6991-disp-splitter", },
+	{.compatible = "mediatek,mt6899-disp-splitter", },
 	{},
 };
 MODULE_DEVICE_TABLE(of, mtk_disp_splitter_driver_dt_match);

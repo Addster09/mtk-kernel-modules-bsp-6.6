@@ -11869,6 +11869,8 @@ static const struct of_device_id mtk_ddp_comp_dt_ids[] = {
 	 .data = (void *)MTK_DISP_POSTALIGN},
 	{.compatible = "mediatek,mt6991-disp-splitter",
 	 .data = (void *)MTK_DISP_SPLITTER},
+	{.compatible = "mediatek,mt6899-disp-splitter",
+	 .data = (void *)MTK_DISP_SPLITTER},
 	{} };
 
 static struct disp_iommu_device disp_iommu;
