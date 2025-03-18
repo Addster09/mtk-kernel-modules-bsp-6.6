@@ -2421,6 +2421,7 @@ static void xhci_mtk_remove_sideband(struct xhci_sideband *sb)
 	u64 erdp_reg;
 	dma_addr_t deq;
 
+	mutex_lock(&uodev->xhci_lock);
 	if (sb) {
 		/* ir might be freed before, we should check it first */
 		if (sb->ir) {
@@ -2455,6 +2456,7 @@ static void xhci_mtk_remove_sideband(struct xhci_sideband *sb)
 		uodev->sb = NULL;
 	} else
 		USB_OFFLOAD_INFO("sb has already freed\n");
+	mutex_unlock(&uodev->xhci_lock);
 }
 
 static union xhci_trb *xhci_mtk_dma_to_trb(struct xhci_ring *ring,
@@ -3154,6 +3156,7 @@ static int usb_offload_probe(struct platform_device *pdev)
 			goto REG_SSUSB_OFFLOAD_FAIL;
 		}
 		mutex_init(&uodev->dev_lock);
+		mutex_init(&uodev->xhci_lock);
 
 		USB_OFFLOAD_INFO("Set XHCI vendor hook ops\n");
 		platform_set_drvdata(pdev, &xhci_mtk_vendor_ops);
