@@ -410,12 +410,18 @@ static int test_set_val(struct cluster_data *cluster, unsigned int val)
 	return 0;
 }
 
+static bool test_disable_cpu(unsigned int cpu);
 static inline int core_ctl_pause_cpu(unsigned int cpu)
 {
 	int ret = 0;
 	unsigned long flags;
 
 	spin_lock_irqsave(&core_ctl_pause_lock, flags);
+	/* Unable to pause CPU */
+	if(!test_disable_cpu(cpu)) {
+		spin_unlock_irqrestore(&core_ctl_pause_lock, flags);
+		return -EBUSY;
+	}
 	ret = sched_pause_cpu(cpu);
 	spin_unlock_irqrestore(&core_ctl_pause_lock, flags);
 
@@ -747,7 +753,6 @@ EXPORT_SYMBOL(core_ctl_set_up_thres);
  *
  *  return 0 if success, else return errno
  */
-static bool test_disable_cpu(unsigned int cpu);
 static void core_ctl_call_notifier(unsigned int cpu, unsigned int is_pause);
 int core_ctl_force_pause_cpu(unsigned int cpu, bool is_pause)
 {
