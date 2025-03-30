@@ -95,7 +95,7 @@ static struct proc_dir_entry *mtkfb_debug_procfs;
 #endif
 static struct drm_device *drm_dev;
 
-bool g_mobile_log;
+bool g_mobile_log = 1;
 EXPORT_SYMBOL(g_mobile_log);
 bool g_fence_log;
 bool g_detail_log;
