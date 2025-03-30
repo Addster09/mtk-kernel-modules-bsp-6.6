@@ -129,6 +129,7 @@ static unsigned int vboot_check_cnt;
 #if UPDATE_TO_UPOWER
 static unsigned int record_tbl_locked[NR_FREQ];
 #endif
+extern void ppm_cobra_tbl_updating(void);
 
 #define WAIT_TIME	(2500000)
 #define FALL_NUM        (3)
@@ -833,6 +834,7 @@ static int eem_probe(struct platform_device *pdev)
 		}
 	}
 upower_update_tables_by_eem();
+ppm_cobra_tbl_updating();
 #endif
 
 
