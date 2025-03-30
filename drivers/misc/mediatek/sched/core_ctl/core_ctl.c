@@ -94,6 +94,12 @@ struct cpu_data {
 	unsigned int cpu_util_pct;
 	unsigned int is_busy;
 	struct cluster_data *cluster;
+	unsigned int *cpu_loading;
+	unsigned int window_idx;
+	u64 cur_wall_time;
+	u64 cur_idle_time;
+	u64 prev_wall_time;
+	u64 prev_idle_time;
 };
 
 #define ENABLE		1
@@ -109,6 +115,7 @@ struct cpu_data {
 #define MAX_BTASK_THRESH	100
 #define MAX_CPU_TJ_DEGREE	100000
 #define BIG_TASK_AVG_THRESHOLD	25
+#define WINDOW_SIZE 10
 
 #define for_each_cluster(cluster, idx) \
 	for ((cluster) = &cluster_state[idx]; (idx) < num_clusters;\
@@ -568,6 +575,61 @@ static void set_cpu_busy_up_thres(struct cluster_data *cluster, unsigned int val
 		cluster->cpu_busy_down_thres = val > 20 ? val - 20 : 0;
 	}
 	spin_unlock_irqrestore(&core_ctl_state_lock, flags);
+}
+
+/*
+ * get_cpu_loading - Calculates the CPU loading for each CPU
+ *
+ * This function iterates over each possible CPU and calculates its loading
+ * based on the difference between total wall time and idle time since the last
+ * measurement. It stores the calculated CPU loading in the provided cpu_info
+ * structure.
+ *
+ * The CPU loading is calculated as a percentage value representing the
+ * proportion of non-idle time(active time) over the total measured wall time for each CPU.
+ *
+ * Return: 0 on success, negative error code on failure
+ */
+static int get_cpu_loading(void)
+{
+	int cpu;
+	unsigned int cpu_loading, idx;
+	struct cpu_data *cpu_stat;
+	u64 wall_time, idle_time;
+
+	if (!initialized)
+		return 0;
+
+	for_each_possible_cpu(cpu) {
+		cpu_stat = &per_cpu(cpu_state, cpu);
+		cpu_loading = 0;
+		wall_time = 0;
+		idle_time = 0;
+
+		cpu_stat->prev_wall_time = cpu_stat->cur_wall_time;
+		cpu_stat->prev_idle_time = cpu_stat->cur_idle_time;
+
+		/* update both wall & idle time, and idle time include iowait */
+		cpu_stat->cur_idle_time = get_cpu_idle_time(cpu, &cpu_stat->cur_wall_time, 1);
+
+		if (cpu_active(cpu)) {
+			wall_time = cpu_stat->cur_wall_time - cpu_stat->prev_wall_time;
+			idle_time = cpu_stat->cur_idle_time - cpu_stat->prev_idle_time;
+		}
+
+		if (wall_time > 0 && wall_time > idle_time)
+			cpu_loading = div_u64(((wall_time - idle_time)*100),
+							wall_time);
+
+		idx = cpu_stat->window_idx;
+		if (idx >= 0 && idx < WINDOW_SIZE)
+			cpu_stat->cpu_loading[idx] = cpu_loading;
+		else
+			cpu_stat->cpu_loading[idx] = 0;
+		cpu_stat->window_idx = ((idx + 1) % WINDOW_SIZE);
+	}
+
+	return 0;
 }
 
 /* ==================== export function ======================== */
@@ -1483,6 +1545,7 @@ void core_ctl_tick(void *data, struct rq *rq)
 	read_lock(&core_ctl_policy_lock);
 	if (enable_policy) {
 		read_unlock(&core_ctl_policy_lock);
+		get_cpu_loading();
 		core_ctl_main_algo();
 	} else
 		read_unlock(&core_ctl_policy_lock);
@@ -1524,6 +1587,7 @@ static struct cpumask try_to_pause(struct cluster_data *cluster, int need)
 	bool check_busy = true;
 	int ret = 0;
 	struct cpumask cpu_pause_res;
+	unsigned int i;
 
 	cpumask_clear(&cpu_pause_res);
 
@@ -1555,6 +1619,15 @@ again:
 
 		if (cluster->active_cpus == need)
 			break;
+
+		if (cpu == nr_cpu_ids-1) {
+			for (i=0; i<WINDOW_SIZE; i++) {
+				if (c->cpu_loading[i] >= 80)
+					break;
+			}
+			if (i != WINDOW_SIZE)
+				break;
+		}
 
 		/*
 		 * Pause only the not_preferred CPUs.
@@ -1904,7 +1977,7 @@ static int cluster_init(const struct cpumask *mask)
 	unsigned int first_cpu = cpumask_first(mask);
 	struct cluster_data *cluster;
 	struct cpu_data *state;
-	unsigned int cpu;
+	unsigned int cpu, i;
 	struct sched_param param = { .sched_priority = MAX_RT_PRIO-1 };
 	int ret = 0;
 
@@ -1979,6 +2052,14 @@ static int cluster_init(const struct cpumask *mask)
 		state = &per_cpu(cpu_state, cpu);
 		state->cluster = cluster;
 		state->cpu = cpu;
+		state->cpu_loading = kcalloc(WINDOW_SIZE, sizeof(unsigned int), GFP_KERNEL);
+		for (i=0; i<WINDOW_SIZE; i++)
+			state->cpu_loading[i] = 0;
+		state->cur_wall_time = 0;
+		state->cur_idle_time = 0;
+		state->prev_wall_time = 0;
+		state->prev_idle_time = 0;
+		state->window_idx = 0;
 	}
 
 	cluster->cpu_busy_up_thres = default_busy_up_thres[cluster->cluster_id];
