@@ -3016,6 +3016,55 @@ static int ufs_mtk_clk_scale_notify(struct ufs_hba *hba, bool scale_up,
 	return 0;
 }
 
+#if IS_ENABLED(CONFIG_UFS_MEDIATEK_MT6771)
+static u8 ufshcd_crypto_gie_get_mode(u8 cap_idx)
+{
+	if (cap_idx == 0)
+		return BC_AES_128_XTS;
+	else if (cap_idx == 1)
+		return BC_AES_256_XTS;
+	else
+		return -1;
+}
+
+static int ufs_mtk_program_key(struct ufs_hba *hba,
+			      const union ufs_crypto_cfg_entry *cfg, int slot)
+{
+	int i;
+	unsigned long flags;
+	u32 gie_para;
+	u8 mode;
+	struct arm_smccc_res res;
+
+	mode = ufshcd_crypto_gie_get_mode(cfg->crypto_cap_idx);
+
+	gie_para = ((slot & 0xFF) << UFS_HIE_PARAM_OFS_CFG_ID) |
+		((mode & 0xFF) << UFS_HIE_PARAM_OFS_MODE) |
+		((0x40 & 0xFF) << UFS_HIE_PARAM_OFS_KEY_TOTAL_BYTE);
+
+	/* disable encryption */
+	if (cfg->config_enable == 0)
+		gie_para |= 0x01;
+
+	spin_lock_irqsave(hba->host->host_lock, flags);
+
+	/* init ufs crypto IP for program key by first 8B */
+	ufs_mtk_hie_cfg_smc(res, gie_para,
+		le32_to_cpu(cfg->reg_val[0]),
+		le32_to_cpu(cfg->reg_val[1]));
+
+	/* program remaining key */
+	for (i = 2; i < 16; i += 3) {
+		ufs_mtk_hie_cfg_smc(res, le32_to_cpu(cfg->reg_val[i]),
+			le32_to_cpu(cfg->reg_val[i + 1]),
+			le32_to_cpu(cfg->reg_val[i + 2]));
+	}
+
+	spin_unlock_irqrestore(hba->host->host_lock, flags);
+	return 0;
+}
+#endif
+
 static int ufs_mtk_get_hba_mac(struct ufs_hba *hba)
 {
 	struct ufs_mtk_host *host = ufshcd_get_variant(hba);
@@ -3208,6 +3257,9 @@ static const struct ufs_hba_variant_ops ufs_hba_mtk_vops = {
 	.event_notify        = ufs_mtk_event_notify,
 	.config_scaling_param = ufs_mtk_config_scaling_param,
 	.clk_scale_notify    = ufs_mtk_clk_scale_notify,
+#if IS_ENABLED(CONFIG_UFS_MEDIATEK_MT6771)
+	.program_key         = ufs_mtk_program_key,
+#endif
 	/* mcq vops */
 	.get_hba_mac         = ufs_mtk_get_hba_mac,
 	.op_runtime_config   = ufs_mtk_op_runtime_config,
