@@ -2136,7 +2136,7 @@ static int adp_cpu_set_cur_state
 		 */
 		unsigned int gpu_loading;
 
-		if (!mtk_get_gpu_loading(&gpu_loading))
+		if (!mtk_get_gpu_loading_avg(&gpu_loading))
 			gpu_loading = 0;
 
 		_adaptive_power_calc(tscpu_g_prev_temp, tscpu_g_curr_temp,
@@ -3632,7 +3632,7 @@ static int krtatm_thread(void *arg)
 			gpu_pwr_lmt_latest_delay = 0;
 #endif
 
-			if (!mtk_get_gpu_loading(&gpu_loading))
+			if (!mtk_get_gpu_loading_avg(&gpu_loading))
 				gpu_loading = 0;
 
 			/* use separate prev/curr in krtatm because

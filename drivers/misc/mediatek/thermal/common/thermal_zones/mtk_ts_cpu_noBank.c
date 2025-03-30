@@ -818,7 +818,7 @@ static int tscpu_read_opp(struct seq_file *m, void *v)
 
 #if CPT_ADAPTIVE_AP_COOLER
 
-	if (!mtk_get_gpu_loading(&gpu_loading))
+	if (!mtk_get_gpu_loading_avg(&gpu_loading))
 		gpu_loading = 0;
 
 	seq_printf(m, "%d,%d,%d,%d,%d",
