@@ -113,6 +113,8 @@ static struct low_battery_callback_table lbcb_tb[LBCB_MAX_NUM] = { {0}, {0} };
 static low_battery_mbrain_callback lb_mbrain_cb;
 static DEFINE_MUTEX(exe_thr_lock);
 
+static int g_lbat_legacy_proj;
+
 static int rearrange_volt(struct lbat_intr_tbl *intr_info, unsigned int *volt_l, unsigned int *volt_h,
 	unsigned int num)
 {
@@ -487,6 +489,9 @@ void exec_low_battery_callback(unsigned int thd)
 	if (lbat_lv == -1)
 		return;
 
+	if (g_lbat_legacy_proj && lbat_lv >= 3)
+		return;
+
 	decide_and_throttle(LBAT_INTR_1, lbat_lv, thd);
 }
 
@@ -501,6 +506,9 @@ void exec_dual_low_battery_callback(unsigned int thd)
 
 	lbat_lv = lbat_thd_to_lv(thd, lbat_data->temp_reg_stage, LBAT_INTR_2);
 	if (lbat_lv == -1)
+		return;
+
+	if (g_lbat_legacy_proj && lbat_lv >= 3)
 		return;
 
 	decide_and_throttle(LBAT_INTR_2, lbat_lv, thd);
@@ -791,6 +799,32 @@ static int __used pt_check_power_off(void)
 	return ret;
 }
 
+static int __used pt_check_power_off_legacy(void)
+{
+	int ret = 0, pt_power_off_lv = 2;
+	static int pt_power_off_cnt;
+
+	if (!lbat_data)
+		return 0;
+
+	if (lbat_data->cur_thl_lv == pt_power_off_lv) {
+		if (pt_power_off_cnt == 0)
+			ret = 0;
+		else
+			ret = 1;
+		pt_power_off_cnt++;
+		pr_info("[%s] %d ret:%d\n", __func__, pt_power_off_cnt, ret);
+	} else
+		pt_power_off_cnt = 0;
+
+	if (pt_power_off_cnt >= 4) {
+		pr_info("Powering off by PT.\n");
+		kernel_power_off();
+	}
+
+	return ret;
+}
+
 static void __used pt_set_shutdown_condition(void)
 {
 	static struct power_supply *bat_psy;
@@ -821,11 +855,17 @@ static void __used pt_set_shutdown_condition(void)
 
 static int pt_notify_handler(void *unused)
 {
+	int pt_power_off = 0;
 	do {
 		wait_event_interruptible(lbat_data->notify_waiter,
 			(lbat_data->notify_flag == true));
 
-		if (pt_check_power_off()) {
+		if (g_lbat_legacy_proj)
+			pt_power_off = pt_check_power_off_legacy();
+		else
+			pt_power_off = pt_check_power_off();
+
+		if (pt_power_off) {
 			/* notify battery driver to power off by SOC=0 */
 			pt_set_shutdown_condition();
 			pr_info("[PT] notify battery SOC=0 to power off.\n");
@@ -1333,7 +1373,7 @@ static int low_battery_register_setting(struct platform_device *pdev,
 static int low_battery_throttling_probe(struct platform_device *pdev)
 {
 	int ret, i;
-	int lvsys_thd_enable, vbat_thd_enable;
+	int lvsys_thd_enable, lbat_legacy_proj, vbat_thd_enable;
 	struct lbat_thl_priv *priv;
 	struct device_node *np = pdev->dev.of_node;
 
@@ -1350,6 +1390,14 @@ static int low_battery_throttling_probe(struct platform_device *pdev)
 			"[%s] failed to get lvsys-thd-enable ret=%d\n", __func__, ret);
 		lvsys_thd_enable = 0;
 	}
+
+	ret = of_property_read_u32(np, "lbat-legacy-proj", &lbat_legacy_proj);
+	if (ret) {
+		dev_notice(&pdev->dev,
+			"[%s] failed to get lbat_legacy_proj ret=%d\n", __func__, ret);
+		lbat_legacy_proj = 0;
+	}
+	g_lbat_legacy_proj = lbat_legacy_proj;
 
 	ret = of_property_read_u32(np, "vbat-thd-enable", &vbat_thd_enable);
 	if (ret) {
