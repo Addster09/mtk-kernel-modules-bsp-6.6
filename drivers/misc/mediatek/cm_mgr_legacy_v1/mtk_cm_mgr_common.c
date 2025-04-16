@@ -1158,8 +1158,8 @@ int cm_mgr_check_dts_setting(struct platform_device *pdev)
 			cm_mgr_use_cpu_to_dram_map = 1;
 		else
 			cm_mgr_use_cpu_to_dram_map = 0;
+		cm_mgr_cpu_map_dram_enable = cm_mgr_use_cpu_to_dram_map;
 	}
-	cm_mgr_cpu_map_dram_enable = cm_mgr_use_cpu_to_dram_map;
 	pr_info("#@# %s(%d) cm_mgr_use_cpu_to_dram_map %d\n",
 			__func__, __LINE__, cm_mgr_use_cpu_to_dram_map);
 
