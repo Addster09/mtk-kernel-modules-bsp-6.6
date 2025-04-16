@@ -182,6 +182,7 @@ struct cmdq_instruction {
 
 #define CT_MIN_FPS 60
 #define CT_PRETE_DUR 1000
+#define CT_NEAR_DUR 200
 
 /* Overlay bw monitor define */
 struct layer_compress_ratio_data
@@ -12534,10 +12535,14 @@ static int __mtk_check_trigger(struct mtk_drm_crtc *mtk_crtc)
 	unsigned int base_t = 0, cur_t = 0, target_t = 0;
 	unsigned int step = 0, step_dur = 0, next_tgt_dur = 0;
 	int vrefresh = 0;
+	struct cmdq_pkt *cmdq_handle2 = NULL;
+	bool valid_interval;
+	u8 retry = 5;
 
 	DDP_MUTEX_LOCK_CONDITION(&mtk_crtc->lock, __func__, __LINE__, false);
 	CRTC_MMP_EVENT_START(index, check_trigger, 0, 0);
 	drm_trace_tag_start("check_trigger");
+	cmdq_handle2 = cmdq_pkt_create(mtk_crtc->gce_obj.client[CLIENT_CFG]);
 
 	if (!mtk_crtc->enabled) {
 		CRTC_MMP_EVENT_END(index, check_trigger, 0, 1);
@@ -12585,24 +12590,69 @@ static int __mtk_check_trigger(struct mtk_drm_crtc *mtk_crtc)
 		goto out_unlock;
 	}
 
-	if (next_tgt_dur > CT_PRETE_DUR) {
-		DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, next_tgt_dur);
-		CRTC_MMP_MARK(index, check_trigger, next_tgt_dur, base_t);
+	do {
+		if (next_tgt_dur > CT_PRETE_DUR) {
+			DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, next_tgt_dur);
+			CRTC_MMP_MARK(index, check_trigger, next_tgt_dur, base_t);
 
-		usleep_range(next_tgt_dur - CT_PRETE_DUR , next_tgt_dur - (CT_PRETE_DUR - 100));
+			usleep_range(next_tgt_dur - CT_PRETE_DUR , next_tgt_dur - (CT_PRETE_DUR - 100));
+
+			DDP_MUTEX_LOCK_CONDITION(&mtk_crtc->lock, __func__, next_tgt_dur, false);
+			CRTC_MMP_MARK(index, check_trigger, next_tgt_dur, retry);
+
+			/* Must double check, if crtc is disabled, gce mbox will be disabled too */
+			if (!mtk_crtc->enabled) {
+				CRTC_MMP_EVENT_END(index, check_trigger, 0, 5);
+				goto out_unlock;
+			}
+			mtk_drm_idlemgr_kick(__func__, &mtk_crtc->base, 0);
+			/* separate power keep after kick idle */
+			mtk_vidle_user_power_keep(DISP_VIDLE_USER_CRTC);
+		}
+		// Need to release mtk_crtc->lock here to avoid blocking AT cpu config time due to cmdq resources
+		DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, next_tgt_dur);
+
+		//To avoid other threads(eg:pq config) occupying cmdq resources at this time
+		cmdq_pkt_refinalize(cmdq_handle2);
+		cmdq_pkt_flush(cmdq_handle2);
 
 		DDP_MUTEX_LOCK_CONDITION(&mtk_crtc->lock, __func__, next_tgt_dur, false);
-		CRTC_MMP_MARK(index, check_trigger, next_tgt_dur, 0);
 
 		/* Must double check, if crtc is disabled, gce mbox will be disabled too */
 		if (!mtk_crtc->enabled) {
-			CRTC_MMP_EVENT_END(index, check_trigger, 0, 5);
+			CRTC_MMP_EVENT_END(index, check_trigger, 0, 6);
 			goto out_unlock;
 		}
 		mtk_drm_idlemgr_kick(__func__, &mtk_crtc->base, 0);
-		mtk_vidle_user_power_keep(DISP_VIDLE_USER_CRTC);	/* separate power keep after kick idle */
-	} else
-		CRTC_MMP_MARK(index, check_trigger, next_tgt_dur, CT_PRETE_DUR);
+		/* separate power keep after kick idle */
+		mtk_vidle_user_power_keep(DISP_VIDLE_USER_CRTC);
+
+		//Recalculate the time difference for distance mapping
+		base_t = priv->crtc_rel_present_ts[index] / 1000;
+		cur_t = ktime_get() / 1000;
+		step = (cur_t - base_t) / step_dur;
+		step += 1;
+		target_t = base_t + step * step_dur;
+		next_tgt_dur = target_t - cur_t;
+
+		DDPINFO("base_t:%u us(%u us), cur_t:%u us, target_t:%u us\n",
+				base_t, step_dur, cur_t, target_t);
+		DDPINFO("next_tgt_dur:%u us\n", next_tgt_dur);
+
+		if (next_tgt_dur > step_dur) {
+			DDPPR_ERR("cal error next_tgt_dur:%u > step_dur:%u\n",
+				next_tgt_dur, step_dur);
+			CRTC_MMP_MARK(index, check_trigger, next_tgt_dur, step_dur);
+			CRTC_MMP_EVENT_END(index, check_trigger, 0, 7);
+			goto out_unlock;
+		}
+		retry--;
+		// If next_tgt_dur distance not between (TE-1ms) ~ (TE-200us)
+		// then sleep to the next TE again.
+		valid_interval = (next_tgt_dur < CT_PRETE_DUR) && (next_tgt_dur > CT_NEAR_DUR);
+	} while (!valid_interval && (retry > 0));
+
+	CRTC_MMP_MARK(index, check_trigger, next_tgt_dur, 0);
 
 do_set_dirty:
 	mtk_state = to_mtk_crtc_state(crtc->state);
@@ -12612,10 +12662,12 @@ do_set_dirty:
 	else
 		DDPINFO("%s skip mtk_crtc_set_dirty\n", __func__);
 
-	CRTC_MMP_EVENT_END(index, check_trigger, 0, 0);
+	CRTC_MMP_EVENT_END(index, check_trigger, 0, 9);
 
 out_unlock:
 	drm_trace_tag_end("check_trigger");
+	if (cmdq_handle2 != NULL)
+		cmdq_pkt_destroy(cmdq_handle2);
 	DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
 
 	return 0;
