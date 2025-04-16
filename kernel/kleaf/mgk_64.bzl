@@ -2581,6 +2581,16 @@ def get_overlay_modules_list():
         mgk_64_device_modules.append("drivers/gpu/drm/panel/panel-ocp2131-i2c.ko")
         mgk_64_device_modules.append("drivers/gpu/drm/panel/panel-td4160-boe-hdp-dsi-vdo-120hz.ko")
         mgk_64_device_modules.append("drivers/gpu/drm/panel/panel-td4160-hkc-hdp-dsi-vdo-120hz.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/typec/tcpc_aw/aw35615/aw35615_whole.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/typec/tcpc_aw/rt_pd_manager.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/typec/tcpc_aw/pd_dbg_info.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/typec/tcpc_aw/tcpc_mt6360.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/typec/tcpc_aw/tcpc_mt6370.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/typec/tcpc_aw/tcpc_mt6375.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/typec/tcpc_aw/tcpc_mt6379.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/typec/tcpc_aw/tcpc_rt1711h.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/typec/tcpc_aw/tcpc_class.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/typec/tcpc_aw/tcpci_late_sync.ko")
 
     if "mt6771_overlay.config" in DEFCONFIG_OVERLAYS:
         mgk_64_common_eng_modules.remove("drivers/firmware/arm_ffa/ffa-module.ko")
