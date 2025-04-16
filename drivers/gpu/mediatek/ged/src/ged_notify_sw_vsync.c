@@ -36,6 +36,7 @@
 #include <ged_gpufreq_v1.h>
 #endif /* CONFIG_MTK_GPUFREQ_V2 */
 
+#include "ged_perfetto.h"
 #define GED_DVFS_FB_TIMER_TIMEOUT 100000000
 #define GED_DVFS_TIMER_TIMEOUT g_fallback_time_out
 
@@ -265,6 +266,8 @@ void ged_eb_dvfs_trace_dump(void)
 
 		trace_tracing_mark_write(5566, "gpu_freq",
 			(long long) ged_get_cur_stack_freq() / 1000);
+
+		ged_perfetto_update_frequency(ged_get_cur_stack_freq(), 0);
 
 		sc_freq_diff = ged_get_cur_stack_out_freq() > 0 ?
 			ged_get_cur_stack_out_freq() - ged_get_cur_real_stack_freq() : 0;
