@@ -3193,10 +3193,7 @@ void mt6989_mtk_sodi_config(struct drm_device *drm, enum mtk_ddp_comp_id id,
 			writel_relaxed(v, priv->side_config_regs +  MMSYS_EMI_REQ_CTL);
 
 		/* DDREN_ACK_CON 0x3F4 */
-		if (priv->data->mmsys_id == MMSYS_MT6899)
-			v = MT6899_DISP0_DDREN_ACK_CON;
-		else
-			v = MT6989_DISP0_DDREN_ACK_CON;
+		v = MT6989_DISP0_DDREN_ACK_CON;
 		writel_relaxed(v, priv->config_regs + DISPSYS0_DDREN_ACK_CON);
 		if (priv->side_config_regs) {
 			v = MT6989_DISP1_DDREN_ACK_CON;
