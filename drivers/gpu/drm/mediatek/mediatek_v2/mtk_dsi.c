@@ -13026,17 +13026,23 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 				dsi->vm.vfront_porch = vfp;
 		}
 		mtk_dsi_calc_vdo_timing(dsi);
-		mtk_dsi_porch_setting(comp, handle, DSI_HFP, dsi->hfp_byte);
-		if (dsi->slave_dsi) {
-			mtk_dsi_porch_setting(&dsi->slave_dsi->ddp_comp,
-				handle, DSI_HFP, dsi->hfp_byte);
-		}
+		if(!is_bdg_supported()){
+			mtk_dsi_porch_setting(comp, handle, DSI_HFP, dsi->hfp_byte);
+			if (dsi->slave_dsi) {
+				mtk_dsi_porch_setting(&dsi->slave_dsi->ddp_comp,
+					handle, DSI_HFP, dsi->hfp_byte);
+			}
 
-		/* Some panel need change HBP at the same time to support dynamic fps */
-		mtk_dsi_porch_setting(comp, handle, DSI_HBP, dsi->hbp_byte);
-		if (dsi->slave_dsi)
-			mtk_dsi_porch_setting(&dsi->slave_dsi->ddp_comp,
-				handle, DSI_HBP, dsi->hbp_byte);
+			/* Some panel need change HBP at the same time to support dynamic fps */
+			mtk_dsi_porch_setting(comp, handle, DSI_HBP, dsi->hbp_byte);
+			if (dsi->slave_dsi)
+				mtk_dsi_porch_setting(&dsi->slave_dsi->ddp_comp,
+					handle, DSI_HBP, dsi->hbp_byte);
+			mtk_dsi_porch_setting(comp, handle, DSI_VBP, dsi->vbp);
+			if (dsi->slave_dsi)
+				mtk_dsi_porch_setting(&dsi->slave_dsi->ddp_comp,
+					handle, DSI_VBP, dsi->vbp);
+		}
 
 		/* Msync 2.0 ToDo: can we change vm.vfront_porch according msync?
 		 * mmdvfs,dramdvfs according to vm.vfront_porch?
@@ -13069,10 +13075,6 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 		if (dsi->slave_dsi)
 			mtk_dsi_porch_setting(&dsi->slave_dsi->ddp_comp,
 				handle, DSI_VFP, dsi->vfp);
-		mtk_dsi_porch_setting(comp, handle, DSI_VBP, dsi->vbp);
-		if (dsi->slave_dsi)
-			mtk_dsi_porch_setting(&dsi->slave_dsi->ddp_comp,
-				handle, DSI_VBP, dsi->vbp);
 
 		if (is_bdg_supported()) {
 			mtk_dsi_vfp_porch_setting_6382(dsi, vfp, handle);
