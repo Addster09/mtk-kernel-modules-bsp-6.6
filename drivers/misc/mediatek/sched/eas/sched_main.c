@@ -386,11 +386,13 @@ static void mtk_set_cpus_allowed_ptr(void *data, struct task_struct *p,
 	struct affinity_context *ctx, bool *skip_user_ptr)
 {
 	struct cpumask *kernel_allowed_mask = &((struct mtk_task *) p->android_vendor_data1)->kernel_allowed_mask;
-	struct rq *rq = task_rq(p);
+	struct rq_flags rf;
+	struct rq *rq = task_rq_lock(p, &rf);
 	cpumask_t new_mask;
 
 	// not set or invalid cpu mask
 	if (cpumask_empty(kernel_allowed_mask)){
+		task_rq_unlock(rq, p, &rf);
 		return;
 	}
 
@@ -405,6 +407,7 @@ static void mtk_set_cpus_allowed_ptr(void *data, struct task_struct *p,
 		cpumask_copy(&new_mask, ctx->new_mask);
 		trace_sched_skip_user(p, *skip_user_ptr, p->user_cpus_ptr, kernel_allowed_mask, &new_mask);
 	}
+	task_rq_unlock(rq, p, &rf);
 }
 
 #if IS_ENABLED(CONFIG_MTK_IRQ_MONITOR_DEBUG)
