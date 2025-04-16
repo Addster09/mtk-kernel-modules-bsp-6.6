@@ -258,6 +258,8 @@ typedef int(*UARTHUB_PLAT_INBAND_SET_ESC_CHAR) (unsigned char esc_char);
 typedef int(*UARTHUB_PLAT_INBAND_SET_ESC_STA) (unsigned char esc_sta);
 typedef int(*UARTHUB_PLAT_INBAND_IS_TX_COMPLETE) (void);
 typedef int(*UARTHUB_PLAT_INBAND_TRIGGER_CTRL) (void);
+typedef int(*UARTHUB_PLAT_INBAND_IS_SUPPORT) (void);
+typedef int(*UARTHUB_PLAT_IS_ENABLE_FW_FLOW_CTRL_WITH_INBAND) (void);
 
 struct uarthub_core_ops_struct {
 	UARTHUB_PLAT_IS_READY_STATE uarthub_plat_is_ready_state;
@@ -320,6 +322,8 @@ struct uarthub_core_ops_struct {
 	UARTHUB_PLAT_INBAND_SET_ESC_STA uarthub_plat_inband_set_esc_sta;
 	UARTHUB_PLAT_INBAND_IS_TX_COMPLETE uarthub_plat_inband_is_tx_complete;
 	UARTHUB_PLAT_INBAND_TRIGGER_CTRL uarthub_plat_inband_trigger_ctrl;
+	UARTHUB_PLAT_INBAND_IS_SUPPORT uarthub_plat_inband_is_support;
+	UARTHUB_PLAT_IS_ENABLE_FW_FLOW_CTRL_WITH_INBAND uarthub_plat_is_enable_fw_flow_ctrl_with_inband;
 };
 
 struct uarthub_ops_struct {
@@ -465,6 +469,7 @@ int uarthub_core_inband_irq_clear_ctrl(void);
 int uarthub_core_inband_get_esc_sta(unsigned char *p_esc_sta);
 int uarthub_core_inband_clear_esc_sta(void);
 int uarthub_core_inband_is_support(void);
+int uarthub_core_is_enable_fw_flow_ctrl_with_inband(void);
 
 int uarthub_core_uartip_write_data_to_tx_buf(int dev_index, int tx_data);
 int uarthub_core_uartip_read_data_from_rx_buf(int dev_index);
