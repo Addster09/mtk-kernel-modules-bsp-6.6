@@ -81,6 +81,8 @@ enum bc_flags_bits {
 #define UFS_HIE_PARAM_OFS_KEY_TOTAL_BYTE (8)
 #define UFS_HIE_PARAM_OFS_KEY_START_BYTE (0)
 #define UFS_MTK_SIP_HIE_CFG_REQUEST       MTK_SIP_SMC_CMD(0x274)
+/*Need a session id to intercept other false calls --- Ufs Program Key Request*/
+#define UFS_CRYPTO_SESSION_ID            (0x55504B52)
 
 static inline void _ufs_mtk_old_smc( struct ufs_mtk_smc_arg s)
 {
@@ -93,8 +95,7 @@ static inline void _ufs_mtk_old_smc( struct ufs_mtk_smc_arg s)
 	_ufs_mtk_old_smc((struct ufs_mtk_smc_arg) {__VA_ARGS__})
 
 #define ufs_mtk_hie_cfg_smc(res, reg0, reg1, reg2) \
-	ufs_mtk_old_smc(UFS_MTK_SIP_HIE_CFG_REQUEST, &(res), reg0, reg1, reg2)
-
+	ufs_mtk_old_smc(UFS_MTK_SIP_HIE_CFG_REQUEST, &(res), reg0, reg1, reg2, UFS_CRYPTO_SESSION_ID)
 #endif
 
 static inline void _ufs_mtk_smc(struct ufs_mtk_smc_arg s)
