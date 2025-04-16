@@ -2577,6 +2577,7 @@ def get_overlay_modules_list():
         mgk_64_device_modules.append("drivers/misc/mediatek/flashlight/flashlights-ocp81375.ko")
 
     if "mt6768_overlay_ks.config" in DEFCONFIG_OVERLAYS:
+        mgk_64_device_modules.append("drivers/input/touchscreen/td4160_common/omnivision_td4160.ko")
         mgk_64_device_modules.append("drivers/gpu/drm/panel/panel-ocp2131-i2c.ko")
         mgk_64_device_modules.append("drivers/gpu/drm/panel/panel-td4160-boe-hdp-dsi-vdo-120hz.ko")
         mgk_64_device_modules.append("drivers/gpu/drm/panel/panel-td4160-hkc-hdp-dsi-vdo-120hz.ko")
