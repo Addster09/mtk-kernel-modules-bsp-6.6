@@ -856,3 +856,25 @@ config DRM_PANEL_NT37706A_BOE_FHDPLUS_VDO
 	  nt37706a boe fhdplus vdo panel. The panel has a 1280x2800
 	  resolution and uses 30-bits RGB per pixel. It provides a
 	  MIPI DSI interface to host.
+
+config DRM_PANEL_TD4160_BOE_HDP_VDO
+	tristate "mt6768 td4160 txd boe hdp vdo 120hz panel"
+	depends on OF
+	depends on DRM_MIPI_DSI
+	depends on BACKLIGHT_CLASS_DEVICE
+	help
+	  Say Y here if you want to enable support for mt6768
+	  td4160 boe hdp vdo panel. The panel has a 720x1600
+	  resolution and uses 24-bits RGB per pixel. It provides a
+	  MIPI DSI interface to host.
+
+config DRM_PANEL_TD4160_HKC_HDP_VDO
+	tristate "mt6768 td4160 dpt hkc hdp vdo 120hz panel"
+	depends on OF
+	depends on DRM_MIPI_DSI
+	depends on BACKLIGHT_CLASS_DEVICE
+	help
+	  Say Y here if you want to enable support for mt6768
+	  td4160 hkc hdp vdo panel. The panel has a 720x1600
+	  resolution and uses 24-bits RGB per pixel. It provides a
+	  MIPI DSI interface to host.
