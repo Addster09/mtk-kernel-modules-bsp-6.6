@@ -276,6 +276,7 @@ mgk_64_device_modules = [
     "drivers/input/touchscreen/legacy_gt9896s/legacy_gt9896s.ko",
     "drivers/input/touchscreen/focaltech_touch/focaltech_touch.ko",
     "drivers/input/touchscreen/NT36532/nt36532.ko",
+    "drivers/input/touchscreen/NT36532_SPI/nvt_36532.ko",
     "drivers/input/touchscreen/chsc5448_p785/chsc5448_p785.ko",
     "drivers/input/touchscreen/GT9966/gt9966.ko",
     "drivers/input/touchscreen/gt9xx/gt9xx_touch.ko",
