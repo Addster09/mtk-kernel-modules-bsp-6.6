@@ -112,6 +112,9 @@ static u64 mt_usb_dmamask = DMA_BIT_MASK(32);
 DEFINE_SPINLOCK(usb_io_lock);
 EXPORT_SYMBOL(usb_io_lock);
 
+DEFINE_SPINLOCK(usb_power_lock);
+EXPORT_SYMBOL(usb_power_lock);
+
 unsigned int musb_debug;
 EXPORT_SYMBOL(musb_debug);
 
@@ -380,16 +383,16 @@ static struct usb_phy_io_ops musb_ulpi_access = {
 void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 {
 	void __iomem *fifo;
-
 	if (mtk_musb->is_host)
 		fifo = hw_ep->fifo;
 	else
 		fifo = mtk_musb->mregs +
 			MUSB_FIFO_OFFSET(hw_ep->ep_in.current_epnum);
-
-	if (unlikely(len == 0))
+	if (unlikely(len == 0 || !mtk_usb_power)) {
+		DBG(0, "musb write fifo fail! len = %d, mtk_usb_power = %d\n",
+			len, mtk_usb_power);
 		return;
-
+	}
 	prefetch((u8 *) src);
 
 	DBG(4, "%cX ep%d fifo %p count %d buf %p\n",
@@ -437,9 +440,11 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 			MUSB_FIFO_OFFSET(hw_ep->ep_out.current_epnum);
 
 
-	if (unlikely(len == 0))
+	if (unlikely(len == 0 || !mtk_usb_power)) {
+		DBG(0, "musb read fifo fail! len = %d, mtk_usb_power = %d\n",
+			len, mtk_usb_power);
 		return;
-
+	}
 	DBG(4, "%cX ep%d fifo %p count %d buf %p\n",
 			'R', hw_ep->epnum, fifo, len, dst);
 
@@ -3866,6 +3871,7 @@ static void mt_usb_enable(struct musb *musb)
 
 static void mt_usb_disable(struct musb *musb)
 {
+	unsigned long flags;
 	virt_disable++;
 
 	DBG(0, "begin, <%d,%d>,<%d,%d,%d,%d>\n",
@@ -3882,6 +3888,7 @@ static void mt_usb_disable(struct musb *musb)
 		musb_restore_context(musb);
 	}
 
+	spin_lock_irqsave(&usb_power_lock, flags);
 	usb_enable_clock(false);
 	/* clock will unprepare when leave here */
 
@@ -3893,6 +3900,8 @@ static void mt_usb_disable(struct musb *musb)
 	/* update musb->power & mtk_usb_power in the same time */
 	musb->power = 0;
 	mtk_usb_power = false;
+	spin_unlock_irqrestore(&usb_power_lock, flags);
+
 }
 
 /* ================================ */
