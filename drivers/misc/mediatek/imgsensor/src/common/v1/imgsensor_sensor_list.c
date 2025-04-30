@@ -15,6 +15,16 @@
  *     mediatek\custom\common\hal\imgsensor\src\sensorlist.cpp
  */
 struct IMGSENSOR_INIT_FUNC_LIST kdSensorList[MAX_NUM_OF_SUPPORT_SENSOR] = {
+#if defined(HI5022Q_MIPI_RAW)
+	{HI5022Q_SENSOR_ID,
+	SENSOR_DRVNAME_HI5022Q_MIPI_RAW,
+	HI5022Q_MIPI_RAW_SensorInit},
+#endif
+#if defined(GC08A8_MIPI_RAW)
+	{GC08A8_SENSOR_ID,
+	SENSOR_DRVNAME_GC08A8_MIPI_RAW,
+	GC08A8_MIPI_RAW_SensorInit},
+#endif
 #if defined(OV13B10_MIPI_RAW)
 	{OV13B10_SENSOR_ID,
 	SENSOR_DRVNAME_OV13B10_MIPI_RAW,
