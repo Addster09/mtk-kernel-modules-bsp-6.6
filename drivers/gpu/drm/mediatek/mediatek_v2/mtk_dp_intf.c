@@ -942,19 +942,13 @@ static void mtk_dp_intf_prepare(struct mtk_ddp_comp *comp)
 
 void mtk_dp_intf_unprepare_clk(void)
 {
-	struct mtk_drm_crtc *mtk_crtc;
-	struct mtk_drm_private *priv;
 	int ret = 0;
 
 	if (g_dp_intf != NULL) {
-		mtk_crtc = g_dp_intf->ddp_comp.mtk_crtc;
-		priv = mtk_crtc->base.dev->dev_private;
-		/* disable dp intf clk */
-		if (priv->data->mmsys_id == MMSYS_MT6991) {
-			ret = clk_set_rate(g_dp_intf->pclk_src[MT6991_TVDPLL_PLL], 594000000);
-			if (ret)
-				DPTXERR("clk_set_rate failed!\n");
-		}
+		ret = clk_set_parent(g_dp_intf->pclk, g_dp_intf->pclk_src[TCK_26M]);
+		if (ret < 0)
+			DPTXMSG("%s Failed to clk_set_parent: %d\n",
+				__func__, ret);
 		clk_disable_unprepare(g_dp_intf->pclk);
 		DPTXMSG("%s:succesed disable dp_intf and DP sel clock\n", __func__);
 	} else
@@ -985,9 +979,9 @@ static void mtk_dp_intf_unprepare(struct mtk_ddp_comp *comp)
 		clk_disable_unprepare(dp_intf->hf_fmm_ck);
 		clk_disable_unprepare(dp_intf->hf_fdp_ck);
 		if(priv != NULL) {
-			if (priv->data->mmsys_id == MMSYS_MT6991){
+			if (priv->data->mmsys_id == MMSYS_MT6991)
 				clk_disable_unprepare(dp_intf->pclk_src[MT6991_TVDPLL_PLL]);
-			} else {
+			else {
 				clk_disable_unprepare(dp_intf->pclk);
 				clk_disable_unprepare(dp_intf->vcore_pclk);
 			}
@@ -1194,21 +1188,17 @@ static void mtk_dp_intf_golden_setting_mt6899(struct mtk_ddp_comp *comp,
 
 void mhal_DPTx_VideoClock(bool enable, int resolution)
 {
-	struct mtk_drm_crtc *mtk_crtc;
-	struct mtk_drm_private *priv;
+
 	int ret = 0;
 
-	mtk_crtc = g_dp_intf->ddp_comp.mtk_crtc;
-	priv = mtk_crtc->base.dev->dev_private;
 	if (enable) {
 		g_dp_intf->res = resolution;
 		mtk_dp_inf_video_clock(g_dp_intf);
 	} else {
-		if (priv->data->mmsys_id == MMSYS_MT6991) {
-			ret = clk_set_rate(g_dp_intf->pclk_src[MT6991_TVDPLL_PLL], 594000000);
-			if (ret)
-				DPTXERR("clk_set_rate failed!\n");
-		}
+		ret = clk_set_parent(g_dp_intf->pclk, g_dp_intf->pclk_src[TCK_26M]);
+		if (ret < 0)
+			DPTXMSG("%s Failed to clk_set_parent: %d\n",
+				__func__, ret);
 		clk_disable_unprepare(g_dp_intf->pclk);
 	}
 }
