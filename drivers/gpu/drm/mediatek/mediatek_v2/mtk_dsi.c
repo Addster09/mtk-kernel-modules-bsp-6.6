@@ -1631,10 +1631,24 @@ unsigned int mtk_dsi_default_rate(struct mtk_dsi *dsi)
 		priv->data->mmsys_id == MMSYS_MT6886 ||
 		priv->data->mmsys_id == MMSYS_MT6879 ||
 		priv->data->mmsys_id == MMSYS_MT6835 ||
+		priv->data->mmsys_id == MMSYS_MT6768 ||
 		priv->data->mmsys_id == MMSYS_MT6855) &&
 		(dsi->d_rate != 0)) {
 		data_rate = dsi->d_rate;
 		DDPMSG("%s, data rate=%d\n", __func__, data_rate);
+	} else if (dsi->mipi_hopping_sta
+		&& dsi->ext && dsi->ext->params
+		&& dsi->ext->params->dyn.switch_en
+		&& dsi->ext->params->dyn.data_rate) {
+		data_rate = dsi->ext->params->dyn.data_rate;
+		DDPMSG("%s, mipi_hopping_sta, data rate=%d\n", __func__, data_rate);
+
+	} else if (dsi->mipi_hopping_sta
+		&& dsi->ext && dsi->ext->params
+		&& dsi->ext->params->dyn.switch_en
+		&& dsi->ext->params->dyn.pll_clk) {
+		data_rate = dsi->ext->params->dyn.pll_clk * 2;
+		DDPMSG("%s, mipi_hopping_sta, data rate=%d\n", __func__, data_rate);
 	} else if (priv && mtk_drm_helper_get_opt(priv->helper_opt,
 		MTK_DRM_OPT_DYN_MIPI_CHANGE)
 		&& dsi->ext && dsi->ext->params
@@ -12768,9 +12782,11 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 	}
 	mtk_crtc_pkt_create(&handle, &(mtk_crtc->base), client);
 
+	/* video mode do not support to only change mipi clock */
 	if (fps_chg_index & MODE_DSI_CLK) {
 		DDPINFO("%s, change MIPI Clock\n", __func__);
-	} else if (fps_chg_index & MODE_DSI_HFP) {
+	}
+	if (fps_chg_index & MODE_DSI_HFP) {
 		DDPINFO("%s, change HFP\n", __func__);
 
 		if (dsi->ext && dsi->ext->params &&
@@ -12817,10 +12833,12 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 					mtk_dsi_phy_timconfig(dsi->slave_dsi, NULL);
 			}
 		}
+		/* if change hfp, get hfp */
 		if (dsi && dsi->ext && dsi->ext->params
 			&& (dsi->mipi_hopping_sta
 			|| (is_bdg_supported() && dsi->bdg_mipi_hopping_sta)
-			) && dsi->ext->params->dyn.hfp) {
+			) && dsi->ext->params->dyn.switch_en
+			&& dsi->ext->params->dyn.hfp) {
 			DDPINFO("%s,mipi_clk_change_sta\n", __func__);
 			hfp = dsi->ext->params->dyn.hfp;
 		} else
@@ -12833,7 +12851,8 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 		if (dsi && dsi->ext && dsi->ext->params
 			&& (dsi->mipi_hopping_sta
 			|| (is_bdg_supported() && dsi->bdg_mipi_hopping_sta)
-			) && dsi->ext->params->dyn.hbp) {
+			) && dsi->ext->params->dyn.switch_en
+			&& dsi->ext->params->dyn.hbp) {
 			DDPINFO("%s,mipi_clk_change_sta\n", __func__);
 			hbp = dsi->ext->params->dyn.hbp;
 		} else
@@ -12846,7 +12865,8 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 		if (dsi && dsi->ext && dsi->ext->params
 			&& (dsi->mipi_hopping_sta
 			|| (is_bdg_supported() && dsi->bdg_mipi_hopping_sta)
-			) && dsi->ext->params->dyn.vfp) {
+			) && dsi->ext->params->dyn.switch_en
+			&& dsi->ext->params->dyn.vfp) {
 			DDPINFO("%s,mipi_clk_change_sta\n", __func__);
 			vfp = dsi->ext->params->dyn.vfp;
 		} else
@@ -12868,6 +12888,7 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 		if (dsi->slave_dsi)
 			dsi->slave_dsi->vm.vback_porch = vbp;
 
+		/* if change vfp, get vfp, refer to hfp modification */
 		mtk_dsi_calc_vdo_timing(dsi);
 		mtk_dsi_porch_setting(comp, handle, DSI_HFP, dsi->hfp_byte);
 		if (dsi->slave_dsi) {
@@ -12999,7 +13020,8 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 		if (dsi && dsi->ext && dsi->ext->params
 			&& (dsi->mipi_hopping_sta
 			|| (is_bdg_supported() && dsi->bdg_mipi_hopping_sta)
-			) && dsi->ext->params->dyn.vfp) {
+			) && dsi->ext->params->dyn.switch_en
+			&& dsi->ext->params->dyn.vfp) {
 			DDPINFO("%s,mipi_clk_change_sta\n", __func__);
 			vfp = dsi->ext->params->dyn.vfp;
 		} else
