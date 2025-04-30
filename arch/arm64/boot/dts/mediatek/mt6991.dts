@@ -10524,7 +10524,6 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 			interrupt-names = "combined";
 			#iommu-cells = <1>;
 			mediatek,axslc;
-			mediatek,dvm;
 			dma-coherent;
 
 			iommu-groups {
@@ -10827,7 +10826,6 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 			#iommu-cells = <1>;
 			tcu-prefetch = <2>;
 			mediatek,axslc;
-			mediatek,dvm;
 			dma-coherent;
 
 			iommu-groups {
@@ -10856,7 +10854,6 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 			#iommu-cells = <1>;
 			tcu-prefetch = <2>;
 			mediatek,axslc;
-			mediatek,dvm;
 
 			/* global mpam: partid, pmg */
 			mtk,gmpam-cfg = <1 0>;
@@ -10931,7 +10928,6 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 			/* ste mpam: sid, partid, pmg */
 			mtk,mpam-cfg = <1 5 0>,
 				       <2 5 0>;
-			mediatek,dvm;
 			dma-coherent;
 		};
 
