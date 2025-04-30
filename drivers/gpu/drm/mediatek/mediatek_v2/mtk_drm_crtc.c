@@ -9745,7 +9745,7 @@ static ktime_t mtk_check_preset_fence_timestamp(struct drm_crtc *crtc)
 	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
 	unsigned int vrefresh = 0, te_freq = 0;
 	bool is_frame_mode;
-	ktime_t cur_time, diff_time;
+	ktime_t cur_time, diff_time, prev_time;
 	ktime_t start_time, wait_time;
 	bool pass = false;
 	unsigned long flags;
@@ -9753,6 +9753,7 @@ static ktime_t mtk_check_preset_fence_timestamp(struct drm_crtc *crtc)
 
 	is_frame_mode = mtk_crtc_is_frame_trigger_mode(crtc);
 	cur_time = mtk_crtc->pf_time;
+	prev_time = mtk_crtc->prev_pf_time;
 
 	if (id == 0) {
 		vrefresh = drm_mode_vrefresh(&crtc->state->adjusted_mode);
@@ -9783,7 +9784,7 @@ static ktime_t mtk_check_preset_fence_timestamp(struct drm_crtc *crtc)
 			} else
 				pass = true;
 
-			if (!pass)
+			if (!pass || !is_frame_mode)
 				atomic_set(&mtk_crtc->signal_irq_for_pre_fence, 0);
 			spin_unlock_irqrestore(&mtk_crtc->pf_time_lock, flags);
 
@@ -9797,6 +9798,10 @@ static ktime_t mtk_check_preset_fence_timestamp(struct drm_crtc *crtc)
 			CRTC_MMP_MARK(id, present_fence_timestamp, start_time, wait_time);
 		}
 	}
+
+	if (cur_time == prev_time)
+		DDPMSG("%s:The present fence timestamp still same.\n", __func__);
+	mtk_crtc->prev_pf_time = cur_time;
 
 	return cur_time;
 }
