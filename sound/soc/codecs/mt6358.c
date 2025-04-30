@@ -25,6 +25,10 @@
 #include "mt6358-accdet.h"
 #endif
 
+#if IS_ENABLED(CONFIG_SND_SOC_AW87XXX)
+extern int aw87xxx_add_codec_controls(void *codec);
+#endif
+
 #define MAX_DEBUG_WRITE_INPUT 256
 #define CODEC_SYS_DEBUG_SIZE (1024 * 32)
 
@@ -6739,6 +6743,15 @@ static int mt6358_codec_probe(struct snd_soc_component *cmpnt)
 	priv->hp_current_calibrate_val = get_hp_current_calibrate_val(priv);
 #else
 	priv->hp_current_calibrate_val = 0;
+#endif
+
+#if IS_ENABLED(CONFIG_SND_SOC_AW87XXX)
+	ret = aw87xxx_add_codec_controls((void *)cmpnt);
+	if (ret < 0) {
+		pr_err("%s: add_codec_controls failed, ret %d\n",
+		__func__, ret);
+		return ret;
+	};
 #endif
 
 	return 0;

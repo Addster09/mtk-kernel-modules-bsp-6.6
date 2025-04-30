@@ -20,6 +20,17 @@
 #include "mt6768-mt6358-ref.h"
 #endif
 
+#if IS_ENABLED(CONFIG_SND_SOC_AW87XXX)
+extern int aw87xxx_set_profile(int dev_index, char *profile);
+
+static char *aw_profile[] = {"Music", "Receiver", "Off"};
+
+enum aw87xxx_dev_index {
+	AW_DEV_0 = 0,
+	AW_DEV_1 = 1,
+};
+#endif
+
 #if IS_ENABLED(CONFIG_SND_SOC_MT6358_ACCDET)
       #include "../../codecs/mt6358-accdet.h"
 #endif
@@ -84,6 +95,9 @@ static int mt6768_mt6358_spk_amp_event(struct snd_soc_dapm_widget *w,
 {
 	struct snd_soc_dapm_context *dapm = w->dapm;
 	struct snd_soc_card *card = dapm->card;
+#if IS_ENABLED(CONFIG_SND_SOC_AW87XXX)
+	int ret = 0;
+#endif
 
 	dev_info(card->dev, "%s(), event %d\n", __func__, event);
 
@@ -93,11 +107,42 @@ static int mt6768_mt6358_spk_amp_event(struct snd_soc_dapm_widget *w,
 #if IS_ENABLED(CONFIG_AW862xx_HAPTIC)
 		ref_ext_amp_switch(true);
 #endif
+
+#if IS_ENABLED(CONFIG_SND_SOC_AW87XXX)
+	dev_info(card->dev, "aw87xxx_set_profile speaker call\n");
+	ret = aw87xxx_set_profile(AW_DEV_0, aw_profile[0]);
+	if (ret < 0) {
+		pr_err("[Awinic] AW_DEV_0 %s: set profile[%s] failed",
+		__func__, aw_profile[0]);
+		return ret;
+	}
+	ret = aw87xxx_set_profile(AW_DEV_1, aw_profile[0]);
+	if (ret < 0) {
+		pr_err("[Awinic] AW_DEV_1 %s: set profile[%s] failed",
+		__func__, aw_profile[0]);
+		return ret;
+	}
+#endif
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
 		/* spk amp off control */
 #if IS_ENABLED(CONFIG_AW862xx_HAPTIC)
 		ref_ext_amp_switch(false);
+#endif
+
+#if IS_ENABLED(CONFIG_SND_SOC_AW87XXX)
+	ret = aw87xxx_set_profile(AW_DEV_0, aw_profile[2]);
+	if (ret < 0) {
+		pr_err("[Awinic] AW_DEV_0 %s: set profile[%s] failed",
+		__func__, aw_profile[2]);
+		return ret;
+	}
+	ret = aw87xxx_set_profile(AW_DEV_1, aw_profile[2]);
+	if (ret < 0) {
+		pr_err("[Awinic] AW_DEV_1 %s: set profile[%s] failed",
+		__func__, aw_profile[2]);
+		return ret;
+	}
 #endif
 		break;
 	default:

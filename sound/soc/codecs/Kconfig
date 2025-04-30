@@ -69,6 +69,15 @@ config SND_SOC_AW883XX
 	  It would be set to yes if device with AW883XX on it.
 	  Select this if your AW883XX is connected via an I2S bus.
 
+config SND_SOC_AW87XXX
+	tristate "SoC Audio for awinic AW87XXX PA"
+	depends on I2C
+	help
+	  Config of AW87XXX. It is a analog speaker.
+	  This option enables support for AW87XXX PA.
+	  It would be set to yes if device with AW87XXX on it.
+	  Select this if your AW87XXX is connected via an I2C bus.
+
 config SND_SOC_TFA9874
 	tristate "NXP TFA9874 speaker amplifier"
 	depends on I2C
