@@ -792,8 +792,8 @@ static int __used pt_check_power_off(void)
 		pt_power_off_cnt = 0;
 
 	if (pt_power_off_cnt >= 4) {
-		pr_info("Powering off by PT.\n");
-		kernel_power_off();
+		// pr_info("Powering off by PT.\n");
+		// kernel_power_off();
 	}
 
 	return ret;
@@ -818,8 +818,8 @@ static int __used pt_check_power_off_legacy(void)
 		pt_power_off_cnt = 0;
 
 	if (pt_power_off_cnt >= 4) {
-		pr_info("Powering off by PT.\n");
-		kernel_power_off();
+		// pr_info("Powering off by PT.\n");
+		// kernel_power_off();
 	}
 
 	return ret;
