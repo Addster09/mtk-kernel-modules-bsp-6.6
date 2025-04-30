@@ -2702,12 +2702,26 @@ static ssize_t BAT_SHUTDOWN_store(
 	char *s = buf_str, *pch;
 	/* char *ori = buf_str; */
 	int chr_size = 0;
-	int i = 0, count = 0, value[7], result = 0;
+	int i = 0, j = 0, count = 0, value[7], result = 0;
 	struct mtk_battery *gm;
 	struct mtk_gauge *gauge;
 
 	gauge = dev_get_drvdata(dev);
 	gm = gauge->gm;
+
+	if (size > 50) {
+		bm_err(gm, "%s error, size mismatch\n", __func__);
+		return -1;
+	}
+
+	for (i = 0; i < strlen(buf); i++) {
+		if (buf[i] == ',')
+			j++;
+	}
+	if (j != 7) {
+		bm_err(gm, "%s error, invalid input\n", __func__);
+		return -1;
+	}
 
 	bm_err(gm, "%s, size =%zu, str=%s\n", __func__, size, buf);
 	strscpy(buf_str, buf, size);
