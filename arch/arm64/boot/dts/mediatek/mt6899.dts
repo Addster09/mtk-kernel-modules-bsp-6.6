@@ -3569,6 +3569,10 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				scmi-ise = <12>;
 			};
 		};
+		android: android {
+			compatible = "android,firmware";
+			hardware = "mt6899";
+		};
 	};
 
 	swpm: swpm {
