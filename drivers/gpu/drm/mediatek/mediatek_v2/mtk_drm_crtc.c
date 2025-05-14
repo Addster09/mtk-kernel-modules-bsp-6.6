@@ -5467,10 +5467,8 @@ static void mtk_crtc_free_sram(struct mtk_drm_crtc *mtk_crtc)
 	DDPMSG("%s address:0x%lx size:0x%lx\n", __func__,
 	       (unsigned long)mtk_crtc->mml_ir_sram.data.paddr, mtk_crtc->mml_ir_sram.data.size);
 
-	mutex_lock(&mtk_crtc->mml_ir_sram.lock);
 	slbc_power_off(&mtk_crtc->mml_ir_sram.data);
 	slbc_release(&mtk_crtc->mml_ir_sram.data);
-	mutex_unlock(&mtk_crtc->mml_ir_sram.lock);
 
 	DRM_MMP_MARK(sram_free, (unsigned long)mtk_crtc->mml_ir_sram.data.paddr,
 		     mtk_crtc->mml_ir_sram.expiry_hrt_idx);
@@ -10127,9 +10125,11 @@ static void ddp_cmdq_cb(struct cmdq_cb_data data)
 		drm_writeback_signal_completion(&mtk_crtc->wb_connector, 0);
 	}
 
+	mutex_lock(&mtk_crtc->mml_ir_sram.lock);
 	if (kref_read(&mtk_crtc->mml_ir_sram.ref) &&
 	    (cb_data->hrt_idx > mtk_crtc->mml_ir_sram.expiry_hrt_idx))
 		kref_put(&mtk_crtc->mml_ir_sram.ref, mtk_crtc_mml_clean);
+	mutex_unlock(&mtk_crtc->mml_ir_sram.lock);
 
 	{	/* OVL reset debug */
 		unsigned int i;
@@ -13468,6 +13468,7 @@ skip:
 	mtk_disp_clear_channel_srt_bw(mtk_crtc);
 
 	/* 3.1 stop the last mml pkt */
+	mutex_lock(&mtk_crtc->mml_ir_sram.lock);
 	if (kref_read(&mtk_crtc->mml_ir_sram.ref)) {
 		if (mtk_crtc_is_frame_trigger_mode(crtc) || mtk_crtc_is_connector_enable(mtk_crtc))
 			mtk_crtc_mml_racing_stop_sync(crtc, cmdq_handle, false);
@@ -13475,6 +13476,7 @@ skip:
 		mtk_crtc_free_sram(mtk_crtc);
 		refcount_set(&mtk_crtc->mml_ir_sram.ref.refcount, 0);
 	}
+	mutex_unlock(&mtk_crtc->mml_ir_sram.lock);
 	if ((crtc_id == 0) && priv && priv->mml_ctx)
 		mml_drm_kick_done(priv->mml_ctx);
 
