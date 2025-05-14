@@ -2613,6 +2613,10 @@ transparent_hugepage=never";
 		compatible = "mediatek,goodix-fp";
 	};
 
+	silead_spidev: fingerprint-silead {
+		  compatible = "sil,silead_fp-pins";
+	};
+
 	regulator_vibrator: regulator-vibrator {
 		compatible = "regulator-vibrator";
 		label = "vibrator";
