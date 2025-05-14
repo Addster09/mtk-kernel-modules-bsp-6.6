@@ -50,6 +50,8 @@ source "$(KCONFIG_EXT_PREFIX)drivers/rpmsg/Kconfig"
 
 source "$(KCONFIG_EXT_PREFIX)drivers/input/keyboard/Kconfig"
 
+source "$(KCONFIG_EXT_PREFIX)drivers/input/fingerprint/Kconfig"
+
 source "$(KCONFIG_EXT_PREFIX)drivers/phy/mediatek/Kconfig"
 
 source "$(KCONFIG_EXT_PREFIX)drivers/thermal/mediatek/Kconfig"

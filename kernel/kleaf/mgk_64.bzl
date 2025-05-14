@@ -2582,6 +2582,7 @@ def get_overlay_modules_list():
         mgk_64_device_modules.append("drivers/gpu/drm/panel/panel-ocp2131-i2c.ko")
         mgk_64_device_modules.append("drivers/gpu/drm/panel/panel-td4160-boe-hdp-dsi-vdo-120hz.ko")
         mgk_64_device_modules.append("drivers/gpu/drm/panel/panel-td4160-hkc-hdp-dsi-vdo-120hz.ko")
+        mgk_64_device_modules.append("drivers/input/fingerprint/silead/fp_silead.ko")
         mgk_64_device_modules.append("drivers/misc/mediatek/typec/tcpc_aw/aw35615/aw35615_whole.ko")
         mgk_64_device_modules.append("drivers/misc/mediatek/typec/tcpc_aw/rt_pd_manager.ko")
         mgk_64_device_modules.append("drivers/misc/mediatek/typec/tcpc_aw/pd_dbg_info.ko")
