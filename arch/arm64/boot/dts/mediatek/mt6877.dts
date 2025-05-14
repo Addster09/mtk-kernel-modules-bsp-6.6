@@ -2453,7 +2453,7 @@
 	};
 
 	infracfg_ao_clk: syscon@10001000 {
-		compatible = "mediatek,mt6877-infracfg_ao", "syscon";
+		compatible = "mediatek,mt6877-infracfg_ao", "syscon", "simple-mfd";
 		reg = <0 0x10001000 0 0x1000>;
 		#clock-cells = <1>;
 
