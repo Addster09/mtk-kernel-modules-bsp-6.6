@@ -13511,8 +13511,8 @@ skip:
 
 	/* 5. Set HRT BW to 0 */
 	if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_MMQOS_SUPPORT)) {
-		if (!(drm_crtc_index(crtc) == 0 && is_bdg_supported() &&
-			priv->data->mmsys_id == MMSYS_MT6768))
+		if (drm_crtc_index(crtc) == 0 &&
+		!(is_bdg_supported() && priv->data->mmsys_id == MMSYS_MT6768))
 			mtk_disp_set_hrt_bw(mtk_crtc, 0);
 	}
 
