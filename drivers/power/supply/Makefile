@@ -17,6 +17,8 @@ obj-$(CONFIG_MTK_CHARGER) += mtk_charger_framework.o mtk_pd_charging.o charger_c
 endif
 mtk_charger_framework-objs := mtk_charger.o mtk_charger_intf.o mtk_basic_charger.o mtk_pulse_charger.o mtk_adapter_switch.o
 
+obj-$(CONFIG_SGM415xx_CHARGER)	+= sgm415xx.o
+obj-$(CONFIG_SC854X_CHARGER)	+= sc854x_charger.o
 mtk_pd_charging-objs := mtk_pd.o mtk_pd_hal.o
 obj-$(CONFIG_CHARGER_RT9465)	+= rt9465.o
 #obj-$(CONFIG_BATTERY_MT6359P) += mt6359p_battery.o

@@ -327,4 +327,20 @@ config CHARGER_SGM41516D
 	  and config MTK_SWCHR_SUPPORT
 	  Set to Yes if SGM41516D is used.
 
+config SGM415xx_CHARGER
+	tristate "SGM415xx Charger Driver"
+	help
+	  Say Yes to enable SGM415xx charger driver.
+	  This driver is used for managing the SGM415xx charger hardware.
+	  It provides functionalities such as charging control, status monitoring,
+	  and error handling.
+
+config SC854X_CHARGER
+	tristate "SC854X Charger Driver"
+	help
+	  Say Yes to enable SC854X charger driver.
+	  This driver is used for managing the SC854X charger hardware.
+	  It provides functionalities such as charging control, status monitoring,
+	  and error handling.
+
 source "$(KCONFIG_EXT_PREFIX)drivers/power/supply/ufcs/Kconfig"
