@@ -6766,8 +6766,6 @@
 			<GIC_SPI 214 IRQ_TYPE_LEVEL_HIGH 0>;
 		clocks = <&infracfg_ao_clk CLK_IFRAO_THERM>;
 		clock-names = "lvts_clk";
-		resets = <&infracfg_rst 0>,
-				 <&infracfg_rst 1>;
 		nvmem-cells = <&lvts_e_data1 &lvts_e_data2>;
 		nvmem-cell-names = "e_data1","e_data2";
 	};
