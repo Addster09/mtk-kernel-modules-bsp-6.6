@@ -5071,6 +5071,8 @@ static int mtk_dsi_trigger(struct mtk_ddp_comp *comp, void *handle)
 
 static int DSI_MIPI_deskew(struct mtk_dsi *dsi)
 {
+	struct mtk_drm_crtc *mtk_crtc = NULL;
+	struct mtk_drm_private *priv = NULL;
 	unsigned int timeout = 0;
 	unsigned int status = 0;
 	unsigned int phy_syncon = 0;
@@ -5081,9 +5083,16 @@ static int DSI_MIPI_deskew(struct mtk_dsi *dsi)
 		DDPPR_ERR("%s:%d NULL Pointer\n", __func__, __LINE__);
 		return -1;
 	}
+	mtk_crtc = dsi->is_slave ? dsi->master_dsi->ddp_comp.mtk_crtc : dsi->ddp_comp.mtk_crtc;
+
+	if (mtk_crtc && mtk_crtc->base.dev)
+		priv = mtk_crtc->base.dev->dev_private;
 
 	phy_syncon = readl(dsi->regs + DSI_PHY_SYNCON(dsi->driver_data));
-	writel(0x00aa00ff, dsi->regs + DSI_PHY_SYNCON(dsi->driver_data));
+	if (is_bdg_supported() && priv->data->mmsys_id == MMSYS_MT6833)
+		writel(0x00aaffff, dsi->regs + DSI_PHY_SYNCON(dsi->driver_data));
+	else
+		writel(0x00aa00ff, dsi->regs + DSI_PHY_SYNCON(dsi->driver_data));
 
 	SET_VAL_MASK(value, mask, 6, FLD_SKEWCAL_PRD);
 	mtk_dsi_mask(dsi, DSI_TIME_CON0(dsi->driver_data), mask, value);
