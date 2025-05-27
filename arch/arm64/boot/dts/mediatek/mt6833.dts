@@ -2016,24 +2016,6 @@
 			iommus = <&iommu0 M4U_PORT_L0_DISP_POSTMASK0>;
 		};
 
-		mtk_iommu_test0 {
-			compatible = "mediatek,iommu-test-dom0";
-			dma-ranges = <0x0 0x0 0x0 0x0 0x4 0x0>;
-			iommus = <&iommu0 M4U_PORT_L0_DISP_POSTMASK0>;
-		};
-
-		mtk_iommu_test1 {
-			compatible = "mediatek,iommu-test-dom1";
-			dma-ranges = <0x0 0x0 0x0 0x0 0x4 0x0>;
-			iommus = <&iommu0 M4U_PORT_L4_VDEC_MC_EXT>;
-		};
-
-		mtk_iommu_test2 {
-			compatible = "mediatek,iommu-test-dom2";
-			dma-ranges = <0x0 0x0 0x0 0x0 0x4 0x0>;
-			iommus = <&iommu0 M4U_PORT_L2_MDP_RDMA0>;
-		};
-
 		mtk_iommu_pseudo {
 			compatible = "mediatek,mt6833-iommu-pseudo";
 			mediatek,larbs = <&smi_larb0 &smi_larb1 &smi_larb2
