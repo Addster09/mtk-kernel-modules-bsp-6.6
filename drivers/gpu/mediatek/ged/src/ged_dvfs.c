@@ -326,6 +326,7 @@ static int g_last_commit_type;
 static int g_last_commit_api_flag;
 static unsigned long g_last_commit_before_api_boost;
 static unsigned int g_last_api_boost_counter;
+static unsigned int g_is_gpu_uncomplete;
 static unsigned long long g_ns_gpu_api_boost_end_ts;
 static unsigned long long g_ns_gpu_api_boost_interval;
 
@@ -1314,7 +1315,7 @@ bool ged_dvfs_gpu_freq_commit(unsigned long ui32NewFreqID,
 		}
 
 		// record commit freq ID if api boost disable
-		if (policy_api_sync_flag == 0)
+		if (policy_api_sync_flag == 0 && g_is_gpu_uncomplete == 0)
 			g_last_commit_before_api_boost = ui32NewFreqID;
 
 		trace_tracing_mark_write(5566, "gpu_freq",
@@ -1481,7 +1482,7 @@ bool ged_dvfs_gpu_freq_dual_commit(unsigned long stackNewFreqID,
 	}
 
 	// record commit freq ID if api boost disable
-	if (policy_api_sync_flag == 0)
+	if (policy_api_sync_flag == 0 && g_is_gpu_uncomplete == 0)
 		g_last_commit_before_api_boost = stackNewFreqID;
 
 	trace_tracing_mark_write(5566, "gpu_freq",
@@ -2294,6 +2295,7 @@ static int ged_dvfs_fb_gpu_dvfs(int t_gpu, int t_gpu_target,
 	}
 	// reset if not in fallback mode
 	g_fallback_idle = 0;
+	g_is_gpu_uncomplete = 0;
 
 	spin_lock_irqsave(&gsGpuUtilLock, ui32IRQFlags);
 	if (is_fallback_mode_triggered)
@@ -2850,6 +2852,7 @@ static bool ged_dvfs_policy(
 		int ultra_low = 0;
 		int pid = 0;
 		int q = 0;
+		unsigned int is_enter_set_cur_freq_back = 0; // debug
 
 		/* set t_gpu via risky BQ analysis */
 		ged_kpi_update_t_gpu_latest_uncompleted();
@@ -3022,13 +3025,21 @@ static bool ged_dvfs_policy(
 		trace_tracing_mark_write(5566, "t_gpu_target", t_gpu_target);
 
 		policy_api_sync_counter = api_sync_counter;
-		// set cur freq back to before api boost
-		if ((g_last_commit_api_flag == 1 && policy_api_sync_flag == 0) ||
+		// set cur freq back to before api boost (for GPU not in overdue state)
+		if (uncomplete_flag)
+			g_is_gpu_uncomplete = 1;
+		else
+			g_is_gpu_uncomplete = 0;
+
+		if (((g_last_commit_api_flag == 1 && policy_api_sync_flag == 0) ||
 			(g_last_commit_api_flag == 1 && policy_api_sync_flag == 1 &&
-			g_last_api_boost_counter != policy_api_sync_counter)) {
+			g_last_api_boost_counter != policy_api_sync_counter)) &&
+			g_is_gpu_uncomplete == 0) {
 			ui32GPUFreq = g_last_commit_before_api_boost;
 			i32NewFreqID = ui32GPUFreq;
+			is_enter_set_cur_freq_back = 1; // debug
 		}
+		trace_tracing_mark_write(5566, "dbg_set_f_back", is_enter_set_cur_freq_back); // debug
 
 		/* bound update */
 		if (init == 0) {

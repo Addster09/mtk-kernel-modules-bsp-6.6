@@ -324,6 +324,8 @@ void ged_eb_dvfs_trace_dump(void)
 			mtk_gpueb_sysram_read(SYSRAM_GPU_EB_USE_MCU_LOADING),
 			mtk_gpueb_sysram_read(SYSRAM_GPU_EB_USE_ITER_LOADING),
 			mtk_gpueb_sysram_read(SYSRAM_GPU_EB_USE_ITER_U_MCU_LOADING));
+		trace_tracing_mark_write(5566, "dbg_set_f_back",
+			mtk_gpueb_sysram_read(SYSRAM_GPU_EB_IS_SET_FREQ_BACK));
 	}
 
 	// LB async ratio on EB
