@@ -323,9 +323,7 @@ int dcs_set_fix_num(unsigned int core_num)
 			goto done_unlock;
 		}
 
-		if (core_num > 0 &&
-			core_num <= g_max_core_num &&
-			gpufreq_get_core_num() == DCS_DEBUG_MAX_CORE) {
+		if (core_num > 0 && core_num <= g_max_core_num) {
 			g_fix_core_num = core_num;
 			for (i = 0; i < g_max_core_num; i++) {
 				if (g_fix_core_num == g_core_mask_table[i].num) {
