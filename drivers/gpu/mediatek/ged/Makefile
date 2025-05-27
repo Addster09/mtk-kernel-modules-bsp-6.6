@@ -116,8 +116,7 @@ ged-y += \
 	src/ged_eb.o \
 	src/ged_gpu_bm.o \
 	src/ged_gpu_slc.o \
-	src/ged_mali_event.o \
-	src/ged_perfetto.o
+	src/ged_mali_event.o
 endif
 
 ged-$(CONFIG_SYNC_FILE) += src/ged_sync.o

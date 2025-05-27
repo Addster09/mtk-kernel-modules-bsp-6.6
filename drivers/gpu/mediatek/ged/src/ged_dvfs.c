@@ -33,7 +33,6 @@
 #include "ged_eb.h"
 #include "ged_dcs.h"
 #include "ged_async.h"
-#include "ged_perfetto.h"
 
 #if defined(MTK_GPU_BM_2)
 #include <gpu_bm.h>
@@ -1321,8 +1320,6 @@ bool ged_dvfs_gpu_freq_commit(unsigned long ui32NewFreqID,
 		trace_tracing_mark_write(5566, "gpu_freq",
 			(long long) div_u64(ged_get_cur_stack_freq(), 1000));
 
-		ged_perfetto_update_frequency(ged_get_cur_stack_freq(), 0);
-
 		sc_freq_diff = ged_get_cur_stack_out_freq() > 0 ?
 			ged_get_cur_stack_out_freq() - ged_get_cur_real_stack_freq() : 0;
 		top_freq_diff = ged_get_cur_top_out_freq() > 0 ?
@@ -1487,8 +1484,6 @@ bool ged_dvfs_gpu_freq_dual_commit(unsigned long stackNewFreqID,
 
 	trace_tracing_mark_write(5566, "gpu_freq",
 		(long long) div_u64(ged_get_cur_stack_freq(), 1000));
-
-	ged_perfetto_update_frequency(ged_get_cur_stack_freq(), 0);
 
 	sc_freq_diff = ged_get_cur_stack_out_freq() > 0 ?
 		ged_get_cur_stack_out_freq() - ged_get_cur_real_stack_freq() : 0;
