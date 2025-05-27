@@ -268,6 +268,11 @@ static long memory_send(bool share, bool involve_sp,
 
 	/* sharing only even pages to produce fragmentations */
 	page_entries /= 2;
+	if (page_entries == 0) {
+		retval = -EINVAL;
+		goto free_mem_ret;
+	}
+
 	pages = kcalloc(page_entries, sizeof(void *), GFP_KERNEL);
 	if (IS_ERR_OR_NULL(pages)) {
 		FFA_ERR("Out of memory. %s:%d\n", __FILE__, __LINE__);
