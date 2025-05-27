@@ -233,14 +233,13 @@ static int mtk_disp_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
 	clk_div = mul_u64_u64_div_u64(state->period, rate, NSEC_PER_SEC) >>
 			  PWM_PERIOD_BIT_WIDTH;
 	if (clk_div > PWM_CLKDIV_MAX) {
-		if (!mdp->enabled) {
-			if (mdp->clk_mm)
-				clk_disable_unprepare(mdp->clk_mm);
-			if (mdp->clk_main)
-				clk_disable_unprepare(mdp->clk_main);
-			if (mdp->data->need_power_on == true)
-				pwm_src_power_off(mdp);
-		}
+		if (mdp->clk_mm)
+			clk_disable_unprepare(mdp->clk_mm);
+		if (mdp->clk_main)
+			clk_disable_unprepare(mdp->clk_main);
+		if (mdp->data->need_power_on == true)
+			pwm_src_power_off(mdp);
+		mdp->enabled = false;
 		return -EINVAL;
 	}
 
@@ -296,26 +295,9 @@ static int mtk_disp_pwm_get_state(struct pwm_chip *chip,
 	struct mtk_disp_pwm *mdp = to_mtk_disp_pwm(chip);
 	u64 rate, period, high_width;
 	u32 clk_div, con0, con1;
-	int err;
 
 	if (mdp->data->need_power_on == true)
 		pwm_src_power_on(mdp);
-	if (mdp->clk_main) {
-		err = clk_prepare_enable(mdp->clk_main);
-		if (err < 0) {
-			pr_info("Can't enable mdp->clk_main: %pe\n", ERR_PTR(err));
-			return 0;
-		}
-	}
-	if (mdp->clk_mm) {
-		err = clk_prepare_enable(mdp->clk_mm);
-		if (err < 0) {
-			pr_info("Can't enable mdp->clk_mm: %pe\n", ERR_PTR(err));
-			if (mdp->clk_main)
-				clk_disable_unprepare(mdp->clk_main);
-			return 0;
-		}
-	}
 
 	if (mdp->clk_main)
 		rate = clk_get_rate(mdp->clk_main);
@@ -339,10 +321,6 @@ static int mtk_disp_pwm_get_state(struct pwm_chip *chip,
 	state->duty_cycle = DIV64_U64_ROUND_UP(high_width * (clk_div + 1) * NSEC_PER_SEC,
 					       rate);
 	state->polarity = PWM_POLARITY_NORMAL;
-	if (mdp->clk_mm)
-		clk_disable_unprepare(mdp->clk_mm);
-	if (mdp->clk_main)
-		clk_disable_unprepare(mdp->clk_main);
 	if (mdp->data->need_power_on == true)
 		pwm_src_power_off(mdp);
 	return 0;
@@ -407,6 +385,23 @@ static int mtk_disp_pwm_probe(struct platform_device *pdev)
 			}
 		} else
 			dev_info(&pdev->dev, "get pwm_src failed\n");
+	} else {
+		ret = clk_prepare_enable(mdp->clk_main);
+		if (ret < 0) {
+			dev_err(&pdev->dev, "error fail:can't enable mdp->clk_main: %pe\n",
+				ERR_PTR(ret));
+			return ret;
+		}
+
+		ret = clk_prepare_enable(mdp->clk_mm);
+		if (ret < 0) {
+			dev_err(&pdev->dev, "error fail:can't enable mdp->clk_mm: %pe\n",
+				ERR_PTR(ret));
+			clk_disable_unprepare(mdp->clk_main);
+			return ret;
+		}
+		mdp->enabled = true;
+		pr_notice("%s mdp->enabled=%d", __func__, mdp->enabled);
 	}
 
 	mdp->chip.dev = &pdev->dev;
