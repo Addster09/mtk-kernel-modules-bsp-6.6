@@ -1598,6 +1598,11 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 		curve-adj-base = <&curve_adj>;
 	};
 
+	pf_ctrl: pf-ctrl {
+		compatible = "mediatek,pf-ctrl";
+		version = <1>;
+	};
+
 	eas_info: eas-info {
 		compatible = "mediatek,eas-info";
 		csram-base = <0x0c0dd350>;
