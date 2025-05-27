@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
 
 ccflags-y += \
+	-I$(srctree)/$(src) \
 	-I$(srctree)/include/ \
 	-I$(DEVICE_MODULES_PATH)/include/linux/soc/mediatek/ \
 	-I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/sched/
