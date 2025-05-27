@@ -3939,10 +3939,6 @@
 		bootmode = <&chosen>;
 	};
 
-#if (CONFIG_MTK_GAUGE_VERSION == 30)
-	#include "mediatek/bat_setting/mt6781_battery_prop.dtsi"
-#endif
-
 	md_ccif3@1023f000 {
 		compatible = "mediatek,md_ccif3";
 		reg = <0 0x1023f000 0 0x1000>;
@@ -6493,6 +6489,7 @@
 #include "mediatek/rt5133_for_6781.dtsi"
 #include "mediatek/trusty.dtsi"
 #include "mediatek/mt6781-disable-unused.dtsi"
+#include "mediatek/bat_setting/mt6781_battery_prop.dtsi"
 
 &mddriver {
 	/* for md pmic voltage setting*/
