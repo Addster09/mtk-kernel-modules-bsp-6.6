@@ -4664,7 +4664,8 @@ _mtk_crtc_wb_addon_module_connect(
 		!state->prop_val[CRTC_PROP_OUTPUT_ENABLE])
 		return;
 
-	if (priv->data->wb_skip_sec_buf && mtk_crtc_check_fb_secure(crtc))
+	if ((priv->data->wb_skip_sec_buf && mtk_crtc_check_fb_secure(crtc)) ||
+		mtk_crtc->crtc_blank)
 		return;
 
 	to_info = mtk_crtc_get_total_overhead(mtk_crtc);
@@ -4878,7 +4879,7 @@ _mtk_crtc_cwb_addon_module_connect(
 
 	mtk_crtc_cwb_set_sec(crtc);
 	if (!cwb_info->enable || cwb_info->is_sec ||
-			priv->need_cwb_path_disconnect)
+			priv->need_cwb_path_disconnect || mtk_crtc->crtc_blank)
 		return;
 
 	addon_data = mtk_addon_get_scenario_data(__func__, crtc,
@@ -18383,7 +18384,8 @@ int mtk_crtc_gce_flush(struct drm_crtc *crtc, void *gce_cb,
 		}
 
 		/* No need for DBI skip secure */
-		if (priv->data->wb_skip_sec_buf && mtk_crtc_check_fb_secure(crtc)) {
+		if ((priv->data->wb_skip_sec_buf && mtk_crtc_check_fb_secure(crtc)) ||
+			mtk_crtc->crtc_blank) {
 			fence_idx = state->prop_val[CRTC_PROP_OUTPUT_FENCE_IDX];
 			session_id = mtk_get_session_id(crtc);
 			if (mtk_crtc->pq_data) {
