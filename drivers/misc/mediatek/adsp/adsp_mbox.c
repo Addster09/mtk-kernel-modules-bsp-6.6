@@ -280,7 +280,7 @@ static int mbox_pin_send_num_to_core(u32 mbox)
 	struct mtk_mbox_pin_send *mbox_pin = NULL;
 	u32 cid;
 
-	for (cid = 0; cid < ADSP_CORE_TOTAL; cid++) {
+	for (cid = 0; cid < get_adsp_core_total(); cid++) {
 		mbox_pin = adsp_cores[cid]->send_mbox;
 		if (mbox_pin->mbox == mbox)
 			return adsp_cores[cid]->id;
