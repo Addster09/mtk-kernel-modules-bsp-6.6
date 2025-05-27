@@ -2472,9 +2472,9 @@ static int disp_aal_act_eventctl(struct mtk_ddp_comp *comp, void *data)
 		disp_aal_relay_control(comp, false);
 		CRTC_MMP_MARK(0, aal_event_ctl, events, 2);
 	}
-
+#if IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO)
 	disp_aal_set_interrupt(comp, enable, NULL);
-
+#endif
 	return ret;
 }
 
