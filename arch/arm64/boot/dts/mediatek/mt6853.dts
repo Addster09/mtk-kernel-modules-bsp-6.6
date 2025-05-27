@@ -381,6 +381,9 @@
 		min_charger_voltage_1 = <4400000>;
 		min_charger_voltage_2 = <4200000>;
 		max_dmivr_charger_current = <1800000>;
+
+		/* fast charging algo support indicator */
+		enable-fast-charging-indicator;
 	};
 
 	/* Microtrust SW IRQ number 296(328) ~ 301(333) */
