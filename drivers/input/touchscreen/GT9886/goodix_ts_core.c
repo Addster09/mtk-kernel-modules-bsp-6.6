@@ -2071,7 +2071,6 @@ static int goodix_ts_probe(struct platform_device *pdev)
 {
 	struct goodix_ts_core *core_data = NULL;
 	struct goodix_ts_device *ts_device;
-	struct goodix_ts_board_data *ts_bdata;
 	int r;
 #if IS_ENABLED(CONFIG_DEVICE_MODULES_DRM_MEDIATEK)
 	void **ret = NULL;
@@ -2099,7 +2098,6 @@ static int goodix_ts_probe(struct platform_device *pdev)
 	core_data->cfg_group_parsed = false;
 
 	resume_core_data = core_data;
-	ts_bdata = board_data(core_data);
 
 	r = goodix_ts_power_init(core_data);
 	if (r < 0)
@@ -2187,10 +2185,8 @@ static int goodix_ts_probe(struct platform_device *pdev)
 
 err:
 	if (core_data->pinctrl)
-		pinctrl_put(core_data->pinctrl);
+		devm_pinctrl_put(core_data->pinctrl);
 	goodix_ts_sysfs_exit(core_data);
-	gpio_free(ts_bdata->reset_gpio);
-	gpio_free(ts_bdata->irq_gpio);
 regulator_err:
 	goodix_ts_power_off(core_data);
 	regulator_put(core_data->avdd);
