@@ -17,6 +17,8 @@
 
 #define CM_MGR_CPU_CLUSTER 2
 
+#define USE_CPU_TO_DRAM_MAP
+
 enum {
 	CM_MGR_LP4 = 0,
 	CM_MGR_MAX,

@@ -165,7 +165,11 @@ int cpu_power_bcpu_weight_min = 100;
 #endif
 int cpu_power_bbcpu_weight_max = 100;
 int cpu_power_bbcpu_weight_min = 100;
+#ifdef USE_CPU_TO_DRAM_MAP
+int cm_mgr_cpu_map_dram_enable = 1;
+#else
 int cm_mgr_cpu_map_dram_enable;
+#endif
 int cm_mgr_cpu_map_emi_opp = 1;
 int cm_mgr_cpu_map_skip_cpu_opp = 2;
 unsigned int cm_work_flag;
@@ -1158,7 +1162,6 @@ int cm_mgr_check_dts_setting(struct platform_device *pdev)
 			cm_mgr_use_cpu_to_dram_map = 1;
 		else
 			cm_mgr_use_cpu_to_dram_map = 0;
-		cm_mgr_cpu_map_dram_enable = cm_mgr_use_cpu_to_dram_map;
 	}
 	pr_info("#@# %s(%d) cm_mgr_use_cpu_to_dram_map %d\n",
 			__func__, __LINE__, cm_mgr_use_cpu_to_dram_map);
