@@ -1603,7 +1603,7 @@ def get_overlay_modules_list():
 
         mgk_64_kleaf_modules.remove("//vendor/mediatek/kernel_modules/mtkcam/sched:c2ps")
         mgk_64_device_modules.append("drivers/regulator/mt6358-regulator.ko")
-        mgk_64_device_modules.append("drivers/misc/mediatek/pmic_protect/mt63xx-oc-debug.ko")
+        #mgk_64_device_modules.append("drivers/misc/mediatek/pmic_protect/mt63xx-oc-debug.ko")
         mgk_64_device_modules.append("drivers/misc/mediatek/dvfsrc/dvfsrc-opp-mt6781.ko")
         mgk_64_device_modules.remove("drivers/misc/mediatek/mbraink/bridge/mtk_mbraink_bridge.ko")
         mgk_64_device_modules.remove("drivers/misc/mediatek/mbraink/mtk_mbraink.ko")
