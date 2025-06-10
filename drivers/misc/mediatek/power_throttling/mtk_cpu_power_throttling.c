@@ -10,6 +10,8 @@
 #include <linux/pm_qos.h>
 #include <linux/slab.h>
 #include <linux/cpu.h>
+#include <linux/arm-smccc.h>
+#include <linux/soc/mediatek/mtk_sip_svc.h>
 #include "mtk_battery_oc_throttling.h"
 #include "mtk_low_battery_throttling.h"
 #include "mtk_bp_thl.h"
@@ -25,6 +27,9 @@
 #define CLUSTER_NUM 3
 #define CORE_NUM 8
 #define NAME_LENGTH 32
+#define DISABLE_MPMM 3
+
+static unsigned int mpmm_gear;
 
 struct cpu_pt_priv {
 	char max_lv_name[NAME_LENGTH];
@@ -34,6 +39,8 @@ struct cpu_pt_priv {
 	u32 cur_lv;
 	u32 *freq_limit;
 	u32 *core_active;
+	u32 mpmm_enable;
+	u32 mpmm_activate_lv;
 };
 
 struct cpu_pause_tbl {
@@ -113,6 +120,16 @@ static void cpu_pt_low_battery_cb(enum LOW_BATTERY_LEVEL_TAG level, void *data)
 	}
 }
 #endif
+
+static void mpmm_enable (unsigned int gear)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(MTK_SIP_KERNEL_PT_CONTROL, PT_OP_SET_MPMM, gear, 0, 0, 0, 0, 0, &res);
+	if (res.a0)
+		pr_info("%s, SMC call fail", __func__);
+}
+
 #if IS_ENABLED(CONFIG_MTK_BATTERY_OC_POWER_THROTTLING)
 static void cpu_pt_over_current_cb(enum BATTERY_OC_LEVEL_TAG level, void *data)
 {
@@ -164,6 +181,11 @@ static void cpu_pt_battery_percent_cb(enum BATTERY_PERCENT_LEVEL_TAG level)
 	}
 	pt_info_p->cur_lv = level;
 	mutex_unlock(&cpu_thr_lock);
+
+	if (pt_info_p->mpmm_enable != 0 && level >= pt_info_p->mpmm_activate_lv)
+		mpmm_enable(mpmm_gear);
+	else if (pt_info_p->mpmm_enable != 0 && level < pt_info_p->mpmm_activate_lv)
+		mpmm_enable (DISABLE_MPMM);
 }
 #endif
 static void __used cpu_limit_default_setting(struct device *dev, enum cpu_pt_type type)
@@ -263,12 +285,62 @@ static int __used parse_cpu_limit_table(struct device *dev)
 					for (k = 0; k < CORE_NUM; k++)
 						pt_info_p->core_active[j * CORE_NUM + k] = 1;
 				}
+				ret = of_property_read_u32(np, "mpmm-enable", &pt_info_p->mpmm_enable);
+				if (ret) {
+					pt_info_p->mpmm_enable = 0;
+					pr_info("Failed to read mpmm-enable property\n");
+				}
+				if (pt_info_p->mpmm_enable == 1) {
+					ret = of_property_read_u32(np, "mpmm-gear", &mpmm_gear);
+					if (ret) {
+						pt_info_p->mpmm_enable = 0;
+						pr_info("Failed to read mpmm-gear property\n");
+					} else if (mpmm_gear > 2) {
+						pt_info_p->mpmm_enable = 0;
+						pr_info("mpmm-gear value out of range: %u\n", mpmm_gear);
+					}
+					ret = of_property_read_u32(np, "soc-limit-mpmm-lv",
+						&pt_info_p->mpmm_activate_lv);
+					if (ret || pt_info_p->mpmm_activate_lv > pt_info_p->max_lv) {
+						pt_info_p->mpmm_activate_lv = pt_info_p->max_lv;
+						pr_info("Failed to read soc-limit-mpmm-lv property\n");
+					}
+				}
 			}
 		}
 	}
 
 	return 0;
 }
+
+static ssize_t set_mpmm_show(
+		struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE,"%d\n", mpmm_gear);
+}
+
+static ssize_t set_mpmm_store(struct device *dev,
+					   struct device_attribute *attr,
+					   const char *buf,
+					   size_t size)
+{
+	unsigned int val;
+	char cmd[9];
+
+	if (sscanf(buf, "%8s %u\n", cmd, &val) != 2) {
+		dev_info(dev, "parameter number not correct\n");
+		return -EINVAL;
+	}
+	if (strncmp(cmd, "set_mpmm", 8))
+		return -EINVAL;
+	if (val < 4)
+		mpmm_gear = val;
+
+	mpmm_enable(mpmm_gear);
+	pr_info("[%s] smc send", __func__);
+	return size;
+}
+static DEVICE_ATTR_RW(set_mpmm);
 
 int register_pt_isolate_cb(cpu_isolate_cb cb_func)
 {
@@ -364,7 +436,12 @@ static int mtk_cpu_power_throttling_probe(struct platform_device *pdev)
 		register_bp_thl_notify(&cpu_pt_battery_percent_cb, BATTERY_PERCENT_PRIO_CPU_B);
 	}
 #endif
-
+	ret = device_create_file(&(pdev->dev),
+		&dev_attr_set_mpmm);
+	if (ret) {
+		dev_notice(&pdev->dev, "create file error ret=%d\n", ret);
+		return ret;
+	}
 	return 0;
 }
 static int mtk_cpu_power_throttling_remove(struct platform_device *pdev)
