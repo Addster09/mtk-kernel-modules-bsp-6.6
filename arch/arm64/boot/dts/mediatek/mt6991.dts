@@ -110,12 +110,14 @@
 			outproc10 = &disp_ovl1_outproc4;
 			outproc11 = &disp_ovl1_outproc5;
 			splitter0 = &disp1_splitter0;
+			splitter1 = &disp1_splitter1;
 			disp-dvo0 = &disp_dvo0;
 			dsi0 = &dsi0;
 			dsi1 = &dsi1;
 			dsi2 = &dsi2;
 			y2r0 = &disp_y2r0;
 			mdp-rdma0 = &disp_mdp_rdma0;
+			mdp-rdma1 = &disp_mdp_rdma1;
 			mutex0 = &disp1_mutex0;
 			merge0 = &disp_merge0;
 			wdma10 = &ovl_wdma0;
@@ -7196,14 +7198,18 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				"mediatek,mt6991-disp-merge";
 			reg = <0 0x324d0000 0 0x1000>;
 			clocks = <&dispsys1_config_clk CLK_MM1_DISP_MERGE0_DISP>;
-			status = "disabled";
 		};
 
 		disp1_splitter0: disp1-splitter0@32550000 {
 			compatible = "mediatek,disp1_splitter0", "mediatek,mt6991-disp-splitter";
 			reg = <0 0x32550000 0 0x1000>;
 			clocks = <&dispsys1_config_clk CLK_MM1_DISP_SPLITTER0_DISP>;
-			status = "disabled";
+		};
+
+		disp1_splitter1: disp1-splitter1@32560000 {
+			compatible = "mediatek,disp1_splitter1", "mediatek,mt6991-disp-splitter";
+			reg = <0 0x32560000 0 0x1000>;
+			clocks = <&dispsys1_config_clk CLK_MM1_DISP_SPLITTER1_DISP>;
 		};
 
 		mml0_birsz0: mml0-birsz0@3e080000 {
@@ -9126,6 +9132,24 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 					     "DDP_COMPONENT_MDP_RDMA0_stash_qos";
 		};
 
+		disp_mdp_rdma1: disp-mdp-rdma1@325e0000 {
+			compatible = "mediatek,disp_mdp_rdma1",
+						"mediatek,mt6991-disp-mdp-rdma";
+			reg = <0 0x325e0000 0 0x1000>;
+			interrupts = <GIC_SPI 452 IRQ_TYPE_LEVEL_HIGH 0>;
+			clocks = <&dispsys1_config_clk CLK_MM1_MDP_RDMA1_DISP>;
+			mediatek,larb = <&smi_larb33 SMMU_L33_P9_DISP1_MDP_RDMA1>;
+			mediatek,smi-id = <33>;
+			mtk,smmu-shared = <&mm_smmu_disp>;
+			mtk,smmu-shared-sec = <&mm_smmu_svp_disp>;
+			interconnects =
+				<&mmqos MASTER_LARB_PORT(SMMU_L33_P9_DISP1_MDP_RDMA1)
+						&mmqos SLAVE_COMMON(1)>,
+				<&mmqos MASTER_LARB_PORT(SMMU_L33_P14_DISP1_MDP_RDMA1_STASH)
+						&mmqos SLAVE_COMMON(1)>;
+			interconnect-names = "DDP_COMPONENT_MDP_RDMA1_hrt_qos",
+					     "DDP_COMPONENT_MDP_RDMA1_stash_qos";
+		};
 
 		disp_wdma1: disp1-wdma1@325a0000 {
 			compatible = "mediatek,disp_wdma1",
