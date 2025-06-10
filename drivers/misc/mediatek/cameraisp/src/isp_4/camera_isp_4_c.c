@@ -13723,7 +13723,7 @@ static void SMI_INFO_DUMP(enum ISP_IRQ_TYPE_ENUM irq_module)
 	case ISP_IRQ_TYPE_INT_CAM_A_ST:
 	case ISP_IRQ_TYPE_INT_CAM_B_ST:
 		if (g_ISPIntErr_SMI[irq_module] &
-			(DMA_ERR_ST | INT_ST_MASK_CAM_WARN | CQ_VS_ERR_ST | TG_ERR_ST)) {
+			(DMA_ERR_ST | INT_ST_MASK_CAM_WARN | CQ_VS_ERR_ST | TG_ERR_ST | CQ_APB_ERR_ST)) {
 			pr_info("ERR:SMI_DUMP by module:%d\n", irq_module);
 			mtk_smi_dbg_hang_detect("camera_isp_cam");
 			g_ISPIntErr_SMI[irq_module] = 0;
