@@ -4207,6 +4207,9 @@ irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 			aee_v2 = (priv->data->mmsys_id == MMSYS_MT6899) &&
 				(mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_DSI_UNDERRUN_AEE_V2));
 
+			if (priv->data->mmsys_id == MMSYS_MT6768)
+				set_ovl_reset_flag(mtk_crtc);
+
 			DDPPR_ERR("[dsi] underrun isr start\n");
 			if (mtk_dsi_is_cmd_mode(comp)) {
 				underrun_happened = 1;

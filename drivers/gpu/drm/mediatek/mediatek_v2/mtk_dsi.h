@@ -228,5 +228,6 @@ void mtk_dsi_porch_config(struct mtk_dsi *dsi, struct cmdq_pkt *handle);
 int mtk_drm_dummy_cmd_on_ioctl(struct drm_device *dev, void *data,
 		struct drm_file *file_priv);
 unsigned long long mtk_get_cur_backlight(struct drm_crtc *crtc);
+extern void set_ovl_reset_flag(struct mtk_drm_crtc *mtk_crtc);
 
 #endif
