@@ -1256,8 +1256,8 @@
 			interrupts = <144 IRQ_TYPE_LEVEL_HIGH 144 0>;
 			status = "okay";
 
-			pmic_oc_debug: pmic-oc-debug {
-				compatible = "mediatek,pmic-oc-debug";
+			mt63xx-oc-debug {
+				compatible = "mediatek,mt63xx-oc-debug";
 			};
 
 			mt6358rtc: mt6358rtc {
