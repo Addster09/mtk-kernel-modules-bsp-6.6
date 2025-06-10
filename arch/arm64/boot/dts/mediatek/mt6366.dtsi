@@ -98,6 +98,15 @@
 			channel = <AUXADC_VBIF>;
 			resistance-ratio = <2 1>;
 		};
+		imp {
+			channel = <AUXADC_IMP>;
+			resistance-ratio = <3 1>;
+			avg-num = <128>;
+		};
+		imix_r {
+			channel = <AUXADC_IMIX_R>;
+			val = <90>;
+		};
 	};
 
 
