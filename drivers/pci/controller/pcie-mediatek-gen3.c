@@ -2981,10 +2981,6 @@ int mtk_pcie_soft_on(struct pci_bus *bus)
 	mtk_pcie_irq_restore(port);
 	mtk_pcie_save_restore_cfg(port, false);
 
-	/* The detection range is AER enable to soft on done */
-	if (port->port_num == 0)
-		port->aer_detect = false;
-
 	dev_info(port->dev, "mtk pcie soft on done\n");
 
 	return ret;
@@ -3210,8 +3206,6 @@ static int mtk_pcie_pre_init_6991(struct mtk_pcie_port *port)
 		val = readl_relaxed(port->base + PCIE_AXI_IF_CTRL);
 		val |= SW_CPLTO_DATA_SEL;
 		writel_relaxed(val, port->base + PCIE_AXI_IF_CTRL);
-		/* Detect Completion timeout before wifi on */
-		port->aer_detect = true;
 	}
 
 	/* bypass PMRC signal */
