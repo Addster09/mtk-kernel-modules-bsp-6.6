@@ -1603,7 +1603,7 @@ def get_overlay_modules_list():
 
         mgk_64_kleaf_modules.remove("//vendor/mediatek/kernel_modules/mtkcam/sched:c2ps")
         mgk_64_device_modules.append("drivers/regulator/mt6358-regulator.ko")
-        mgk_64_device_modules.append("drivers/regulator/mtk-pmic-oc-debug.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/pmic_protect/mt63xx-oc-debug.ko")
         mgk_64_device_modules.append("drivers/misc/mediatek/dvfsrc/dvfsrc-opp-mt6781.ko")
         mgk_64_device_modules.remove("drivers/misc/mediatek/mbraink/bridge/mtk_mbraink_bridge.ko")
         mgk_64_device_modules.remove("drivers/misc/mediatek/mbraink/mtk_mbraink.ko")
@@ -3002,6 +3002,7 @@ def get_overlay_modules_list():
         mgk_64_common_eng_modules.append("drivers/mfd/mt6360-core.ko")
         mgk_64_common_userdebug_modules.append("drivers/mfd/mt6360-core.ko")
         mgk_64_common_user_modules.append("drivers/mfd/mt6360-core.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/pmic_protect/mt63xx-oc-debug.ko")
 
         mgk_64_device_modules.append("drivers/misc/mediatek/dcm/mt6885_dcm.ko")
         mgk_64_device_modules.append("drivers/misc/mediatek/iommu/iommu_gz.ko")
@@ -3342,6 +3343,7 @@ def get_overlay_modules_list():
         mgk_64_device_modules.remove("drivers/misc/mediatek/mdpm/mtk_mdpm.ko")
 
         mgk_64_device_modules.append("drivers/misc/mediatek/cm_mgr_legacy_v0/mtk_cm_mgr_v0.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/pmic_protect/mt63xx-oc-debug.ko")
 
         mgk_64_device_modules.remove("drivers/iommu/arm/arm-smmu-v3/arm_smmu_v3.ko")
         mgk_64_device_modules.remove("drivers/iommu/arm/arm-smmu-v3/mtk-smmuv3-lmu.ko")
@@ -3695,6 +3697,7 @@ def get_overlay_modules_list():
         mgk_64_platform_device_modules.pop("drivers/gpu/mediatek/gpu_pdma/mtk_gpu_pdma_mt6991.ko")
         mgk_64_platform_device_modules.update({"drivers/interconnect/mediatek/mmqos-mt6833.ko":"mt6833"})
         mgk_64_device_modules.append("drivers/misc/mediatek/cameraisp/rsc/camera_rsc_isp6s.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/pmic_protect/mt63xx-oc-debug.ko")
 
         mgk_64_device_modules.append("drivers/misc/mediatek/thermal/thermal_monitor.ko")
         mgk_64_device_modules.remove("drivers/thermal/mediatek/backlight_cooling.ko")
@@ -3731,6 +3734,7 @@ def get_overlay_modules_list():
 
         mgk_64_device_modules.append("drivers/misc/mediatek/sspm/v2/sspm.ko")
         mgk_64_device_modules.remove("drivers/misc/mediatek/sspm/v3/sspm_v3.ko")
+
         mgk_64_platform_device_modules.pop("drivers/misc/mediatek/lpm/modules/debug/mt6899/mtk-lpm-dbg-mt6899.ko")
         mgk_64_platform_device_modules.pop("drivers/misc/mediatek/lpm/modules/debug/mt6989/mtk-lpm-dbg-mt6989.ko")
         mgk_64_platform_device_modules.pop("drivers/misc/mediatek/lpm/modules/debug/mt6991/mtk-lpm-dbg-mt6991.ko")
@@ -3914,6 +3918,7 @@ def get_overlay_modules_list():
         mgk_64_device_modules.append("drivers/tee/gud/600/MobiCoreDriver/mcDrvModule.ko")
         mgk_64_device_modules.append("drivers/tee/gud/600/MobiCoreDriver/mcDrvModule-ffa.ko")
         mgk_64_device_modules.append("drivers/tee/gud/600/TlcTui/t-base-tui.ko")
+        mgk_64_device_modules.append("drivers/misc/mediatek/pmic_protect/mt63xx-oc-debug.ko")
 
         mgk_64_device_modules.remove("drivers/misc/mediatek/trusted_mem/tmem_ffa.ko")
         mgk_64_device_modules.remove("drivers/misc/mediatek/trusted_mem/ffa_v11.ko")
