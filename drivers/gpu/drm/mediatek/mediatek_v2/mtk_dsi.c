@@ -140,6 +140,7 @@
 #define TXRX_CTRL_FLD_REG_EXT_TE_EN REG_FLD_MSB_LSB(9, 9)
 #define TXRX_CTRL_FLD_REG_EXT_TE_EDGE REG_FLD_MSB_LSB(10, 10)
 #define TXRX_CTRL_FLD_REG_HSTX_CKLP_EN REG_FLD_MSB_LSB(16, 16)
+#define TXRX_CTRL_FLD_REG_EXT_TE_TIME_VM REG_FLD_MSB_LSB(23, 20)
 
 #define DSI_PSCTRL(data) (0x1c + data->reg_20_ofs)
 #define DSI_PS_WC	REG_FLD_MSB_LSB(14, 0)
@@ -5779,6 +5780,7 @@ static void mtk_output_dsi_enable(struct mtk_dsi *dsi,
 	struct mtk_drm_private *priv = (crtc && crtc->dev)
 		? crtc->dev->dev_private : NULL;
 	unsigned int crtc_idx;
+	unsigned int value = 0, mask = 0;
 
 	DDPINFO("%s +\n", __func__);
 
@@ -5872,6 +5874,10 @@ static void mtk_output_dsi_enable(struct mtk_dsi *dsi,
 
 	if (dsi->slave_dsi)
 		mtk_dsi_dual_enable(dsi->slave_dsi, true);
+	if (!dsi->driver_data) {
+		DDPPR_ERR("%s,dsi->driver_data error\n", __func__);
+		goto err_dsi_power_off;
+	}
 
 	/*
 	 * TODO: It's a temp workaround for cmd mode. When set the EXT_TE_EN bit
@@ -5880,23 +5886,29 @@ static void mtk_output_dsi_enable(struct mtk_dsi *dsi,
 	 * lcm initialize.
 	 */
 	if (is_bdg_supported()) {
-		if (mtk_dsi_is_cmd_mode(&dsi->ddp_comp) && dsi->driver_data)
+		if (mtk_dsi_is_cmd_mode(&dsi->ddp_comp))
 			mtk_dsi_mask(dsi, DSI_TXRX_CTRL(dsi->driver_data), EXT_TE_EN, EXT_TE_EN);
 	} else {
-		if (mtk_dsi_is_cmd_mode(&dsi->ddp_comp) && dsi->driver_data)
+		if (mtk_dsi_is_cmd_mode(&dsi->ddp_comp))
 			mtk_dsi_mask(dsi, DSI_TXRX_CTRL(dsi->driver_data), (EXT_TE_EN | HSTX_CKLP_EN),
 						(EXT_TE_EN | HSTX_CKLP_EN));
-		if (mtk_dsi_is_LTPO_VM_Enable(dsi) && dsi->driver_data)
+		else if (dsi->driver_data->disable_te_timeout_by_set_cnt) {
+			value = 0;
+			mask = 0;
+			SET_VAL_MASK(value, mask, 1, TXRX_CTRL_FLD_REG_EXT_TE_TIME_VM);
+			mtk_dsi_mask(dsi, DSI_TXRX_CTRL(dsi->driver_data), mask, value);
+		}
+		if (mtk_dsi_is_LTPO_VM_Enable(dsi))
 			mtk_dsi_mask(dsi, DSI_TXRX_CTRL(dsi->driver_data), EXT_TE_EN, EXT_TE_EN);
 	}
 
 	mtk_dsi_set_mode(dsi);
 	mtk_dsi_clk_hs_mode(dsi, 1);
 	if (dsi->slave_dsi) {
-		if (mtk_dsi_is_cmd_mode(&dsi->slave_dsi->ddp_comp) && dsi->driver_data)
+		if (mtk_dsi_is_cmd_mode(&dsi->slave_dsi->ddp_comp))
 			mtk_dsi_mask(dsi, DSI_TXRX_CTRL(dsi->driver_data), (EXT_TE_EN | HSTX_CKLP_EN),
 								(EXT_TE_EN | HSTX_CKLP_EN));
-		if (mtk_dsi_is_LTPO_VM_Enable(dsi) && dsi->driver_data)
+		if (mtk_dsi_is_LTPO_VM_Enable(dsi))
 			mtk_dsi_mask(dsi, DSI_TXRX_CTRL(dsi->driver_data), EXT_TE_EN, EXT_TE_EN);
 		mtk_dsi_set_mode(dsi->slave_dsi);
 		mtk_dsi_clk_hs_mode(dsi->slave_dsi, 1);
@@ -15386,6 +15398,7 @@ static const struct mtk_dsi_driver_data mt6991_dsi_driver_data = {
 	.support_512byte_rx = 0,
 	.dsi_rx_trig_sta = 0x0B8,
 	.dsi_rx_con = 0x0A0,
+	.disable_te_timeout_by_set_cnt = true,
 };
 
 static const struct mtk_dsi_driver_data mt6897_dsi_driver_data = {

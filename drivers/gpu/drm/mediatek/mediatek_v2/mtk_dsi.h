@@ -75,6 +75,7 @@ struct mtk_dsi_driver_data {
 	bool require_phy_reset; /* reset phy before trigger DSI */
 	bool keep_hs_eotp; /* keep HS eotp */
 	enum PREURGENT_MODE support_pre_urgent;
+	bool disable_te_timeout_by_set_cnt;
 	u32 max_vfp;
 	void (*mmclk_by_datarate)(struct mtk_dsi *dsi,
 		struct mtk_drm_crtc *mtk_crtc, unsigned int en);
