@@ -467,18 +467,30 @@ static void mtk_ovl_outproc_addon_config(struct mtk_ddp_comp *comp,
 	unsigned int width, height;
 	struct mtk_drm_crtc *mtk_crtc = comp->mtk_crtc;
 	struct drm_crtc *crtc = &mtk_crtc->base;
+	struct mtk_crtc_state *state;
 
 #if IS_ENABLED(CONFIG_MTK_DISPLAY_DUAL_PIPE_DUAL_PORT_SUPPORT)
 	return;
 #endif
 
-	width = addon_config->addon_wdma_config.wdma_dst_roi.width;
-	height = addon_config->addon_wdma_config.wdma_dst_roi.height;
+	state = to_mtk_crtc_state(mtk_crtc->base.state);
+	if (!state) {
+		DDPPR_ERR("%s state is NULL\n", __func__);
+		return;
+	}
+
+	if (state->prop_val[CRTC_PROP_OUTPUT_SCENARIO] == WDMA_WRITE_BACK_EXDMA_DL) {
+		width = addon_config->addon_wdma_config.wdma_dst_roi.width;
+		height = addon_config->addon_wdma_config.wdma_dst_roi.height;
+	} else {
+		width = mtk_crtc->scaling_ctx.lcm_width;
+		height = mtk_crtc->scaling_ctx.lcm_height;
+	}
 
 	DDPINFO("%s,%s,w:%d, h:%d\n", __func__, mtk_dump_comp_str(comp), width, height);
 
 	cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + DISP_REG_OVL_OUTPROC_EN,
-		       0x1, ~0);
+		   0x1, ~0);
 
 	if (width != 0 && height != 0)
 		cmdq_pkt_write(handle, comp->cmdq_base,
