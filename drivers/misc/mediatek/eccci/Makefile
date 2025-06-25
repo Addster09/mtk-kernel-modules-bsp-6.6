@@ -68,7 +68,8 @@ ccci_md_all-$(CCCI_OBJ) += port/port_cfg.o \
 		port/port_smem.o \
 		port/port_sysmsg.o \
 		port/ccci_swtp.o \
-		port/port_kernel_interface.o
+		port/port_kernel_interface.o \
+		port/ccci_mbrain.o
 # port end
 # fsm start
 ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/eccci/fsm/
