@@ -70,6 +70,7 @@ struct adsp_priv {
 	const char *name;
 	int state;
 	u64 feature_set;
+	u32 mbrain_enable;
 
 	/* address & size */
 	void __iomem *itcm;
@@ -99,6 +100,7 @@ struct adsp_priv {
 
 	struct device *dev;
 	struct kfifo tracefifo;
+	struct kfifo mbrainfifo;
 	struct miscdevice mdev;
 	struct workqueue_struct *wq;
 	struct completion done;
@@ -151,10 +153,30 @@ extern const struct file_operations adspsys_file_ops;
 extern struct attribute_group adsp_excep_attr_group;
 extern const struct file_operations adsp_debug_ops;
 extern const struct file_operations adsp_trace_ops;
+extern const struct file_operations adsp_mbrain_ops;
 extern const struct file_operations adsp_core_file_ops;
 extern struct attribute_group adsp_default_attr_group;
 
 extern struct adsp_priv *adsp_cores[ADSP_CORE_TOTAL];
 extern struct adspsys_priv *adspsys;
+
+/* MBrain */
+#define ADSP_MBRAIN_EVENT_DATA_SIZE 10
+struct adsp_mbrain_t {
+	uint64_t time_stamp;
+	uint32_t event_counter;
+	uint32_t event_type;
+	uint16_t magic_num;
+	uint16_t user_id;
+	uint16_t version;
+	uint16_t data_size;
+	uint32_t data[ADSP_MBRAIN_EVENT_DATA_SIZE];
+};
+
+typedef void (*audio_adsp_mbrain_notify_callback)(const void *info, const size_t count);
+int adsp_mbrain_register_callback(audio_adsp_mbrain_notify_callback mbrain_cbk);
+int adsp_mbrain_unregister_callback(void);
+void set_adsp_mbrain_cbk(audio_adsp_mbrain_notify_callback mbrain_cbk);
+int adsp_mbrain_enable(struct adsp_priv *pdata);
 
 #endif

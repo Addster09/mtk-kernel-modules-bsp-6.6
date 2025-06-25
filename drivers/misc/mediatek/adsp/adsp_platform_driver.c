@@ -62,6 +62,13 @@ int adsp_after_bootup(struct adsp_priv *pdata)
 	while (slb_memory_control(false) > 0)
 		;
 
+	/* Enable adsp_mbrain if need */
+	if (pdata->mbrain_enable) {
+		pr_info("%s(), core(%d) adsp_mbrain enable\n", __func__, pdata->id);
+		if (adsp_mbrain_enable(pdata) < 0)
+			pr_info("%s(), core(%d) adsp_mbrain enable fail\n", __func__, pdata->id);
+	}
+
 	return adsp_awake_unlock(pdata->id);
 }
 EXPORT_SYMBOL(adsp_after_bootup);
@@ -543,3 +550,29 @@ EXIT:
 	return adsp_type;
 }
 EXPORT_SYMBOL(get_adsp_type);
+
+/* MBrain */
+int adsp_mbrain_register_callback(audio_adsp_mbrain_notify_callback mbrain_cbk)
+{
+	int ret = 0;
+
+	if (!mbrain_cbk)
+		return -EINVAL;
+
+	set_adsp_mbrain_cbk(mbrain_cbk);
+	pr_debug("%s(), mbrain_cbk registered", __func__);
+
+	return ret;
+}
+EXPORT_SYMBOL(adsp_mbrain_register_callback);
+
+int adsp_mbrain_unregister_callback(void)
+{
+	int ret = 0;
+
+	set_adsp_mbrain_cbk(NULL);
+	pr_debug("%s(), mbrain_cbk unregistered", __func__);
+
+	return ret;
+}
+EXPORT_SYMBOL(adsp_mbrain_unregister_callback);
