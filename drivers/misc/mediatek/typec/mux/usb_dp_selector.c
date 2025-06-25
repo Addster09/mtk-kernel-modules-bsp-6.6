@@ -231,7 +231,11 @@ static int usb_dp_selector_mux_set(struct typec_mux_dev *mux,
 		/* Mark force HPD WA by DP Team Request. */
 		/* schedule_delayed_work(&uds->check_wk, msecs_to_jiffies(CHECK_HPD_DELAY)); */
 
+#ifndef CONFIG_MTK_DPTX_PATCH_FOR_TABLET_ENABLE
+	} else if (dp_data->status) {
+#else
 	} else {
+#endif
 		u32 irq = dp_data->status & DP_STATUS_IRQ_HPD;
 		u32 state = dp_data->status & DP_STATUS_HPD_STATE;
 

@@ -27,6 +27,9 @@
 #include <linux/module.h>
 #include <linux/pm_domain.h>
 #include <linux/device.h>
+#ifdef CONFIG_MTK_DPTX_PATCH_FOR_TABLET_ENABLE
+#include <video/videomode.h>
+#endif
 
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc.h>
@@ -690,7 +693,9 @@ void mdrv_DPTx_SetDPTXOut(struct mtk_dp *mtk_dp)
 
 	switch (mtk_dp->info.input_src) {
 	case DPTX_SRC_PG:
+#ifndef CONFIG_MTK_DPTX_PATCH_FOR_TABLET_ENABLE
 		mhal_DPTx_VideoClock(true, mtk_dp->info.resolution);
+#endif
 		mhal_DPTx_PGEnable(mtk_dp, true);
 		mhal_DPTx_Set_MVIDx2(mtk_dp, false);
 		DPTXMSG("Set Pattern Gen output\n");
@@ -1640,9 +1645,11 @@ int mdrv_DPTx_HPD_HandleInThread(struct mtk_dp *mtk_dp)
 				if (mtk_dp->priv->dpc_dev)
 					pm_runtime_put_sync(mtk_dp->priv->dpc_dev);
 			} else {
+#ifndef CONFIG_MTK_DPTX_PATCH_FOR_TABLET_ENABLE
 				if (mtk_dp->info.bPatternGen)
 					mhal_DPTx_VideoClock(false,
 						mtk_dp->info.resolution);
+#endif
 			}
 			fakecablein = false;
 			fakeres = FAKE_DEFAULT_RES;
@@ -2375,9 +2382,16 @@ int mdrv_DPTx_Training_Handler(struct mtk_dp *mtk_dp)
 
 			mtk_dp->info.audio_caps
 				= mdrv_DPTx_getAudioCaps(mtk_dp);
+#ifdef CONFIG_MTK_DPTX_PATCH_FOR_TABLET_ENABLE
+		} else {
+			mtk_dp->info.audio_caps = 0;
+			DPTXMSG("mtk_dp->info.audio_caps = 0!\n");
+			DPTXMSG("Read EDID Fail!\n");
+		}
+#else
 		} else
 			DPTXMSG("Read EDID Fail!\n");
-
+#endif
 		mtk_dp->training_state = DPTX_NTSTATE_TRAINING_PRE;
 		break;
 
@@ -3019,17 +3033,22 @@ void mtk_dp_video_config(struct mtk_dp *mtk_dp)
 	struct DPTX_TIMING_PARAMETER *DPTX_TBL = &mtk_dp->info.DPTX_OUTBL;
 	u32 mvid = 0;
 	bool overwrite = false;
+#ifdef CONFIG_MTK_DPTX_PATCH_FOR_TABLET_ENABLE
+	struct videomode vm = {0};
+#endif
 
 	if (!mtk_dp->dp_ready) {
 		DPTXERR("%s, DP is not ready!\n", __func__);
 		return;
 	}
 
+#ifndef CONFIG_MTK_DPTX_PATCH_FOR_TABLET_ENABLE
 	if (mtk_dp->info.resolution >= SINK_MAX) {
 		DPTXERR("DPTX doesn't support this resolution(%d)!\n",
 			mtk_dp->info.resolution);
 		return;
 	}
+#endif
 
 	if (fakecablein) {
 		if (mtk_dp->info.resolution == SINK_1280_720) {
@@ -3052,6 +3071,37 @@ void mtk_dp_video_config(struct mtk_dp *mtk_dp)
 		}
 		mtk_dp->info.depth = fakebpc;
 	}
+
+#ifdef CONFIG_MTK_DPTX_PATCH_FOR_TABLET_ENABLE
+
+	vm.hactive = mtk_dp->mode.hdisplay;
+	vm.hfront_porch = mtk_dp->mode.hsync_start - mtk_dp->mode.hdisplay;
+	vm.hsync_len = mtk_dp->mode.hsync_end - mtk_dp->mode.hsync_start;
+	vm.hback_porch = mtk_dp->mode.htotal - mtk_dp->mode.hsync_end;
+	vm.vactive = mtk_dp->mode.vdisplay;
+	vm.vfront_porch = mtk_dp->mode.vsync_start - mtk_dp->mode.vdisplay;
+	vm.vsync_len = mtk_dp->mode.vsync_end - mtk_dp->mode.vsync_start;
+	vm.vback_porch = mtk_dp->mode.vtotal - mtk_dp->mode.vsync_end;
+	vm.pixelclock = mtk_dp->mode.clock * 1000;
+
+	DPTX_TBL->FrameRate = mtk_dp->mode.clock * 1000 / mtk_dp->mode.htotal / mtk_dp->mode.vtotal;
+	DPTX_TBL->Htt = mtk_dp->mode.htotal;
+	DPTX_TBL->Hbp = vm.hback_porch;
+	DPTX_TBL->Hsw = vm.hsync_len;
+	DPTX_TBL->bHsp = 0;
+	DPTX_TBL->Hfp = vm.hfront_porch;
+	DPTX_TBL->Hde = vm.hactive;
+	DPTX_TBL->Vtt = mtk_dp->mode.vtotal;
+	DPTX_TBL->Vbp = vm.vback_porch;
+	DPTX_TBL->Vsw = vm.vsync_len;
+	DPTX_TBL->bVsp = 0;
+	DPTX_TBL->Vfp = vm.vfront_porch;
+	DPTX_TBL->Vde = vm.vactive;
+
+	if ((mtk_dp->info.resolution == SINK_3840_2160)
+			&& (DPTX_TBL->Htt == 4400)
+			&& (DPTX_TBL->Vtt == 2250)) {
+#else
 		switch (mtk_dp->info.resolution) {
 		case SINK_7680_4320:
 			DPTX_TBL->FrameRate = 60;
@@ -3189,6 +3239,7 @@ void mtk_dp_video_config(struct mtk_dp *mtk_dp)
 			break;
 	}
 	if (mtk_dp->info.resolution == SINK_3840_2160) {
+#endif
 		// patch for 4k@60 with DSC 3 times compress
 		switch (mtk_dp->training_info.ubLinkRate) {
 		case DP_LINKRATE_HBR3:
@@ -3466,6 +3517,7 @@ int mtk_drm_dp_get_cap(struct drm_device *dev, void *data,
 		*dp_cap = 0;
 
 	//DPTXMSG("Get capability: 0x%x\n", *dp_cap);
+
 	return 0;
 
 }
@@ -3875,7 +3927,9 @@ static enum drm_mode_status mtk_dp_conn_mode_valid(struct drm_connector *conn,
 		struct drm_display_mode *mode)
 {
 	int plat_limit_array = ARRAY_SIZE(dp_plat_limit);
+#ifndef CONFIG_MTK_DPTX_PATCH_FOR_TABLET_ENABLE
 	int i;
+#endif
 	struct mtk_dp *mtk_dp = mtk_dp_ctx_from_conn(conn);
 	unsigned int bandwidth = mtk_dp->training_info.ubLinkLaneCount *
 		mtk_dp->training_info.ubLinkRate * 27000 * 8 / 24;
@@ -3891,6 +3945,15 @@ static enum drm_mode_status mtk_dp_conn_mode_valid(struct drm_connector *conn,
 	if (fakecablein == true)
 		bandwidth = dp_plat_limit[0].clock;
 
+#ifdef CONFIG_MTK_DPTX_PATCH_FOR_TABLET_ENABLE
+	if (mode->clock == 0)
+		mode->clock
+		= mode->htotal * mode->vtotal * drm_mode_vrefresh(mode);
+
+	if (mode->clock > bandwidth)
+		return MODE_CLOCK_HIGH;
+#endif
+
 	DPTXMSG("Hde:%d,Vde:%d,fps:%d,clk:%d,bandwidth:%d,4k60:%d\n",
 		mode->hdisplay, mode->vdisplay, drm_mode_vrefresh(mode), mode->clock,
 		bandwidth, dp_plat_limit[0].valid);
@@ -3901,6 +3964,7 @@ static enum drm_mode_status mtk_dp_conn_mode_valid(struct drm_connector *conn,
 	if (mode->clock < (dp_plat_limit[plat_limit_array-1].clock - 5000))
 		return MODE_CLOCK_LOW;
 
+#ifndef CONFIG_MTK_DPTX_PATCH_FOR_TABLET_ENABLE
 	for (i = 0; i < plat_limit_array; i++) {
 		if (mode->hdisplay == 640 && mode->vdisplay == 480)
 			break;
@@ -3923,6 +3987,7 @@ static enum drm_mode_status mtk_dp_conn_mode_valid(struct drm_connector *conn,
 
 	if (i >= plat_limit_array)
 		return MODE_BAD_VSCAN;
+#endif
 
 	DPTXMSG("%s xres=%d, yres=%d, refresh=%d, clock=%d\n",
 			__func__, mode->hdisplay, mode->vdisplay,
@@ -3950,6 +4015,32 @@ static void mtk_dp_encoder_destroy(struct drm_encoder *encoder)
 static const struct drm_encoder_funcs mtk_dp_enc_funcs = {
 	.destroy = mtk_dp_encoder_destroy,
 };
+
+#ifdef CONFIG_MTK_DPTX_PATCH_FOR_TABLET_ENABLE
+static bool mtk_dp_encoder_mode_fixup(struct drm_encoder *encoder,
+		const struct drm_display_mode *mode,
+		struct drm_display_mode *adjusted_mode)
+{
+	return true;
+}
+
+static void mtk_dp_encoder_mode_set(struct drm_encoder *encoder,
+		struct drm_display_mode *mode,
+		struct drm_display_mode *adjusted)
+{
+	struct mtk_dp *mtk_dp = container_of(encoder, struct mtk_dp, enc);
+
+	drm_mode_copy(&mtk_dp->mode, adjusted);
+	mhal_DPTx_ModeCopy(adjusted);
+	DPTXMSG("%s Htt=%d Vtt=%d Ha=%d Va=%d\n", __func__, mtk_dp->mode.htotal,
+		mtk_dp->mode.vtotal, mtk_dp->mode.hdisplay, mtk_dp->mode.vdisplay);
+}
+
+static const struct drm_encoder_helper_funcs mtk_dp_encoder_helper_funcs = {
+	.mode_fixup = mtk_dp_encoder_mode_fixup,
+	.mode_set = mtk_dp_encoder_mode_set,
+};
+#endif
 
 static ssize_t mtk_dp_aux_transfer(struct drm_dp_aux *mtk_aux,
 	struct drm_dp_aux_msg *msg)
@@ -4447,6 +4538,9 @@ static int mtk_dp_bind(struct device *dev, struct device *master, void *data)
 	if (drm_encoder_init(drm, &mtk_dp->enc,	&mtk_dp_enc_funcs,
 		DRM_MODE_ENCODER_DPMST, "DP MST"))
 		goto err_encoder_init;
+#ifdef CONFIG_MTK_DPTX_PATCH_FOR_TABLET_ENABLE
+	drm_encoder_helper_add(&mtk_dp->enc, &mtk_dp_encoder_helper_funcs);
+#endif
 	mtk_dp->enc.possible_crtcs = 2;
 	drm_connector_attach_encoder(&mtk_dp->conn, &mtk_dp->enc);
 	g_mtk_dp = mtk_dp;

@@ -67,6 +67,16 @@ config MTK_AAL_SUPPORT
 	  display visual enhancement.
 	  This feature requires the cowork of AAL user-space algorithm process.
 
+config MTK_DPTX_PATCH_FOR_TABLET_ENABLE
+	bool "Support tablet DPTX Isolating"
+	help
+	  To achieve isolation between the tablet and the phone,
+	  it is necessary to open the configuration file for modifying
+	  the tablet.
+	  If this value is Y, the DPTX driver will use the code
+	  included in this macro to differentiate between tablet
+	  and phone code during compilation.
+
 config MTK_DRE30_SUPPORT
 	bool "Support DRE 30"
 	help
