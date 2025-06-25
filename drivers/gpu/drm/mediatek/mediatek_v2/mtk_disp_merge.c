@@ -81,18 +81,14 @@ static void mtk_merge_start(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle)
 		priv = comp->mtk_crtc->base.dev->dev_private;
 
 	if (priv && priv->data && (priv->data->mmsys_id == MMSYS_MT6985 ||
-		priv->data->mmsys_id == MMSYS_MT6897 || priv->data->mmsys_id == MMSYS_MT6991)) {
-		cmdq_pkt_write(handle, comp->cmdq_base,
-				   comp->regs_pa + DISP_REG_VPP_MERGE_ENABLE, 0x1, ~0);
-	} else {
+		priv->data->mmsys_id == MMSYS_MT6897 || priv->data->mmsys_id == MMSYS_MT6991))
+		mtk_ddp_write_relaxed(comp, 0x1, DISP_REG_VPP_MERGE_ENABLE, handle);
+	else {
 		if (comp->mtk_crtc && comp->mtk_crtc->is_dual_pipe == false) {
 			/* bypass merge function */
-			cmdq_pkt_write(handle, comp->cmdq_base,
-					comp->regs_pa + DISP_REG_MERGE_CTRL, 0x100, ~0);
-		} else {
-			cmdq_pkt_write(handle, comp->cmdq_base,
-					comp->regs_pa + DISP_REG_MERGE_CTRL, 0x1, ~0);
-		}
+			mtk_ddp_write_relaxed(comp, 0x100, DISP_REG_MERGE_CTRL, handle);
+		} else
+			mtk_ddp_write_relaxed(comp, 0x1, DISP_REG_MERGE_CTRL, handle);
 	}
 }
 

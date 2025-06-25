@@ -29,6 +29,7 @@ void disp_dither_dump(struct mtk_ddp_comp *comp);
 void disp_aal_dump(struct mtk_ddp_comp *comp);
 void disp_mdp_aal_dump(struct mtk_ddp_comp *comp);
 void disp_gamma_dump(struct mtk_ddp_comp *comp);
+void mtk_splitter_dump(struct mtk_ddp_comp *comp);
 void mtk_dsc_dump(struct mtk_ddp_comp *comp);
 void mtk_merge_dump(struct mtk_ddp_comp *comp);
 void mtk_cm_dump(struct mtk_ddp_comp *comp);

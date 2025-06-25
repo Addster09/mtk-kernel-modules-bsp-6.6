@@ -19,8 +19,13 @@
 #include "mtk_drm_crtc.h"
 #include "mtk_drm_ddp_comp.h"
 #include "mtk_drm_drv.h"
+#include "mtk_dump.h"
 
 #define DISP_REG_SPLITTER_CTL 0x00
+#define SPLITTER_ENABLE BIT(0)
+#define SPLITTER_OUT1_DIS BIT(12)
+#define SPLITTER_CONFIG_OUT_TH BIT(16)
+
 #define DISP_REG_SPLITTER_SRC_SIZE 0x04
 #define DISP_REG_SPLITTER_OUT0_OFFSET 0x10
 #define DISP_REG_SPLITTER_OUT0_SIZE 0x14
@@ -44,8 +49,7 @@ static void mtk_splitter_start(struct mtk_ddp_comp *comp, struct cmdq_pkt *handl
 		DDPPR_ERR("find comp fail\n");
 		return;
 	}
-	cmdq_pkt_write(handle, comp->cmdq_base,
-			comp->regs_pa + DISP_REG_SPLITTER_CTL, 0x1, 0x1);
+	mtk_ddp_write_mask(comp, 0x1, DISP_REG_SPLITTER_CTL, 0x1,  handle);
 }
 
 static void mtk_splitter_stop(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle)
@@ -58,6 +62,20 @@ static void mtk_splitter_stop(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle
 	}
 	cmdq_pkt_write(handle, comp->cmdq_base,
 			comp->regs_pa + DISP_REG_SPLITTER_CTL, 0x0, 0x1);
+}
+void mtk_splitter_dump(struct mtk_ddp_comp *comp)
+{
+	void __iomem *baddr = comp->regs;
+	int i;
+
+	if (!baddr) {
+		DDPDUMP("%s, %s is NULL!\n", __func__, mtk_dump_comp_str(comp));
+		return;
+	}
+	DDPDUMP("== DISP %s REGS:0x%pa ==\n", mtk_dump_comp_str(comp), &comp->regs_pa);
+
+	for (i = 0x0; i < 0x60; i += 0x10)
+		mtk_cust_dump_reg(baddr, i, i + 0x4, i + 0x8, i + 0xc);
 }
 
 static void

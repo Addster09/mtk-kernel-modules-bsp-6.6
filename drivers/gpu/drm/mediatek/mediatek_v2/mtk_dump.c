@@ -249,6 +249,10 @@ int mtk_dump_reg(struct mtk_ddp_comp *comp)
 	case DDP_COMPONENT_POSTALIGN0:
 		mtk_postalign_dump(comp);
 		break;
+	case DDP_COMPONENT_SPLITTER0:
+	case DDP_COMPONENT_SPLITTER1:
+		mtk_splitter_dump(comp);
+		break;
 	case DDP_COMPONENT_DSC0:
 	case DDP_COMPONENT_DSC1:
 		mtk_dsc_dump(comp);
