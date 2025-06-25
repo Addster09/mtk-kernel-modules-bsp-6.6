@@ -16486,9 +16486,14 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 		oc-limit-freq-lv1 = < 2147483647 2147483647 2147483647>;
 		oc-limit-freq-lv2 = < 900000 900000 900000>;
 
-		soc-max-level = <1>;
+		soc-max-level = <2>;
 		soc-core-active-lv1 = < 1 1 1 1 1 1 1 1 >;
+		soc-core-active-lv2 = < 1 1 1 1 1 1 1 1 >;
 		soc-limit-freq-lv1 = < 2147483647 2147483647 2147483647>;
+		soc-limit-freq-lv2 = < 2147483647 2147483647 2147483647>;
+
+		mpmm-enable = <1>;
+		mpmm-gear = <0>;
 	};
 
 	gpu_power_throttling: gpu-power-throttling {
@@ -16503,8 +16508,9 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 		oc-limit-freq-lv1 = <1200000>;
 		oc-limit-freq-lv2 = <700000>;
 
-		soc-max-level = <1>;
+		soc-max-level = <2>;
 		soc-limit-freq-lv1 = <2147483647>;
+		soc-limit-freq-lv2 = <2147483647>;
 	};
 
 	md_power_throttling: md-power-throttling {
@@ -16523,12 +16529,11 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 	bp_thl: bp-thl {
 		compatible = "mediatek,mtk-bp-thl";
 
-		max-throttle-level = <1>;
-		soc-throttle-level = <0 1>;
+		max-throttle-level = <2>;
+		soc-throttle-level = <0 1 2>;
 
-		soc-max-stage = <1>;
-		soc-limit-threshold = <15>;
-		soc-release-threshold = <16>;
+		soc-max-stage = <2>;
+		soc-limit-threshold = <15 5>;
 
 		md-soc-throttle-l = <20>;
 		md-soc-throttle-h = <25>;
