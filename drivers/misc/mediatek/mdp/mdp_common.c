@@ -308,7 +308,8 @@ static s32 cmdq_mdp_enable_common_clock(bool enable, u64 engine_flag)
 	if (!(engine_flag & cmdq_mdp_get_func()->mdpGetEngLarb())) {
 		if (engine_flag & cmdq_mdp_get_func()->mdpGetIspFlag())
 			return 0;
-		CMDQ_ERR("%s engine_flag not include MDP_ENG_LARB\n", __func__);
+		CMDQ_ERR("%s engine_flag:%llx not included in MDP_ENG_LARB\n",
+				__func__, engine_flag);
 		return TASK_STATE_ERROR;
 	}
 
