@@ -85,6 +85,8 @@ struct mbraink_wifi_ops {
 	void (*get_wifi_lp_data)(struct mbraink_wifi2mbr_lp_ratio_data *lp_data);
 	void (*get_wifi_txtimeout_data)(int current_idx,
 				struct mbraink_wifi2mbr_txtimeout_data *txtimeout_data);
+	void (*get_wifi_wakeupinfo_data)(int current_idx,
+				struct mbraink_wifi2mbr_wakeupinfo_data *wakeup_data);
 };
 int register_mbraink_wifi_ops(struct mbraink_wifi_ops *ops);
 int unregister_mbraink_wifi_ops(void);

@@ -65,6 +65,7 @@
 #define WIFI_TXTIMEOUT_INFO		'K'
 #define VDEC_FPS_INFO			'L'
 #define POWER_SPMI_GLITCH_INFO		'M'
+#define WIFI_WAKEUP_INFO		'V'
 
 /*Mbrain Delegate IOCTL List*/
 #define AUTO_IOCTL_INFO			_IOR(IOC_MAGIC, AUTO_IOCTL, \
@@ -166,6 +167,9 @@
 								struct mbraink_ufs_info*)
 #define RO_WIFI_TXTIMEOUT_INFO	_IOR(IOC_MAGIC, WIFI_TXTIMEOUT_INFO, \
 					struct mbraink_wifi2mbr_txtimeout_data*)
+
+#define RO_WIFI_WAKEUP_INFO	_IOR(IOC_MAGIC, WIFI_WAKEUP_INFO, \
+					struct mbraink_wifi2mbr_wakeupinfo_data*)
 
 #define RO_VDEC_FPS		_IOR(IOC_MAGIC, VDEC_FPS_INFO, \
 					struct mbraink_vdec_fps*)

@@ -33,6 +33,7 @@
 #define MAX_UFS_INFO_NUM				64
 #define MAX_WIFI_TXTIMEOUT_SZ			32
 #define MAX_PMIC_SPMI_GLITCH_SZ		96
+#define MAX_WIFI_WAKEUP_INFO_SZ			32
 
 #define NETLINK_EVENT_Q2QTIMEOUT		"NLEvent_Q2QTimeout"
 #define NETLINK_EVENT_UDMFETCH			"M&"
@@ -564,6 +565,32 @@ struct mbraink_vdec_fps {
 struct mbraink_spmi_glitch_struct_data {
 	unsigned int spmi_glitch_count;
 	u16 spmi_glitch[MAX_PMIC_SPMI_GLITCH_SZ];
+};
+
+enum mbraink_enum_mbr_wakeup_reason {
+	MBRAINK_MBR_WIFI_NO_WKUP,
+	MBRAINK_MBR_WIFI_RX_DATA_WKUP,
+	MBRAINK_MBR_WIFI_RX_EVENT_WKUP,
+	MBRAINK_MBR_WIFI_RX_MGMT_WKUP,
+	MBRAINK_MBR_WIFI_RX_OTHERS_WKUP,
+};
+
+struct mbraink_wakeup_reason_struct {
+	u64 timestamp;
+	enum mbraink_enum_mbr_wakeup_reason wkup_reason;
+	unsigned int wkup_info;
+	u64 total_suspend_period;
+	u64 resume_time;
+	u64 suspend_time;
+	u64 wifi_wkup_period;
+	u64 wifi_wkup_time;
+	u64 wifi_suspend_time;
+};
+
+struct mbraink_wifi2mbr_wakeupinfo_data {
+	u16 count;
+	u32 idx;
+	struct mbraink_wakeup_reason_struct wakeup_data[MAX_WIFI_WAKEUP_INFO_SZ];
 };
 
 #endif
