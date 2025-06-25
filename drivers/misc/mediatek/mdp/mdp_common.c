@@ -1315,7 +1315,9 @@ static s32 cmdq_mdp_setup_sec(struct cmdqCommandStruct *desc,
 		if (!handle->sec_isp_msg1 || !handle->sec_isp_msg2) {
 			CMDQ_ERR("fail to alloc isp msg\n");
 			vfree(handle->sec_isp_msg1);
+			handle->sec_isp_msg1 = NULL;
 			vfree(handle->sec_isp_msg2);
+			handle->sec_isp_msg2 = NULL;
 			return -ENOMEM;
 		}
 		cmdq_mdp_fill_isp_meta(&desc->secData.ispMeta,
@@ -1521,7 +1523,9 @@ s32 cmdq_mdp_handle_sec_setup(struct cmdqSecDataStruct *secData,
 		if (!handle->sec_isp_msg1 || !handle->sec_isp_msg2) {
 			CMDQ_ERR("fail to alloc isp msg\n");
 			vfree(handle->sec_isp_msg1);
+			handle->sec_isp_msg1 = NULL;
 			vfree(handle->sec_isp_msg2);
+			handle->sec_isp_msg2 = NULL;
 			return -ENOMEM;
 		}
 		if (is_sec_meta_data_support) {
@@ -1530,7 +1534,9 @@ s32 cmdq_mdp_handle_sec_setup(struct cmdqSecDataStruct *secData,
 			if (ret != 0) {
 				CMDQ_ERR("invalid fd, failed to get dma_buf\n");
 				vfree(handle->sec_isp_msg1);
+				handle->sec_isp_msg1 = NULL;
 				vfree(handle->sec_isp_msg2);
+				handle->sec_isp_msg2 = NULL;
 				return -EINVAL;
 			}
 		}
