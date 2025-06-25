@@ -59,7 +59,7 @@
 #define TEMP_DIS_UART							(85000)
 #define TEMP_TOLERANCE							(0)
 
-#define ENALBE_SW_FILTER						(0)
+#define ENALBE_SW_FILTER						(1)
 #define ATM_USES_PPM							(1)
 
 #define THERMAL_GET_AHB_BUS_CLOCK				(0)
