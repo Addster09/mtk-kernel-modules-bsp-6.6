@@ -3529,6 +3529,8 @@ void mtk_crtc_bif_comp_config(struct mtk_drm_crtc *mtk_crtc, struct mtk_ddp_conf
 	struct mtk_bif_info *bif_info = mtk_crtc->bif_info;
 	int i = 0, ret = 0;
 
+	DDPMSG("%s,\n", __func__);
+
 	for (i = 0; i < ddp_ctx->wb_comp_nr; i++) {
 		comp = ddp_ctx->wb_comp[i];
 
@@ -14080,18 +14082,6 @@ void mtk_crtc_disconnect_default_path(struct mtk_drm_crtc *mtk_crtc)
 	int i, j;
 	struct drm_crtc *crtc = &mtk_crtc->base;
 	struct mtk_ddp_comp *comp;
-
-	if (bif_enabled(crtc)) {
-		struct mtk_crtc_ddp_ctx *ddp_ctx = &mtk_crtc->ddp_ctx[mtk_crtc->ddp_mode];
-
-		for (i = 0; i < ddp_ctx->wb_comp_nr; i++) {
-			comp = ddp_ctx->wb_comp[i];
-			if (mtk_ddp_comp_get_type(comp->id) == MTK_DISP_VIRTUAL)
-				continue;
-			mtk_disp_mutex_remove_comp(mtk_crtc->mutex[0],
-					   comp->id);
-		}
-	}
 
 	/* if VDO mode, disable mutex by CPU here */
 	if (!mtk_crtc_is_frame_trigger_mode(crtc))

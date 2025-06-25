@@ -1351,7 +1351,17 @@ static struct mml_submit *mtk_alloc_mml_submit(void)
 	unsigned int i = 0;
 
 	temp = kzalloc(sizeof(struct mml_submit), GFP_KERNEL);
+	if (!temp) {
+		DDPPR_ERR("%s,%d,kzalloc error\n", __func__, __LINE__);
+		return temp;
+	}
+
 	temp->job = kzalloc(sizeof(struct mml_job), GFP_KERNEL);
+	if (!temp->job) {
+		kfree(temp);
+		DDPPR_ERR("%s,%d,kzalloc error\n", __func__, __LINE__);
+		return temp;
+	}
 	for (i = 0; i < MML_MAX_OUTPUTS; ++i)
 		temp->pq_param[i] =	kzalloc(sizeof(struct mml_pq_param), GFP_KERNEL);
 
@@ -5918,8 +5928,10 @@ static const struct mtk_crtc_path_data mt6991_mtk_main_bypass_pc_path_data = {
 	.dual_path[0] = mt6991_mtk_ddp_dual_main_bringup,
 	.dual_path_len[0] = ARRAY_SIZE(mt6991_mtk_ddp_dual_main_bringup),
 #endif
-//	.wb_path[DDP_MAJOR] = mt6983_mtk_ddp_main_wb_path,
-//	.wb_path_len[DDP_MAJOR] = ARRAY_SIZE(mt6983_mtk_ddp_main_wb_path),
+	.wb_path[DDP_MAJOR] = mt6991_mtk_ddp_main_bif_write_path,
+	.wb_path_len[DDP_MAJOR] = ARRAY_SIZE(mt6991_mtk_ddp_main_bif_write_path),
+	.bif_read_path[DDP_MAJOR] = mt6991_mtk_ddp_main_bif_read_path,
+	.bif_read_path_len[DDP_MAJOR] = ARRAY_SIZE(mt6991_mtk_ddp_main_bif_read_path),
 	.addon_data = mt6991_addon_main,
 	.addon_data_dual = mt6991_addon_main_dual,
 	.scaling_data = mt6991_scaling_main,
@@ -5927,6 +5939,7 @@ static const struct mtk_crtc_path_data mt6991_mtk_main_bypass_pc_path_data = {
 #if IS_ENABLED(CONFIG_MTK_LCM_DUAL_PORT_SUPPORT)
 	.is_exdma_dual_layer = true,
 #endif
+	.is_bypass_pc_path = true,
 };
 
 static const struct mtk_crtc_path_data mt6991_mtk_main_full_set_data = {
@@ -7331,11 +7344,18 @@ void drm_trigger_repaint(enum DRM_REPAINT_TYPE type, struct drm_device *drm_dev)
 			repaint_job =
 				list_first_entry(&pvd->repaint_data.job_pool,
 						 struct repaint_job_t, link);
+
+			if (repaint_job == NULL) {
+				DDPPR_ERR("error, repaint_job is NULL\n");
+				spin_unlock(&pvd->repaint_data.wq.lock);
+				return;
+			}
+
 			list_del_init(&repaint_job->link);
 		} else { /* create repaint_job_t if pool is empty */
 			repaint_job = kzalloc(sizeof(struct repaint_job_t),
 					      GFP_ATOMIC);
-			if (IS_ERR_OR_NULL(repaint_job)) {
+			if (repaint_job == NULL) {
 				DDPPR_ERR("allocate repaint_job_t fail\n");
 				spin_unlock(&pvd->repaint_data.wq.lock);
 				return;

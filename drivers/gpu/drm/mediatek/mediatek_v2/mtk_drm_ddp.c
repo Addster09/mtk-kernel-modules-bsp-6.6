@@ -31533,11 +31533,19 @@ void mtk_ddp_insert_bif_racing_MT6991(struct mtk_drm_crtc *mtk_crtc,
 {
 	unsigned int addr = 0, value = 0;
 
-	/* DDP_COMPONENT_POSTALIGN0 to DDP_COMPONENT_SPLITTER0 */
-	addr = MT6991_SPLITTER_IN_CB0_MOUT_EN;
-	value = MT6991_DISP_SPLITTER_IN_CB_TO_SPLITTER0;
-	cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
-		mtk_crtc->side_config_regs_pa + addr, value, ~0);
+	if (mtk_crtc->path_data->is_bypass_pc_path) {
+		/* DDP_COMPONENT_DLI_ASYNC21 to DDP_COMPONENT_SPLITTER0 */
+		addr = MT6991_SPLITTER_IN_CB1_MOUT_EN;
+		value = MT6991_DISP_SPLITTER_IN_CB_TO_SPLITTER0;
+		cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
+			mtk_crtc->side_config_regs_pa + addr, value, ~0);
+	} else {
+		/* DDP_COMPONENT_POSTALIGN0 to DDP_COMPONENT_SPLITTER0 */
+		addr = MT6991_SPLITTER_IN_CB0_MOUT_EN;
+		value = MT6991_DISP_SPLITTER_IN_CB_TO_SPLITTER0;
+		cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
+			mtk_crtc->side_config_regs_pa + addr, value, ~0);
+	}
 	/* clr DDP_COMPONENT_DSC0 to DDP_COMPONENT_DSI0 */
 	addr = MT6991_COMP_OUT_CB1_MOUT_EN;
 	value = 0;
@@ -31559,11 +31567,19 @@ void mtk_ddp_remove_bif_racing_MT6991(struct mtk_drm_crtc *mtk_crtc,
 {
 	unsigned int addr = 0, value = 0;
 
-	/* DDP_COMPONENT_POSTALIGN0 to DDP_COMPONENT_SPLITTER0_OUT_CB9 */
-	addr = MT6991_SPLITTER_IN_CB0_MOUT_EN;
-	value = MT6991_DISP_SPLITTER_IN_CB_TO_SPLITTER_OUT_CB9;
-	cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
-		mtk_crtc->side_config_regs_pa + addr, value, ~0);
+	if (mtk_crtc->path_data->is_bypass_pc_path) {
+		/* DDP_COMPONENT_DLI_ASYNC21 to DDP_COMPONENT_SPLITTER0_OUT_CB9 */
+		addr = MT6991_SPLITTER_IN_CB1_MOUT_EN;
+		value = MT6991_DISP_SPLITTER_IN_CB_TO_SPLITTER_OUT_CB9;
+		cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
+			mtk_crtc->side_config_regs_pa + addr, value, ~0);
+	} else {
+		/* DDP_COMPONENT_POSTALIGN0 to DDP_COMPONENT_SPLITTER0_OUT_CB9 */
+		addr = MT6991_SPLITTER_IN_CB0_MOUT_EN;
+		value = MT6991_DISP_SPLITTER_IN_CB_TO_SPLITTER_OUT_CB9;
+		cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
+			mtk_crtc->side_config_regs_pa + addr, value, ~0);
+	}
 	/* DDP_COMPONENT_DSC0 to DDP_COMPONENT_COMP0_OUT_CB1 */
 	addr = MT6991_COMP_OUT_CB1_MOUT_EN;
 	value = MT6991_DISP_COMP_OUT_CB_TO_MERGE_OUT_CB0;
