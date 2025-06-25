@@ -52,6 +52,8 @@
 #define DISP_REG_VPP_MERGE_CFG_26		(0x078)
 #define DISP_REG_VPP_MERGE_CFG_27		(0x07c)
 
+#define DISP_REG_VPP_MERGE_MUTE_0		(0xf00)
+
 struct mtk_merge_config_struct {
 	unsigned short width_right;
 	unsigned short width_left;
@@ -120,7 +122,30 @@ static int mtk_merge_check_params(struct mtk_merge_config_struct *merge_config)
 			  merge_config->width_right, merge_config->height);
 	return 0;
 }
+static void mtk_merge_bif_write_config(struct mtk_ddp_comp *comp,
+				struct mtk_ddp_config *cfg,
+		       struct cmdq_pkt *handle)
+{
+	struct mtk_drm_private *priv = comp->mtk_crtc->base.dev->dev_private;
+	const int offset = priv->data->bif_wdma_offset;
+	int width = cfg->w/3;
+	int height = cfg->h;
 
+	DDPINFO("%s,comp:%s,(%dx%d)offset:%d\n", __func__,
+		mtk_dump_comp_str(comp), width, height, offset);
+
+	mtk_ddp_write_relaxed(comp, (height << 16) | width, DISP_REG_VPP_MERGE_CFG_0, handle);
+	mtk_ddp_write_relaxed(comp, (height << 16) | offset, DISP_REG_VPP_MERGE_CFG_1, handle);
+	mtk_ddp_write_relaxed(comp, (height << 16) | (width+offset), DISP_REG_VPP_MERGE_CFG_4, handle);
+	mtk_ddp_write_relaxed(comp, 0, DISP_REG_VPP_MERGE_CFG_5, handle);
+	mtk_ddp_write_relaxed(comp, 0x18, DISP_REG_VPP_MERGE_CFG_12, handle);
+	mtk_ddp_write_relaxed(comp, (height << 16) | width, DISP_REG_VPP_MERGE_CFG_24, handle);
+	mtk_ddp_write_relaxed(comp, (height << 16) | offset, DISP_REG_VPP_MERGE_CFG_25, handle);
+	mtk_ddp_write_relaxed(comp, (height << 16) | width, DISP_REG_VPP_MERGE_CFG_26, handle);
+	mtk_ddp_write_relaxed(comp, (height << 16) | offset, DISP_REG_VPP_MERGE_CFG_27, handle);
+	mtk_ddp_write_relaxed(comp, 0, DISP_REG_VPP_MERGE_MUTE_0, handle);
+	mtk_ddp_write_relaxed(comp, 0x1, DISP_REG_VPP_MERGE_ENABLE, handle);
+}
 static void mtk_merge_config(struct mtk_ddp_comp *comp,
 				struct mtk_ddp_config *cfg,
 		       struct cmdq_pkt *handle)
@@ -358,6 +383,7 @@ static const struct mtk_ddp_comp_funcs mtk_disp_merge_funcs = {
 	.start = mtk_merge_start,
 	.stop = mtk_merge_stop,
 	.config = mtk_merge_config,
+	.bif_write_config = mtk_merge_bif_write_config,
 	.prepare = mtk_merge_prepare,
 	.unprepare = mtk_merge_unprepare,
 };

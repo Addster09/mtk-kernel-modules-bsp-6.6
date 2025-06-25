@@ -529,6 +529,13 @@ enum EVENT_TRIGGER_PT {
 			->wb_path[p_mode][__i], 1);       \
 			(__i)++)
 
+#define for_each_bif_read_comp_id_in_path_data(comp_id, path_data, __i, p_mode)      \
+	for ((p_mode) = 0; (p_mode) < DDP_MODE_NR; (p_mode)++)		  \
+		for ((__i) = 0;						\
+			(((__i) < ((path_data)->bif_read_path_len[p_mode])) &&  \
+			(((comp_id) = ((path_data)->bif_read_path[p_mode][__i])), 1));		\
+			(__i)++)
+
 enum MTK_CRTC_PROP {
 	CRTC_PROP_OVERLAP_LAYER_NUM,
 	CRTC_PROP_LYE_IDX,
@@ -779,6 +786,8 @@ struct mtk_crtc_path_data {
 	bool path_req_hrt[DDP_MODE_NR][DDP_PATH_NR];
 	const enum mtk_ddp_comp_id *wb_path[DDP_MODE_NR];
 	unsigned int wb_path_len[DDP_MODE_NR];
+	const enum mtk_ddp_comp_id *bif_read_path[DDP_MODE_NR];
+	unsigned int bif_read_path_len[DDP_MODE_NR];
 	const struct mtk_addon_scenario_data *addon_data;
 	const enum mtk_ddp_comp_id *scaling_data;
 	//for dual path
@@ -818,6 +827,8 @@ struct mtk_crtc_ddp_ctx {
 	bool req_hrt[DDP_PATH_NR];
 	unsigned int wb_comp_nr;
 	struct mtk_ddp_comp **wb_comp;
+	unsigned int bif_read_comp_nr;
+	struct mtk_ddp_comp **bif_read_comp;
 	struct drm_framebuffer *wb_fb;
 	struct drm_framebuffer *dc_fb;
 	unsigned int dc_fb_idx;
@@ -917,6 +928,26 @@ struct mtk_cwb_info {
 	void *user_buffer;
 	enum CWB_BUFFER_TYPE type;
 	const struct mtk_cwb_funcs *funcs;
+};
+
+struct mtk_bif_info {
+	bool init;
+	bool bif_enable;
+	bool racing_en;
+	struct mtk_ddp_comp *wb_comp;
+	struct mtk_ddp_comp *read_comp;
+	int wb_frame_done_event;
+	struct mtk_rect src_roi;
+	const int wdma_offset;
+	int pitch;
+	unsigned int sram_en;
+	struct slbc_data sram_data;
+	u64 sram_pa;
+	u64 sram_size;
+	u32 ovlsys_0[2];
+	u32 ovlsys_1[2];
+	u32 dispsys_0[2];
+	u32 dispsys_1[2];
 };
 
 struct mtk_crtc_static_plane {
@@ -1302,6 +1333,9 @@ struct mtk_drm_crtc {
 	bool is_plane0_updated;
 
 	struct mutex sol_lock;
+
+	/* bif data */
+	struct mtk_bif_info *bif_info;
 };
 
 enum BL_GAMMA_GAIN {
@@ -1631,6 +1665,8 @@ bool msync_is_on(struct mtk_drm_private *priv, struct mtk_panel_params *params,
 		unsigned int crtc_id, struct mtk_crtc_state *state,
 		struct mtk_crtc_state *old_state);
 
+bool bif_enabled(struct drm_crtc *crtc);
+
 /* ********************* Legacy DISP API *************************** */
 unsigned int DISP_GetScreenWidth(void);
 unsigned int DISP_GetScreenHeight(void);
@@ -1705,5 +1741,11 @@ void mtk_crtc_vdisp_ao_config(struct drm_crtc *crtc);
 void mml_cmdq_pkt_init(struct drm_crtc *crtc, struct cmdq_pkt *cmdq_handle);
 struct mtk_ddp_comp *mtk_disp_get_wdma_comp_by_scn(struct drm_crtc *crtc, enum addon_scenario scn);
 enum addon_scenario mtk_crtc_wb_get_scn(struct mtk_crtc_state *state);
+void mtk_crtc_bif_enable_racing(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *handle);
+void mtk_crtc_bif_restore_path_mutex(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *handle);
+void mtk_crtc_bif_backup_path_mutex(struct mtk_drm_crtc *mtk_crtc);
+void mtk_crtc_bif_slbc_request(struct mtk_drm_crtc *mtk_crtc, bool en);
+void mtk_crtc_bif_keep_read_path(struct drm_crtc *crtc, struct cmdq_pkt *handle);
+void mtk_crtc_bif_path_prepare(struct mtk_drm_crtc *mtk_crtc);
 
 #endif /* MTK_DRM_CRTC_H */

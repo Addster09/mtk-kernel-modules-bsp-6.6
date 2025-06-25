@@ -105,6 +105,13 @@ struct mtk_mmsys_driver_data {
 	bool real_srt_ostdl;
 	bool skip_trans;
 	bool wb_skip_sec_buf;
+	bool support_bif;
+	const int bif_wdma_offset;
+	const int bif_diff_thr;
+	void (*bif_racing_config)(struct cmdq_pkt *handle, struct mtk_drm_crtc *mtk_crtc, bool racing);
+	void (*bif_read_path_mutex)(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *handle);
+	void (*bif_path_insert)(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *handle);
+	void (*bif_path_remove)(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *handle);
 	void (*update_channel_hrt)(struct mtk_drm_crtc *mtk_crtc,
 			unsigned int bw_base, unsigned int channel_bw[]);
 	void (*update_channel_hrt_write)(struct mtk_drm_crtc *mtk_crtc,

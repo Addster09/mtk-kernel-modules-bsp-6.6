@@ -98,6 +98,47 @@ mtk_splitter_config(struct mtk_ddp_comp *comp, struct mtk_ddp_config *cfg, struc
 	cmdq_pkt_write(handle, comp->cmdq_base,	comp->regs_pa + DISP_REG_SPLITTER_CTL,
 		       0x10000, ~0);
 }
+static void
+mtk_splitter_bif_write_config(struct mtk_ddp_comp *comp, struct mtk_ddp_config *cfg, struct cmdq_pkt *handle)
+{
+	struct mtk_drm_crtc *mtk_crtc = comp->mtk_crtc;
+	struct mtk_bif_info *bif_info = mtk_crtc->bif_info;
+	struct mtk_drm_private *priv = mtk_crtc->base.dev->dev_private;
+	const int offset = priv->data->bif_wdma_offset;
+	int width = cfg->w;
+	int height = cfg->h;
+	int value = 0;
+
+	DDPINFO("%s,comp:%s,(%dx%d)offset:%d\n", __func__, mtk_dump_comp_str(comp), width, height, offset);
+
+	value = SPLITTER_ENABLE | SPLITTER_CONFIG_OUT_TH;
+	mtk_ddp_write_mask(comp, value, DISP_REG_SPLITTER_CTL, value,  handle);
+
+	value = (height << 16) | width;
+	mtk_ddp_write_relaxed(comp, value, DISP_REG_SPLITTER_SRC_SIZE, handle);
+	mtk_ddp_write_relaxed(comp, value, DISP_REG_SPLITTER_OUT0_SIZE, handle);
+	mtk_ddp_write_relaxed(comp, 0, DISP_REG_SPLITTER_OUT0_OFFSET, handle);
+	value = width - offset;
+	mtk_ddp_write_relaxed(comp, value, DISP_REG_SPLITTER_OUT1_OFFSET, handle);
+	value = (height << 16) | offset;
+	mtk_ddp_write_relaxed(comp, value, DISP_REG_SPLITTER_OUT1_SIZE, handle);
+}
+static void
+mtk_splitter_bif_read_config(struct mtk_ddp_comp *comp, struct mtk_ddp_config *cfg, struct cmdq_pkt *handle)
+{
+	struct mtk_drm_private *priv = comp->mtk_crtc->base.dev->dev_private;
+	const int offset = priv->data->bif_wdma_offset;
+	int width = cfg->w/3;
+	int height = cfg->h;
+
+	DDPINFO("%s,comp:%s,(%dx%d)offset:%d\n", __func__, mtk_dump_comp_str(comp), width, height, offset);
+
+	mtk_ddp_write_mask(comp,SPLITTER_ENABLE | SPLITTER_OUT1_DIS, DISP_REG_SPLITTER_CTL,
+			SPLITTER_ENABLE | SPLITTER_OUT1_DIS,  handle);
+	mtk_ddp_write_relaxed(comp, (height << 16) | (width + offset), DISP_REG_SPLITTER_SRC_SIZE, handle);
+	mtk_ddp_write_relaxed(comp, 0, DISP_REG_SPLITTER_OUT0_OFFSET, handle);
+	mtk_ddp_write_relaxed(comp, (height << 16) | width, DISP_REG_SPLITTER_OUT0_SIZE, handle);
+}
 
 static void mtk_splitter_prepare(struct mtk_ddp_comp *comp)
 {
@@ -115,6 +156,8 @@ static const struct mtk_ddp_comp_funcs mtk_disp_splitter_funcs = {
 	.start = mtk_splitter_start,
 	.stop = mtk_splitter_stop,
 	.config = mtk_splitter_config,
+	.bif_write_config = mtk_splitter_bif_write_config,
+	.bif_read_config = mtk_splitter_bif_read_config,
 	.prepare = mtk_splitter_prepare,
 	.unprepare = mtk_splitter_unprepare,
 };

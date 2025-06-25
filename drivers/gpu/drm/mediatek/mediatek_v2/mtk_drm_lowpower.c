@@ -961,6 +961,18 @@ static void mtk_drm_vdo_mode_enter_idle(struct drm_crtc *crtc)
 		mtk_drm_vidle_control(crtc, true);
 	}
 
+	if (bif_enabled(crtc)) {
+		mtk_crtc_bif_backup_path_mutex(mtk_crtc);
+		mtk_crtc_bif_enable_racing(mtk_crtc, handle);
+
+		if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_MMQOS_SUPPORT))
+			mtk_disp_set_hrt_bw(mtk_crtc, 0);
+
+		cmdq_pkt_clear_event(handle, mtk_crtc->bif_info->wb_frame_done_event);
+		cmdq_pkt_wfe(handle, mtk_crtc->bif_info->wb_frame_done_event);
+		mtk_crtc_bif_keep_read_path(crtc, handle);
+
+	}
 	cmdq_pkt_flush(handle);
 	cmdq_pkt_destroy(handle);
 }
@@ -995,6 +1007,19 @@ static void mtk_drm_vdo_mode_leave_idle(struct drm_crtc *crtc)
 	unsigned int *trace;
 
 	mtk_crtc_pkt_create(&handle, crtc, client);
+
+	if (bif_enabled(crtc)) {
+
+		mtk_crtc_wait_frame_done(mtk_crtc, handle, DDP_FIRST_PATH, 0);
+		if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_MMQOS_SUPPORT))
+			mtk_disp_set_hrt_bw(mtk_crtc, mtk_crtc->qos_ctx->last_hrt_req);
+
+		if (priv->data->bif_path_remove)
+			priv->data->bif_path_remove(mtk_crtc, handle);
+
+		mtk_crtc_bif_slbc_request(mtk_crtc, false);
+		mtk_crtc_bif_restore_path_mutex(mtk_crtc, handle);
+	}
 
 	if (mtk_drm_helper_get_opt(priv->helper_opt,
 				   MTK_DRM_OPT_IDLEMGR_DISABLE_ROUTINE_IRQ)) {
