@@ -4042,6 +4042,32 @@ static bool is_rsz_valid(struct drm_mtk_layer_config *c)
 	return true;
 }
 
+static bool is_same_ratio(struct drm_mtk_layer_config *ref,
+			 struct drm_mtk_layer_config *c)
+{
+	int diff_w, diff_h;
+
+	if (!ref->dst_width || !ref->dst_height) {
+		DDPMSG("%s:ref dst(%dx%d)\n", __func__, ref->dst_width,
+			  ref->dst_height);
+		return false;
+	}
+
+	diff_w = (c->dst_width * ref->src_width + (ref->dst_width - 1)) /
+			 ref->dst_width -
+		 c->src_width;
+	diff_h = (c->dst_height * ref->src_height + (ref->dst_height - 1)) /
+			 ref->dst_height -
+		 c->src_height;
+	DDPDBG("%s: c(%d, %d)->(%d, %d), ref(%d, %d)->(%d, %d), diff_w %d, diff_h %d\n",
+			__func__, c->src_width, c->src_height, c->dst_width, c->dst_height,
+			ref->src_width, ref->src_height, ref->dst_width, ref->dst_height, diff_w, diff_h);
+
+	if (abs(diff_w) > 1 || abs(diff_h) > 1)
+		return false;
+
+	return true;
+}
 
 #define RATIO_LIMIT  2
 static bool same_ratio_limitation(struct drm_crtc *crtc,
@@ -4189,6 +4215,7 @@ static int RPO_rule(struct drm_crtc *crtc,
 		struct drm_mtk_layering_info *disp_info, int disp_idx)
 {
 	struct drm_mtk_layer_config *c = NULL;
+	struct drm_mtk_layer_config *ref_layer = NULL;
 	struct mtk_rect src_layer_roi = {0};
 	struct mtk_rect dst_layer_roi = {0};
 	struct mtk_rect src_roi = {0};
@@ -4237,6 +4264,13 @@ static int RPO_rule(struct drm_crtc *crtc,
 
 		if (!is_rsz_valid(c))
 			continue;
+
+		if (ref_layer && private && private->data &&
+				(private->data->mmsys_id == MMSYS_MT6768) &&
+				is_same_ratio(ref_layer, c) == false &&
+				is_same_ratio(c, ref_layer) == false)
+			break;
+
 		if (!(!(mtk_crtc->is_dual_pipe) &&
 			(i == 0 && private && private->data &&
 			((private->data->mmsys_id == MMSYS_MT6761) ||
@@ -4305,6 +4339,9 @@ static int RPO_rule(struct drm_crtc *crtc,
 
 		c->layer_caps |= MTK_DISP_RSZ_LAYER;
 		++scale_cnt;
+
+		if (!ref_layer)
+			ref_layer = c;
 	}
 	return scale_cnt;
 }
