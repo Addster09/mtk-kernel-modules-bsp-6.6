@@ -2710,6 +2710,63 @@ static int init_opp_cap_info(struct proc_dir_entry *dir) { return 0; }
 
 #endif
 
+int mtk_effective_cpu_util_total(int cpu, struct task_struct *p, int dst_cpu, int runnable_boost,
+		unsigned long *min_cap, unsigned long *max_cap)
+{
+	int cpu_util_cfs, cpu_util_eff, cpu_util_mgn, cpu_util_tal, flt_util = 0;
+	int gearid __maybe_unused = topology_cluster_id(cpu), i;
+	struct cpumask *cpumask;
+
+	cpumask = get_gear_cpumask(gearid);
+
+	if (p && !rt_task(p))
+		cpu_util_cfs = mtk_cpu_util_next(cpu, p, dst_cpu, runnable_boost);
+	else
+		cpu_util_cfs = mtk_cpu_util_next(cpu, NULL, -1, runnable_boost);
+
+	cpu_util_eff = mtk_cpu_util(cpu, cpu_util_cfs, FREQUENCY_UTIL, p, *min_cap, *max_cap);
+
+	if (min_cap && max_cap){
+		if (!turn_point_util[cpu] && (am_ctrl || grp_dvfs_ctrl_mode)) {
+			if (am_ctrl == 0 || am_ctrl == 9)
+				for_each_cpu(i, cpumask)
+					WRITE_ONCE(adaptive_margin[i], util_scale);
+			cpu_util_mgn =
+				(cpu_util_eff * READ_ONCE(adaptive_margin[cpu])) >> SCHED_CAPACITY_SHIFT;
+
+		#if IS_ENABLED(CONFIG_MTK_SCHED_FAST_LOAD_TRACKING)
+			if (flt_get_cpu_util_hook && grp_dvfs_ctrl_mode &&
+					(wl_cpu_curr != 4 || grp_high_freq[gearid]))
+				flt_util = group_aware_dvfs_util(cpumask);
+			if (grp_dvfs_ctrl_mode == 9)
+				flt_util = 0;
+		#endif
+		cpu_util_tal = max_t(int, cpu_util_mgn, flt_util);
+		goto out;
+		}
+
+		if (turn_point_util[cpu] && cpu_util_eff >= turn_point_util[cpu])
+			cpu_util_mgn = max(turn_point_util[cpu],
+					cpu_util_eff * target_margin[cpu] >> SCHED_CAPACITY_SHIFT);
+		else if (turn_point_util[cpu] && cpu_util_eff < turn_point_util[cpu])
+			cpu_util_mgn = min(turn_point_util[cpu],
+					cpu_util_eff * target_margin_low[cpu] >> SCHED_CAPACITY_SHIFT);
+		else
+			cpu_util_mgn = cpu_util_eff*util_scale >> SCHED_CAPACITY_SHIFT;
+
+		cpu_util_tal = cpu_util_mgn;
+	}else
+		cpu_util_tal = cpu_util_eff;
+
+out:
+	if (trace_sched_cpu_util_total_enabled())
+		trace_sched_cpu_util_total(cpu, cpu_util_tal, cpu_util_mgn, cpu_util_eff,
+			cpu_util_cfs, flt_util, min_cap, max_cap, dst_cpu, p, runnable_boost);
+	return cpu_util_tal;
+
+}
+EXPORT_SYMBOL_GPL(mtk_effective_cpu_util_total);
+
 #define lsub_positive(_ptr, _val) do {				\
 	typeof(_ptr) ptr = (_ptr);				\
 	*ptr -= min_t(typeof(*ptr), *ptr, _val);		\

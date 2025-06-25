@@ -22,12 +22,14 @@
 #include <linux/sched/cputime.h>
 #include <sched/sched.h>
 #include "sched_sys_common.h"
+#include "shortcut/compress.h"
 
 #define CREATE_TRACE_POINTS
 
 static struct attribute *sched_ctl_attrs[] = {
 #if IS_ENABLED(CONFIG_MTK_CORE_PAUSE)
 	&sched_core_pause_info_attr.attr,
+	&sched_shortcut_compress_attr.attr,
 #endif
 	NULL,
 };
@@ -75,3 +77,29 @@ void cleanup_sched_common_sysfs(void)
 		kobj = NULL;
 	}
 }
+
+static ssize_t show_sched_shortcut_compress(struct kobject *kobj,
+					struct kobj_attribute *attr,char *buf)
+{
+	unsigned int len = 0;
+	unsigned int max_len = 4096;
+
+	len += snprintf(buf+len, max_len-len,
+		"compress rate=%d\n",  get_shortcut_compress_rate());
+
+	return len;
+}
+
+ssize_t store_sched_shortcut_compress(struct kobject *kobj, struct kobj_attribute *attr,
+					const char __user *buf, size_t cnt)
+{
+	int rate;
+
+	if (kstrtouint(buf, 10, &rate))
+		return -EINVAL;
+	set_shortcut_compress_rate(rate);
+	return cnt;
+}
+
+struct kobj_attribute sched_shortcut_compress_attr =
+__ATTR(sched_shortcut_compress, 0640, show_sched_shortcut_compress, store_sched_shortcut_compress);

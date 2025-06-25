@@ -56,6 +56,7 @@ DECLARE_PER_CPU(unsigned long, min_freq);
 #define LB_RT_SAME_SYNC      (0x80001)
 #define LB_RT_SAME_FIRST     (0x80002)
 #define LB_RT_FAIL_FIRST     (0x80004)
+#define LB_SHORTCUT_COMPRESS (0x100000)
 
 /*
  * energy_env - Utilization landscape for energy estimation.
@@ -107,6 +108,7 @@ struct rt_energy_aware_output {
 	int rt_lowest_cpu;
 	int rt_lowest_prio;
 	int rt_lowest_pid;
+	int shortcut;
 	int select_reason;
 	int rt_aggre_preempt_enable;
 };
@@ -287,6 +289,12 @@ extern void get_most_powerful_pd_and_util_Th(void);
 #define EAS_RUNNABLE_BOOST_UNSET	_IOW('g', 62,  unsigned int)
 #define EAS_SET_DSU_IDLE			_IOW('g', 63,  unsigned int)
 #define EAS_UNSET_DSU_IDLE			_IOW('g', 64,  unsigned int)
+#define EAS_SET_SHORTCUT_COMPRESS_RATE                    _IOW('g', 65, int)
+#define EAS_RESET_SHORTCUT_COMPRESS_RATE                  _IOW('g', 66, int)
+#define EAS_SET_SHORTCUT_COMPRESS_RELAX_ENOUGH_CPU_UTIL   _IOW('g', 67, struct shortcut_compress_relax_enough_args)
+#define EAS_RESET_SHORTCUT_COMPRESS_RELAX_ENOUGH_CPU_UTIL _IOW('g', 68, int)
+#define EAS_SET_SHORTCUT_COMPRESS_RELAX_ENOUGH_TSK_UTIL   _IOW('g', 69, struct shortcut_compress_relax_enough_args)
+#define EAS_RESET_SHORTCUT_COMPRESS_RELAX_ENOUGH_TSK_UTIL _IOW('g', 70, int)
 
 extern void update_curr_collab_state(bool *is_cpu_to_update_thermal);
 #if IS_ENABLED(CONFIG_MTK_NEWIDLE_BALANCE)
