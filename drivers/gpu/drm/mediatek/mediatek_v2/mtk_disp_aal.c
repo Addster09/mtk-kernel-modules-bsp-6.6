@@ -2473,11 +2473,6 @@ static int disp_aal_act_eventctl(struct mtk_ddp_comp *comp, void *data)
 		CRTC_MMP_MARK(0, aal_event_ctl, events, 2);
 	}
 
-	mutex_lock(&aal_data->primary_data->clk_lock);
-	if (atomic_read(&aal_data->is_clock_on))
-		disp_aal_set_interrupt(comp, enable, NULL);
-	mutex_unlock(&aal_data->primary_data->clk_lock);
-
 	return ret;
 }
 
@@ -3315,6 +3310,7 @@ static void disp_aal_bypass(struct mtk_ddp_comp *comp, int bypass,
 				cmdq_pkt_write(handle, companion->cmdq_base,
 					companion->regs_pa + DISP_AAL_CFG,
 					AAL_RELAY_MODE, AAL_RELAY_MODE);
+			disp_aal_set_interrupt(comp,!bypass,handle);
 		}
 		primary_data->relay_state |= (1 << caller);
 	} else {
@@ -3331,6 +3327,7 @@ static void disp_aal_bypass(struct mtk_ddp_comp *comp, int bypass,
 						companion->regs_pa + DISP_AAL_CFG,
 						0x6, (0x3 << 1) | AAL_RELAY_MODE);
 				}
+				disp_aal_set_interrupt(comp,!bypass,handle);
 			}
 		}
 	}
