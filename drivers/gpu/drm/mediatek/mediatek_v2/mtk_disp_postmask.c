@@ -87,6 +87,8 @@ module_param(debug_postmask_bw, int, 0644);
 #define PAUSE_REGION_FLD_RDMA_PAUSE_END REG_FLD_MSB_LSB(27, 16)
 #define PAUSE_REGION_FLD_RDMA_PAUSE_START REG_FLD_MSB_LSB(11, 0)
 #define DISP_POSTMASK_MEM_ADDR_MSB 0x114
+#define DISP_POSTMASK_BANK_CON 0x128
+#define DDREN_REQ_DIS	BIT(5)
 #define DISP_POSTMASK_RDMA_GREQ_NUM 0x130
 #define GREQ_FLD_IOBUF_FLUSH_ULTRA REG_FLD_MSB_LSB(31, 31)
 #define GREQ_FLD_IOBUF_FLUSH_PREULTRA REG_FLD_MSB_LSB(30, 30)
@@ -582,11 +584,18 @@ int mtk_postmask_analysis(struct mtk_ddp_comp *comp)
 static int mtk_postmask_io_cmd(struct mtk_ddp_comp *comp,
 			       struct cmdq_pkt *handle,
 			       enum mtk_ddp_io_cmd io_cmd, void *params);
+static void mtk_postmask_bypass(struct mtk_ddp_comp *comp, int bypass,
+	int caller, struct cmdq_pkt *handle);
 
 static void mtk_postmask_start(struct mtk_ddp_comp *comp,
 			       struct cmdq_pkt *handle)
 {
 	DDPDBG("%s\n", __func__);
+
+	if (bif_enabled(&comp->mtk_crtc->base))
+		mtk_postmask_bypass(comp, 1, 0, handle);
+	else
+		mtk_postmask_bypass(comp, 0, 0, handle);
 
 #ifdef IF_ZERO	/* enable only if irq can be handled */
 	mtk_postmask_io_cmd(comp, handle, IRQ_LEVEL_NORMAL, NULL);
@@ -626,6 +635,13 @@ static void mtk_postmask_bypass(struct mtk_ddp_comp *comp, int bypass,
 	/* config relay mode */
 	cmdq_pkt_write(handle, comp->cmdq_base,
 		       comp->regs_pa + DISP_POSTMASK_CFG, bypass, 0x1);
+
+	if (bypass)
+		cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + DISP_POSTMASK_BANK_CON,
+			DDREN_REQ_DIS, DDREN_REQ_DIS);
+	else
+		cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + DISP_POSTMASK_BANK_CON,
+			0x0, DDREN_REQ_DIS);
 }
 
 void mtk_postmask_relay_debug(struct mtk_ddp_comp *comp, unsigned int relay)

@@ -1069,7 +1069,21 @@ void dpc_mtcmos_auto(const enum mtk_dpc_subsys subsys, const enum mtk_dpc_mtcmos
 	g_priv->set_mtcmos(subsys, mode);
 	spin_unlock_irqrestore(&g_priv->mtcmos_cfg_lock, flags);
 }
+static void dpc_apsrc_set(const bool en)
+{
+	if (g_priv == NULL) {
+		DPCERR("g_priv null\n");
+		return;
+	}
 
+	if (en) {
+		writel(0x000D000D, dpc_base + DISP_REG_DPC_DISP_DDRSRC_EMIREQ_CFG);
+		writel(0x000D000D, dpc_base + DISP_REG_DPC_MML_DDRSRC_EMIREQ_CFG);
+	} else {
+		writel(0x000D0005, dpc_base + DISP_REG_DPC_DISP_DDRSRC_EMIREQ_CFG);
+		writel(0x000D0005, dpc_base + DISP_REG_DPC_MML_DDRSRC_EMIREQ_CFG);
+	}
+}
 static void dpc_dsi_pll_set(const u32 value)
 {
 	if (g_priv == NULL) {
@@ -2121,6 +2135,7 @@ static const struct dpc_funcs funcs = {
 	.dpc_channel_bw_set_by_idx = dpc_channel_bw_set_by_idx,
 	.dpc_analysis = dpc_analysis,
 	.dpc_debug_cmd = process_dbg_opt,
+	.dpc_apsrc_set = dpc_apsrc_set,
 };
 
 static struct mtk_dpc mt6989_dpc_driver_data = {

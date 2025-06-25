@@ -180,6 +180,9 @@
 #define DISP_REG_UFBC_WDMA_ADDR0_MSB 0xf08
 #define DISP_REG_UFBC_WDMA_ADDR1_MSB 0xf0c
 
+#define DISP_REG_WDMA_DDREN_CTRL 0xf3c
+#define DISP_DDREN_REQ_DISABLE	BIT(0)
+
 /* AID offset in mmsys config */
 #define MT6983_OVL1_2L_NWCG	0x1401B000
 #define MT6983_OVL_DUMMY_REG	(0x200UL)
@@ -655,6 +658,9 @@ static void mtk_wdma_start(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle)
 	if (data && data->sodi_config)
 		data->sodi_config(comp->mtk_crtc->base.dev, comp->id, handle,
 				  &en);
+
+	if (bif_enabled(&comp->mtk_crtc->base) && comp->mtk_crtc->bif_info->wb_comp)
+		mtk_ddp_write_relaxed(comp, DISP_DDREN_REQ_DISABLE, DISP_REG_WDMA_DDREN_CTRL, handle);
 }
 
 static void mtk_wdma_stop(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle)

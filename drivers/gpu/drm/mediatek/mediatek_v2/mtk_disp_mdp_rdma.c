@@ -37,6 +37,7 @@
 
 #define DISP_REG_MDP_RDMA_CON 0x020
 #define OUTPUT_10B BIT(5)	/* output yuv 10bit */
+#define DDREN_REQ_DISABLE	BIT(15)
 
 #define DISP_REG_MDP_RDMA_GMCIF_CON 0x028
 #define PRE_ULTRA_EN (0x2 << 16)
@@ -222,13 +223,17 @@ static void mtk_mdp_rdma_start(struct mtk_ddp_comp *comp, struct cmdq_pkt *handl
 		mtk_ddp_write_mask(comp, COMMAND_DIV,
 			DISP_REG_MDP_RDMA_GMCIF_CON, COMMAND_DIV, handle);
 
-	mtk_ddp_write_mask(comp, OUTPUT_10B,
-		DISP_REG_MDP_RDMA_CON, OUTPUT_10B, handle);
 	mtk_ddp_write_mask(comp, ROT_ENABLE,
 		DISP_REG_MDP_RDMA_EN, ROT_ENABLE, handle);
 	val = FRAME_COMPLETE_INT | UNDERRUN_INT;
 	mtk_ddp_write_mask(comp, val,
 		DISP_REG_MDP_RDMA_INT_ENABLE, val, handle);
+
+	if (bif_enabled(&mtk_crtc->base) && mtk_crtc->bif_info->read_comp)
+		mtk_ddp_write_mask(comp, OUTPUT_10B | DDREN_REQ_DISABLE,
+			DISP_REG_MDP_RDMA_CON, OUTPUT_10B | DDREN_REQ_DISABLE, handle);
+	else
+		mtk_ddp_write_mask(comp, OUTPUT_10B, DISP_REG_MDP_RDMA_CON, OUTPUT_10B, handle);
 }
 
 static void mtk_mdp_rdma_stop(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle)

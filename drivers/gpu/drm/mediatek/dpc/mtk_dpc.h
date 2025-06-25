@@ -155,6 +155,8 @@ struct dpc_funcs {
 	void (*dpc_pm_analysis)(void);
 	void (*dpc_debug_cmd)(const char *opt);
 
+	void (*dpc_apsrc_set)(const bool en);
+
 	/* V1 ONLY */
 	void (*dpc_dc_force_enable)(const bool en);
 	void (*dpc_init_panel_type)(enum mtk_panel_type);

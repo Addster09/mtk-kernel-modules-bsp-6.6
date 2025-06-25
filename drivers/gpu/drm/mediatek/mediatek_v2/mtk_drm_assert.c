@@ -351,7 +351,8 @@ int drm_show_dal(struct drm_crtc *crtc, bool enable)
 		DDPPR_ERR("%s: crtc is null\n", __func__);
 		return 0;
 	}
-
+	if (bif_enabled(crtc))
+		return 0;
 	mtk_crtc = to_mtk_crtc(crtc);
 	if (mtk_crtc == NULL) {
 		DDPPR_ERR("%s: mtk_crtc is null\n", __func__);

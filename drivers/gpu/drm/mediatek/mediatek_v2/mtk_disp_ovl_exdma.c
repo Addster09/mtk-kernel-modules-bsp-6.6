@@ -4899,7 +4899,11 @@ static int mtk_ovl_exdma_set_partial_update(struct mtk_ddp_comp *comp,
 
 	return 0;
 }
-
+void mtk_ovl_exdma_ddren(struct mtk_ddp_comp *comp,
+	bool en, struct cmdq_pkt *handle)
+{
+	mtk_ddp_write_mask(comp, en, DISP_REG_OVL_DUMMY_REG, DISP_OVL_EXT_DDR_EN_OPT, handle);
+}
 static const struct mtk_ddp_comp_funcs mtk_disp_ovl_exdma_funcs = {
 	.config = mtk_ovl_exdma_config,
 	.first_cfg = mtk_ovl_exdma_config,
@@ -4917,6 +4921,7 @@ static const struct mtk_ddp_comp_funcs mtk_disp_ovl_exdma_funcs = {
 	.connect = mtk_ovl_exdma_connect,
 	.config_trigger = mtk_ovl_exdma_config_trigger,
 	.partial_update = mtk_ovl_exdma_set_partial_update,
+	.ddren_config = mtk_ovl_exdma_ddren,
 };
 
 /* TODO: to be refactored */

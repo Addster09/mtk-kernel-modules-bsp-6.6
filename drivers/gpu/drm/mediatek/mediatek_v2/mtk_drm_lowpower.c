@@ -975,6 +975,9 @@ static void mtk_drm_vdo_mode_enter_idle(struct drm_crtc *crtc)
 	}
 	cmdq_pkt_flush(handle);
 	cmdq_pkt_destroy(handle);
+
+	if (bif_enabled(crtc))
+		mtk_crtc_bif_apsrc_ddren_control(mtk_crtc, false);
 }
 
 static void mtk_drm_cmd_mode_enter_idle(struct drm_crtc *crtc)
@@ -1009,6 +1012,7 @@ static void mtk_drm_vdo_mode_leave_idle(struct drm_crtc *crtc)
 	mtk_crtc_pkt_create(&handle, crtc, client);
 
 	if (bif_enabled(crtc)) {
+		mtk_crtc_bif_apsrc_ddren_control(mtk_crtc, true);
 
 		mtk_crtc_wait_frame_done(mtk_crtc, handle, DDP_FIRST_PATH, 0);
 		if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_MMQOS_SUPPORT))
@@ -2965,6 +2969,10 @@ void mtk_drm_idlemgr_wb_reconfig(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt 
 		return;
 	}
 	mtk_plane_state = kzalloc(sizeof(*mtk_plane_state), GFP_KERNEL);
+	if (!mtk_plane_state) {
+		DDPPR_ERR("%s,mtk_plane_state error\n", __func__);
+		goto out;
+	}
 	mtk_plane_state->pending.addr = mtk_crtc->idlemgr->wb_buffer_iova;
 	mtk_plane_state->pending.pitch = fb->pitches[0];
 	mtk_plane_state->pending.width = fb->width;

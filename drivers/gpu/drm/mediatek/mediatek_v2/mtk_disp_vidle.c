@@ -795,7 +795,11 @@ void mtk_vidle_dsi_pll_set(const u32 value)
 	if (disp_dpc_driver.dpc_dsi_pll_set)
 		disp_dpc_driver.dpc_dsi_pll_set(value);
 }
-
+void mtk_vidle_apsrc_set(const bool en)
+{
+	if (disp_dpc_driver.dpc_apsrc_set)
+		disp_dpc_driver.dpc_apsrc_set(en);
+}
 u32 mtk_vidle_hint_update(enum mtk_vidle_hint_type type)
 {
 	switch (type) {

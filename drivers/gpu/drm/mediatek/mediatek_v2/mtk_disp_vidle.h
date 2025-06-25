@@ -93,6 +93,7 @@ void mtk_vidle_dpc_pm_analysis(void);
 void mtk_vidle_debug_cmd_adapter(const char *opt);
 void mtk_vidle_set_panel_type(enum mtk_panel_type type);
 void mtk_vidle_dsi_pll_set(const u32 value);
+void mtk_vidle_apsrc_set(const bool en);
 void mtk_vidle_channel_bw_set(const u32 bw_in_mb, const u32 idx);
 u32 mtk_vidle_hint_update(enum mtk_vidle_hint_type type);
 int mtk_vidle_hint_decision(const char *caller);

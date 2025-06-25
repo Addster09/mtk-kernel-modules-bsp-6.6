@@ -596,6 +596,19 @@ void mtk_crtc_bif_keep_read_path(struct drm_crtc *crtc, struct cmdq_pkt *handle)
 		}
 	}
 }
+void mtk_crtc_bif_apsrc_ddren_control(struct mtk_drm_crtc *mtk_crtc, bool en)
+{
+	struct drm_crtc *crtc = &mtk_crtc->base;
+	struct mtk_drm_private *priv = crtc->dev->dev_private;
+	enum mtk_ddp_comp_id id = DDP_COMPONENT_OVL_EXDMA0;
+
+	for (id = DDP_COMPONENT_OVL_EXDMA0; id <= DDP_COMPONENT_OVL1_EXDMA9; id ++)
+		mtk_ddp_comp_ddren_config(priv->ddp_comp[id], en, NULL);
+
+	mtk_vidle_apsrc_set(en);
+
+	DDPMSG("%s,%d\n", __func__, en);
+}
 static unsigned int dual_comp_blender_map_mt6991(unsigned int comp_id)
 {
 	unsigned int ret = 0;
