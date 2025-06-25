@@ -3231,7 +3231,7 @@ static void mt_usb_wakeup(struct musb *musb, bool enable)
 		return;
 	}
 
-	DBG(0, "connection=%d\n", is_con);
+	DBG(0, "connection=%d uwk_vers =%d\n", is_con, uwk_vers);
 
 	if (is_con == 0 && enable != 0) {
 		DBG(0, "Only OTG Adapter\n");
@@ -3362,7 +3362,8 @@ static int mt_usb_wakeup_init(struct musb *musb)
 		DBG(0, "Support remote wakeup\n");
 		if (of_device_is_compatible(node, "mediatek,mt6855-usb20"))
 			uwk_vers = 1;
-		else if (of_device_is_compatible(node, "mediatek,mt6789-usb20"))
+		else if (of_device_is_compatible(node, "mediatek,mt6789-usb20") ||
+				of_device_is_compatible(node, "mediatek,mt6833-usb20"))
 			uwk_vers = 2;
 		else if (of_device_is_compatible(node, "mediatek,mt6768-usb20") ||
 				of_device_is_compatible(node, "mediatek,mt6761-usb20") ||
