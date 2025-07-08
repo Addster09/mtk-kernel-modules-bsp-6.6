@@ -16201,7 +16201,9 @@ struct cmdq_pkt *mtk_crtc_gce_commit_begin(struct drm_crtc *crtc,
 		mtk_crtc_pkt_create(&cmdq_handle, crtc,
 			mtk_crtc->gce_obj.client[CLIENT_SEC_CFG]);
 	} else {
-		if (mtk_crtc_is_dc_mode(crtc) || mtk_crtc->is_mml)
+		if (mtk_crtc_is_dc_mode(crtc) || mtk_crtc->is_mml ||
+			(mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_MML_DL_SUB_CFG_CLINET) &&
+			(!mtk_crtc_is_frame_trigger_mode(crtc)) && mtk_crtc->is_mml_dl))
 			mtk_crtc_pkt_create(&cmdq_handle, crtc,
 				mtk_crtc->gce_obj.client[CLIENT_SUB_CFG]);
 		else
