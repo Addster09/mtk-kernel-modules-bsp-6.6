@@ -976,6 +976,44 @@ static int mbraink_v6899_power_get_spmi_glitch_info(
 	return ret;
 }
 
+#if IS_ENABLED(CONFIG_MTK_ECCCI_DRIVER)
+
+int mbraink_v6899_power_ccci_event_cb(enum CCCI_MBRAIN_EVENT_TYPE event_type,
+	void *ccci_mbrain_data)
+{
+	char netlink_buf[NETLINK_EVENT_MESSAGE_SIZE] = {'\0'};
+	int n __maybe_unused = 0;
+	struct fsm_poll_data *ccci_raw = NULL;
+
+	if (!ccci_mbrain_data) {
+		pr_info("[%s] ccci_mbrain_data is null\n", __func__);
+		return -1;
+	}
+
+	ccci_raw = (struct fsm_poll_data *)ccci_mbrain_data;
+
+	n = snprintf(netlink_buf, NETLINK_EVENT_MESSAGE_SIZE,
+		"%s:%d:%d:%s:%llu:%d",
+		NETLINK_EVENT_CCCI_NOTIFY,
+		(unsigned int)event_type,
+		(unsigned int)ccci_raw->version,
+		ccci_raw->key_info,
+		(unsigned long long)ccci_raw->time_stamp,
+		(unsigned int)ccci_raw->cost_time
+	);
+
+	if (n < 0 || n > NETLINK_EVENT_MESSAGE_SIZE)
+		pr_info("%s : snprintf error n = %d\n", __func__, n);
+	else
+		mbraink_netlink_send_msg(netlink_buf);
+
+	pr_info("[%s] netlink_buf(%s)\n", __func__, netlink_buf);
+
+	return 0;
+}
+#endif
+
+
 static struct mbraink_power_ops mbraink_v6899_power_ops = {
 	.getVotingInfo = mbraink_v6899_power_get_voting_info,
 	.getPowerInfo = NULL,
@@ -1019,6 +1057,14 @@ int mbraink_v6899_power_init(void)
 		pr_info("register ppb callback failed by: %d", ret);
 		return ret;
 	}
+
+#if IS_ENABLED(CONFIG_MTK_ECCCI_DRIVER)
+	ret = ccci_mbrain_register(mbraink_v6899_power_ccci_event_cb);
+	if (ret != 0) {
+		pr_info("register ccci callback failed by: %d", ret);
+		return ret;
+	}
+#endif
 
 	sys_res_mbrain_ops = get_mbraink_dbg_ops();
 	if (sys_res_mbrain_ops && sys_res_mbrain_ops->get_length) {
@@ -1075,6 +1121,16 @@ int mbraink_v6899_power_deinit(void)
 		pr_info("ppb unregister callback failed by: %d", ret);
 		return ret;
 	}
+
+#if IS_ENABLED(CONFIG_MTK_ECCCI_DRIVER)
+
+	ret = ccci_mbrain_unregister();
+	if (ret != 0) {
+		pr_info("ccci unregister callback failed by: %d", ret);
+		return ret;
+	}
+#endif
+
 	return ret;
 }
 
