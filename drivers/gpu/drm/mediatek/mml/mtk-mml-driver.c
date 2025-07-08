@@ -1465,10 +1465,12 @@ void mml_comp_qos_set(struct mml_comp *comp, struct mml_task *task,
 {
 	struct mml_frame_config *cfg = task->config;
 	struct mml_dev *mml = cfg->mml;
+	const struct mml_frame_info *info = &cfg->info;
+	const struct mml_frame_dest *dest = &info->dest[0];
 	struct mml_pipe_cache *cache = &cfg->cache[ccfg->pipe];
 	struct mml_comp_bw *bw = &comp->bw[cfg->dpc];
-	const u32 srt_bw = bw->srt_bw, hrt_bw = bw->hrt_bw;
-	const u32 stash_srt_bw = bw->stash_srt_bw, stash_hrt_bw = bw->stash_hrt_bw;
+	u32 srt_bw = bw->srt_bw, hrt_bw = bw->hrt_bw;
+	u32 stash_srt_bw = bw->stash_srt_bw, stash_hrt_bw = bw->stash_hrt_bw;
 	bool hrt = cfg->info.mode == MML_MODE_RACING || cfg->info.mode == MML_MODE_DIRECT_LINK;
 	bool updated = false;
 
@@ -1504,11 +1506,35 @@ void mml_comp_qos_set(struct mml_comp *comp, struct mml_task *task,
 			hrt_icc = MBps_to_icc(hrt_bw);
 		}
 
+		if (dest->rotate != MML_ROT_0 && !MML_FMT_COMPRESS(info->src.format) &&
+			info->mode == MML_MODE_DIRECT_LINK) {
+			mml_msg_qos("org srt:%d hrt:%d stash_srt_bw:%d stash_hrt_bw:%d",
+				srt_icc, hrt_icc, stash_srt_bw, stash_hrt_bw);
+			srt_icc += 512;
+			hrt_icc = hrt_icc ? hrt_icc + 512 : 0;
+			stash_srt_bw = stash_srt_bw * 2;
+			stash_hrt_bw = stash_hrt_bw * 2;
+			mml_msg_qos("final srt:%d hrt:%d stash_srt_bw:%d stash_hrt_bw:%d",
+				srt_icc, hrt_icc, stash_srt_bw, stash_hrt_bw);
+		}
+
 		mtk_icc_set_bw(comp->icc_dpc_path, srt_icc, hrt_icc);
 		if (comp->icc_stash_path)
 			mtk_icc_set_bw(comp->icc_dpc_stash_path,
 				MBps_to_icc(stash_srt_bw), MBps_to_icc(stash_hrt_bw));
 	} else {
+		if (dest->rotate != MML_ROT_0 && !MML_FMT_COMPRESS(info->src.format) &&
+			info->mode == MML_MODE_DIRECT_LINK) {
+			mml_msg_qos("org srt:%d hrt:%d stash_srt_bw:%d stash_hrt_bw:%d",
+				srt_bw, hrt_bw, stash_srt_bw, stash_hrt_bw);
+			srt_bw += 512;
+			hrt_bw = hrt_bw ? hrt_bw + 512 : 0;
+			stash_srt_bw = stash_srt_bw * 2;
+			stash_hrt_bw = stash_hrt_bw * 2;
+			mml_msg_qos("final srt:%d hrt:%d stash_srt_bw:%d stash_hrt_bw:%d",
+				srt_bw, hrt_bw, stash_srt_bw, stash_hrt_bw);
+		}
+
 		mtk_icc_set_bw(comp->icc_path,
 			MBps_to_icc(srt_bw), MBps_to_icc(hrt_bw));
 		if (comp->icc_stash_path)

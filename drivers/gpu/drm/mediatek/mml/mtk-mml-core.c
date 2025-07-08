@@ -1223,6 +1223,9 @@ static u32 mml_core_calc_tput_couple(struct mml_task *task, u32 pixel, u32 pipe)
 			task_tput = (u32)((u64)task_tput * cfg->panel_w / dest->data.width);
 		/* always increase urate */
 		task_tput = task_tput * mml_urate / 100;
+
+		if (dest->rotate != MML_ROT_0 && !MML_FMT_COMPRESS(info->src.format))
+			task_tput = task_tput * 3 / 2;
 	}
 
 	task->pipe[pipe].throughput[dpc] = task_tput;
