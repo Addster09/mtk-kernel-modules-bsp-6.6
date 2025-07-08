@@ -47,7 +47,7 @@ static const struct mtk_node_desc node_descs_mt6991[] = {
 	DEFINE_MNODE(mdp_common0_port7,
 		MASTER_COMMON_PORT(1, 7), 0, false, 0x11, SLAVE_COMMON(1)),
 	DEFINE_MNODE(mdp_common0_port8,
-		MASTER_COMMON_PORT(1, 8), 0, false, 0x11, SLAVE_COMMON(1)),
+		MASTER_COMMON_PORT(1, 8), 0, false, 0x11, SLAVE_COMMON(1)), // larb3 DC
 	/* SMI DISP COMMON */
 	DEFINE_MNODE(DISP_larb0,  SLAVE_LARB(0),  0,   false, 0x0, MASTER_COMMON_PORT(0, 0)),
 	DEFINE_MNODE(DISP_larb37, SLAVE_LARB(37), 0,   false, 0x0, MASTER_COMMON_PORT(0, 0)),
@@ -928,9 +928,9 @@ static const struct mtk_mmqos_desc mmqos_desc_mt6991 = {
 	},
 	.comm_port_hrt_types = {
 		{ HRT_MAX_BWL, HRT_MAX_BWL, HRT_NONE, SRT_VENC, HRT_NONE,
-			HRT_CAM, HRT_NONE, SRT_MDP, HRT_DISP },
+			HRT_CAM, HRT_NONE, HRT_SRT_MIX, HRT_DISP },
 		{ HRT_MAX_BWL, HRT_MAX_BWL, HRT_NONE, HRT_NONE, SRT_VENC,
-			HRT_NONE, HRT_CAM, HRT_CAM, SRT_MML },
+			HRT_NONE, HRT_CAM, HRT_CAM, HRT_SRT_MIX },
 	},
 	.report_bw_larbs = {SLAVE_LARB(49),	SLAVE_LARB(48),},
 	.report_bw_real_larbs = {SLAVE_LARB(2),	SLAVE_LARB(3),},
