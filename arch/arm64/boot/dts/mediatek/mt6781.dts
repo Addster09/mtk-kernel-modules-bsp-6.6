@@ -6596,3 +6596,6 @@
 &mt6370 {
 	interrupts = <4 IRQ_TYPE_LEVEL_LOW 4 0>; /*mt6370-irq gpio is gpio 4 for mt6781*/
 };
+
+/delete-node/ &mt_pmic_vsim1_ldo_reg;
+/delete-node/ &mt_pmic_vsim2_ldo_reg;
