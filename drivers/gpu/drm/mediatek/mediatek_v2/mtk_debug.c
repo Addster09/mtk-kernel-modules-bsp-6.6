@@ -3049,7 +3049,7 @@ static void process_dbg_opt(const char *opt)
 	} else if (strncmp(opt, "bif_force_en:", 13) == 0) {
 		struct drm_crtc *crtc;
 		struct mtk_drm_crtc *mtk_crtc;
-		u32 v1 = 0, v2 = 0;
+		u32 v1 = 0;
 
 		crtc = list_first_entry(&(drm_dev)->mode_config.crtc_list,
 			typeof(*crtc), head);
@@ -3058,17 +3058,20 @@ static void process_dbg_opt(const char *opt)
 			return;
 		}
 
-		if (sscanf(opt, "bif_force_en:%d,%d\n", &v1, &v2) != 2) {
-			DDPMSG("echo bif_force_en:en,mode > /d/mtkfb\n");
+		if (sscanf(opt, "bif_force_en:%d\n", &v1) != 1) {
+			DDPMSG("echo bif_force_en:mode > /d/mtkfb\n");
+			return;
+		}
+
+		if (v1 >= 2) {
+			DDPMSG("not support:%d\n", v1);
 			return;
 		}
 
 		mtk_crtc = to_mtk_crtc(crtc);
 		DDP_MUTEX_LOCK(&mtk_crtc->lock, __func__, __LINE__);
-		mtk_crtc->bif_info->bif_enable = v1;
-		mtk_crtc->bif_info->bif_mode = (v2==0)?1:v2;
-		DDPMSG("%s, >> bif_enable:%d, bif_mode:%d\n", __func__,
-			mtk_crtc->bif_info->bif_enable, mtk_crtc->bif_info->bif_mode);
+		mtk_crtc->bif_info->force_en = v1;
+		DDPMSG("%s,bif_force_en:%d\n", __func__, mtk_crtc->bif_info->force_en);
 		DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
 	} else if (strncmp(opt, "msync_debug:", 12) == 0) {
 		if (strncmp(opt + 12, "on", 2) == 0)

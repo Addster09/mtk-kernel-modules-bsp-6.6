@@ -659,7 +659,7 @@ static void mtk_wdma_start(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle)
 		data->sodi_config(comp->mtk_crtc->base.dev, comp->id, handle,
 				  &en);
 
-	if (bif_enabled(&comp->mtk_crtc->base) && comp->mtk_crtc->bif_info->wb_comp)
+	if ((bif_enabled(&comp->mtk_crtc->base) != BIF_DISABLE) && comp->mtk_crtc->bif_info->wb_comp)
 		mtk_ddp_write_relaxed(comp, DISP_DDREN_REQ_DISABLE, DISP_REG_WDMA_DDREN_CTRL, handle);
 }
 
@@ -1883,17 +1883,16 @@ static void mtk_wdma_bif_write_config(struct mtk_ddp_comp *comp,
 	dma_addr_t addr = 0;
 	unsigned int size = 0;
 	unsigned int con = 0;
-	uint32_t format = 0;
+	uint32_t format = DRM_FORMAT_RGB888;
 	int crtc_idx = drm_crtc_index(&comp->mtk_crtc->base);
 	int src_w, src_h, clip_w, clip_h, clip_x, clip_y, pitch;
 	bool is_secure;
 
 	src_w = bif_info->src_roi.width;
 	src_h = bif_info->src_roi.height;
-	pitch = bif_info->pitch;
+	pitch = bif_info->src_roi.width*mtk_get_format_bpp(DRM_FORMAT_RGB888);
 	is_secure = false;
 	addr = bif_info->sram_pa;
-	format = DRM_FORMAT_RGB888;
 
 	//cmdq_pkt_write(handle, comp->cmdq_base,
 		//comp->larb_cons[0], GENMASK(19, 16), GENMASK(19, 16));

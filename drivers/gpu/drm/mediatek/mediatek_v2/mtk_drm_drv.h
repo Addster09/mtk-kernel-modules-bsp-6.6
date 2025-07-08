@@ -106,7 +106,7 @@ struct mtk_mmsys_driver_data {
 	bool skip_trans;
 	bool wb_skip_sec_buf;
 	bool support_bif;
-	const int bif_wdma_offset;
+	const int bif_wdma_limit;
 	const int bif_diff_thr;
 	void (*bif_racing_config)(struct cmdq_pkt *handle, struct mtk_drm_crtc *mtk_crtc, bool racing);
 	void (*bif_read_path_mutex)(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *handle);

@@ -2179,6 +2179,8 @@ static void mtk_atomic_check_res_switch(struct mtk_drm_private *private,
 
 			/*store total overhead data*/
 			mtk_crtc_store_total_overhead(mtk_crtc, cfg.tile_overhead);
+
+			mtk_crtc_update_bif_roi(mtk_crtc);
 		}
 	}
 }
@@ -7136,7 +7138,7 @@ static const struct mtk_mmsys_driver_data mt6991_mmsys_driver_data = {
 	.update_channel_hrt_write = mtk_disp_update_channel_hrt_write_MT6991,
 	.get_channel_idx = mtk_disp_get_channel_idx_MT6991,
 	.support_bif = true,
-	.bif_wdma_offset = 8,
+	.bif_wdma_limit = 16,
 	.bif_diff_thr = 16,
 	.bif_racing_config = mtk_disp_bif_racing_config_MT6991,
 	.bif_read_path_mutex = mtk_disp_bif_keep_read_mutex_MT6991,

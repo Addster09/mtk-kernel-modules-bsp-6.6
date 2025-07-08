@@ -592,7 +592,7 @@ static void mtk_postmask_start(struct mtk_ddp_comp *comp,
 {
 	DDPDBG("%s\n", __func__);
 
-	if (bif_enabled(&comp->mtk_crtc->base))
+	if (bif_enabled(&comp->mtk_crtc->base) != BIF_DISABLE)
 		mtk_postmask_bypass(comp, 1, 0, handle);
 	else
 		mtk_postmask_bypass(comp, 0, 0, handle);

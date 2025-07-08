@@ -932,21 +932,21 @@ struct mtk_cwb_info {
 	const struct mtk_cwb_funcs *funcs;
 };
 enum BIF_EN_MODE {
+	BIF_DISABLE = 0,
 	BIF_HS_IDLE = 1,
 	BIF_ALL_SCN = 2,
+	BIF_FORCE_OFF = 0xF,
 };
 
 struct mtk_bif_info {
-	bool init;
-	bool bif_enable;
-	unsigned int bif_mode;	//BIF_EN_MODE
+	enum BIF_EN_MODE bif_enable;
+	enum BIF_EN_MODE force_en;
 	bool racing_en;
 	struct mtk_ddp_comp *wb_comp;
 	struct mtk_ddp_comp *read_comp;
 	int wb_frame_done_event;
 	struct mtk_rect src_roi;
-	const int wdma_offset;
-	int pitch;
+	int wdma_offset;
 	unsigned int sram_en;
 	struct slbc_data sram_data;
 	u64 sram_pa;
@@ -1672,7 +1672,7 @@ bool msync_is_on(struct mtk_drm_private *priv, struct mtk_panel_params *params,
 		unsigned int crtc_id, struct mtk_crtc_state *state,
 		struct mtk_crtc_state *old_state);
 
-bool bif_enabled(struct drm_crtc *crtc);
+enum BIF_EN_MODE bif_enabled(struct drm_crtc *crtc);
 
 /* ********************* Legacy DISP API *************************** */
 unsigned int DISP_GetScreenWidth(void);
@@ -1755,5 +1755,5 @@ bool mtk_crtc_bif_slbc_request(struct mtk_drm_crtc *mtk_crtc, bool en);
 void mtk_crtc_bif_keep_read_path(struct drm_crtc *crtc, struct cmdq_pkt *handle);
 void mtk_crtc_bif_path_prepare(struct mtk_drm_crtc *mtk_crtc);
 void mtk_crtc_bif_apsrc_ddren_control(struct mtk_drm_crtc *mtk_crtc, bool en);
-
+void mtk_crtc_update_bif_roi(struct mtk_drm_crtc *mtk_crtc);
 #endif /* MTK_DRM_CRTC_H */

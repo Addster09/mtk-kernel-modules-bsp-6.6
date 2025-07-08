@@ -37527,8 +37527,8 @@ void mtk_crtc_dump_bif_info(struct mtk_drm_crtc *mtk_crtc, void __iomem *config_
 	if (!bif_info)
 		return;
 
-	DDPFENCE("bif_enabled(%d), mode:%d\n", bif_enabled(&mtk_crtc->base), bif_info->bif_mode);
-	DDPFENCE("bif:addr:0x%llx,sz:%llx\n", bif_info->sram_pa, bif_info->sram_size);
+	DDPFENCE("bif_enabled(%d)addr:0x%llx,sz:%llx (%dx%d)\n", bif_enabled(&mtk_crtc->base),
+		bif_info->sram_pa, bif_info->sram_size, bif_info->src_roi.width, bif_info->src_roi.height);
 }
 void mmsys_config_dump_analysis_mt6991(void __iomem *config_regs, int sys_id)
 {

@@ -951,21 +951,11 @@ static void mtk_drm_vdo_mode_enter_idle(struct drm_crtc *crtc)
 			mtk_ddp_comp_io_cmd(comp, handle, IRQ_LEVEL_IDLE, NULL);
 	}
 
-	comp = mtk_ddp_comp_request_output(mtk_crtc);
-	if (comp) {
-		int en = 0;
-		mtk_ddp_comp_io_cmd(comp, handle, DSI_VFP_IDLE_MODE, NULL);
-		mtk_ddp_comp_io_cmd(comp, handle, DSI_LFR_SET, &en);
-		/*Not turn off vdo ltpo when enter idle*/
-		//mtk_ddp_comp_io_cmd(comp, handle, DSI_LTPO_VDO_SET, &en);
-		mtk_drm_vidle_control(crtc, true);
-	}
-
-	if (bif_enabled(crtc) && (mtk_crtc->bif_info->bif_mode == BIF_HS_IDLE)) {
+	if (bif_enabled(crtc)== BIF_HS_IDLE) {
 		mtk_crtc_bif_backup_path_mutex(mtk_crtc);
 
 		if (!mtk_crtc_bif_slbc_request(mtk_crtc, true)) {
-			mtk_crtc->bif_info->bif_enable = false;
+			mtk_crtc->bif_info->bif_enable = BIF_DISABLE;
 			return;
 		}
 		if (mtk_crtc->bif_info->sram_en == 0) {
@@ -980,12 +970,24 @@ static void mtk_drm_vdo_mode_enter_idle(struct drm_crtc *crtc)
 		cmdq_pkt_wfe(handle, mtk_crtc->bif_info->wb_frame_done_event);
 		mtk_crtc_bif_keep_read_path(crtc, handle);
 	}
+	comp = mtk_ddp_comp_request_output(mtk_crtc);
+	if (comp) {
+		int en = 0;
+
+		mtk_ddp_comp_io_cmd(comp, handle, DSI_VFP_IDLE_MODE, NULL);
+		mtk_ddp_comp_io_cmd(comp, handle, DSI_LFR_SET, &en);
+		/*Not turn off vdo ltpo when enter idle*/
+		//mtk_ddp_comp_io_cmd(comp, handle, DSI_LTPO_VDO_SET, &en);
+		mtk_drm_vidle_control(crtc, true);
+	}
+
 	cmdq_pkt_flush(handle);
 	cmdq_pkt_destroy(handle);
 
-	if (bif_enabled(crtc)) {
-		if (mtk_crtc->bif_info->bif_mode == BIF_HS_IDLE)
-			mtk_crtc_bif_apsrc_ddren_control(mtk_crtc, false);
+
+	if (bif_enabled(crtc) == BIF_HS_IDLE) {
+		mtk_crtc_bif_apsrc_ddren_control(mtk_crtc, false);
+
 		if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_MMQOS_SUPPORT))
 			mtk_disp_set_hrt_bw(mtk_crtc, 0);
 	}
@@ -1022,20 +1024,6 @@ static void mtk_drm_vdo_mode_leave_idle(struct drm_crtc *crtc)
 
 	mtk_crtc_pkt_create(&handle, crtc, client);
 
-	if (bif_enabled(crtc) && (mtk_crtc->bif_info->bif_mode == BIF_HS_IDLE)) {
-		mtk_crtc_bif_apsrc_ddren_control(mtk_crtc, true);
-
-		mtk_crtc_wait_frame_done(mtk_crtc, handle, DDP_FIRST_PATH, 0);
-		if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_MMQOS_SUPPORT))
-			mtk_disp_set_hrt_bw(mtk_crtc, mtk_crtc->qos_ctx->last_hrt_req);
-
-		if (priv->data->bif_path_remove)
-			priv->data->bif_path_remove(mtk_crtc, handle);
-
-		mtk_crtc_bif_slbc_request(mtk_crtc, false);
-		mtk_crtc_bif_restore_path_mutex(mtk_crtc, handle);
-	}
-
 	if (mtk_drm_helper_get_opt(priv->helper_opt,
 				   MTK_DRM_OPT_IDLEMGR_DISABLE_ROUTINE_IRQ)) {
 		mtk_disp_mutex_inten_enable_cmdq(mtk_crtc->mutex[0], handle);
@@ -1059,6 +1047,21 @@ static void mtk_drm_vdo_mode_leave_idle(struct drm_crtc *crtc)
 		trace = mtk_get_gce_backup_slot_va(mtk_crtc, DISP_SLOT_IDLEMGR_BY_WB_TRACE);
 		*trace |= BIT(31);
 	}
+
+	if (bif_enabled(crtc) == BIF_HS_IDLE) {
+		mtk_crtc_bif_apsrc_ddren_control(mtk_crtc, true);
+		mtk_crtc_wait_frame_done(mtk_crtc, handle, DDP_FIRST_PATH, 0);
+
+		if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_MMQOS_SUPPORT))
+			mtk_disp_set_hrt_bw(mtk_crtc, mtk_crtc->qos_ctx->last_hrt_req);
+
+		if (priv->data->bif_path_remove)
+			priv->data->bif_path_remove(mtk_crtc, handle);
+
+		mtk_crtc_bif_slbc_request(mtk_crtc, false);
+		mtk_crtc_bif_restore_path_mutex(mtk_crtc, handle);
+	}
+
 	cmdq_pkt_flush(handle);
 	cmdq_pkt_destroy(handle);
 }
