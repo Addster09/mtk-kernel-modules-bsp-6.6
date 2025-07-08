@@ -2380,6 +2380,7 @@ void mtk_wakeup_pf_wq(unsigned int m_id)
 	unsigned int pf_idx;
 	unsigned int crtc_idx;
 	struct mtk_drm_private *drm_priv;
+	bool found_crtc3 = false;
 
 	if (IS_ERR_OR_NULL(drm_dev)) {
 		DDPPR_ERR("%s, invalid drm dev\n", __func__);
@@ -2388,12 +2389,17 @@ void mtk_wakeup_pf_wq(unsigned int m_id)
 
 	if (m_id == 3) {
 		drm_for_each_crtc(crtc, drm_dev)
-			if (drm_crtc_index(crtc) == 3)
+			if (drm_crtc_index(crtc) == 3) {
+				found_crtc3 = true;
 				break;
+			}
 	} else {
 		crtc = list_first_entry(&(drm_dev)->mode_config.crtc_list,
 					typeof(*crtc), head);
 	}
+
+	if(m_id == 3 && !found_crtc3)
+		return;
 
 	if (IS_ERR_OR_NULL(crtc)) {
 		DDPPR_ERR("find crtc fail\n");
