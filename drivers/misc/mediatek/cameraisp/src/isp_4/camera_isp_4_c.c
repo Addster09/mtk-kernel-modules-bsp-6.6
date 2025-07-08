@@ -12931,7 +12931,7 @@ irqreturn_t ISP_Irq_CAM_A(signed int Irq, void *DeviceId)
 			#endif /* (TIMESTAMP_QUEUE_EN == 1) */
 
 			IRQ_LOG_KEEPER(module, m_CurrentPPB, _LOG_INF,
-				"CAMA P1_SOF_%d_%d(0x%x_0x%x,0x%x_0x%x,0x%x,0x%x,0x%x),int_us:%d,cq:0x%x\n",
+				"CAMA P1_SOF_%d_%d(0x%x_0x%x,0x%x_0x%x,0x%x,0x%x,0x%x), DMA(0x%x), int_us:%d,cq:0x%x\n",
 				   sof_count[module], cur_v_cnt,
 				   ISP_RD32(CAM_REG_FBC_IMGO_CTL1(reg_module)),
 				   ISP_RD32(CAM_REG_FBC_IMGO_CTL2(reg_module)),
@@ -12940,6 +12940,7 @@ irqreturn_t ISP_Irq_CAM_A(signed int Irq, void *DeviceId)
 				   ISP_RD32(CAM_REG_IMGO_BASE_ADDR(reg_module)),
 				   ISP_RD32(CAM_REG_RRZO_BASE_ADDR(reg_module)),
 				   magic_num,
+				   ISP_RD32(CAM_REG_CTL_DMA_EN(reg_module)),
 				   (unsigned int)((sec * 1000000 + usec) -
 					(1000000 * m_sec + m_usec)),
 				   ISP_RD32(
@@ -13547,7 +13548,7 @@ irqreturn_t ISP_Irq_CAM_B(signed int  Irq, void *DeviceId)
 			#endif /* (TIMESTAMP_QUEUE_EN == 1) */
 
 			IRQ_LOG_KEEPER(module, m_CurrentPPB, _LOG_INF,
-				"CAMB P1_SOF_%d_%d (0x%x_0x%x,0x%x_0x%x,0x%x,0x%x,0x%x), int_us:%d,cq:0x%x\n",
+				"CAMB P1_SOF_%d_%d(0x%x_0x%x,0x%x_0x%x,0x%x,0x%x,0x%x), DMA(0x%x), int_us:%d,cq:0x%x\n",
 				   sof_count[module], cur_v_cnt,
 				   ISP_RD32(CAM_REG_FBC_IMGO_CTL1(reg_module)),
 				   ISP_RD32(CAM_REG_FBC_IMGO_CTL2(reg_module)),
@@ -13556,6 +13557,7 @@ irqreturn_t ISP_Irq_CAM_B(signed int  Irq, void *DeviceId)
 				   ISP_RD32(CAM_REG_IMGO_BASE_ADDR(reg_module)),
 				   ISP_RD32(CAM_REG_RRZO_BASE_ADDR(reg_module)),
 				   magic_num,
+				   ISP_RD32(CAM_REG_CTL_DMA_EN(reg_module)),
 				   (unsigned int)((sec * 1000000 + usec) -
 					(1000000 * m_sec + m_usec)),
 				   ISP_RD32(CAM_REG_CQ_THR0_BASEADDR
