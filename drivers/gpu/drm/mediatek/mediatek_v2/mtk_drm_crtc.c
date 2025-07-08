@@ -7126,10 +7126,14 @@ void mtk_crtc_mode_switch_on_ap_config(struct mtk_drm_crtc *mtk_crtc,
 		/*Avoid to dup call mml_cmdq_pkt_init, remove it*/
 	}
 
-	if (!mtk_crtc_is_frame_trigger_mode(&mtk_crtc->base) && !bmerge_pkt) {
-		/* vdo mode wait frame done */
-		cmdq_pkt_wfe(cmdq_handle,
-		mtk_crtc->gce_obj.event[EVENT_CMD_EOF]);
+	if (!mtk_crtc_is_frame_trigger_mode(&mtk_crtc->base)) {
+		if(!bmerge_pkt) {
+			/* vdo mode wait frame done */
+			cmdq_pkt_wfe(cmdq_handle,
+			mtk_crtc->gce_obj.event[EVENT_CMD_EOF]);
+		}
+		if (mtk_crtc->mml_link_state == MML_STOP_LINKING)
+			mtk_crtc_mml_racing_stop_sync(crtc, cmdq_handle, false);
 	}
 
 	if (mtk_crtc->is_dual_pipe &&
