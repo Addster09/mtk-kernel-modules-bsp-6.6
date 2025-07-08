@@ -47,6 +47,7 @@
 #if IS_ENABLED(CONFIG_DRM_MEDIATEK_AUTO) && IS_ENABLED(CONFIG_DRM_MTK_R2Y)
 #include "mtk_disp_ccorr.h"
 #endif
+#include "mtk_disp_tdshp.h"
 
 #if IS_ENABLED(CONFIG_MTK_MME_SUPPORT)
 #include "mmevent_function.h"
@@ -241,63 +242,6 @@ static bool debug_irq_log;
 #define DMDP_AAL_DRE_BILATERAL_STATUS_ROI_Y      (0x5B0)
 #define DMDP_AAL_DRE_BILATERAL_Blending_01       (0x5B4)
 #define DMDP_AAL_DRE_BILATERAL_STATUS_CTRL       (0x5B8)
-
-/* TDSHP Clarity */
-#define MDP_TDSHP_00                            (0x000)
-#define MDP_TDSHP_CFG                           (0x110)
-#define MDP_HIST_CFG_00                         (0x064)
-#define MDP_HIST_CFG_01                         (0x068)
-#define MDP_LUMA_HIST_00                        (0x06C)
-#define MDP_LUMA_SUM                            (0x0B4)
-#define MDP_TDSHP_SRAM_1XN_OUTPUT_CNT           (0x0B8)
-#define MDP_Y_FTN_1_0_MAIN                      (0x0BC)
-#define MDP_TDSHP_STATUS_00                     (0x644)
-#define MIDBAND_COEF_V_CUST_FLT1_00             (0x584)
-#define MIDBAND_COEF_V_CUST_FLT1_01             (0x588)
-#define MIDBAND_COEF_V_CUST_FLT1_02             (0x58C)
-#define MIDBAND_COEF_V_CUST_FLT1_03             (0x590)
-#define MIDBAND_COEF_H_CUST_FLT1_00             (0x594)
-#define MIDBAND_COEF_H_CUST_FLT1_01             (0x598)
-#define MIDBAND_COEF_H_CUST_FLT1_02             (0x59C)
-#define MIDBAND_COEF_H_CUST_FLT1_03             (0x600)
-
-#define HIGHBAND_COEF_V_CUST_FLT1_00            (0x604)
-#define HIGHBAND_COEF_V_CUST_FLT1_01            (0x608)
-#define HIGHBAND_COEF_V_CUST_FLT1_02            (0x60C)
-#define HIGHBAND_COEF_V_CUST_FLT1_03            (0x610)
-#define HIGHBAND_COEF_H_CUST_FLT1_00            (0x614)
-#define HIGHBAND_COEF_H_CUST_FLT1_01            (0x618)
-#define HIGHBAND_COEF_H_CUST_FLT1_02            (0x61C)
-#define HIGHBAND_COEF_H_CUST_FLT1_03            (0x620)
-#define HIGHBAND_COEF_RD_CUST_FLT1_00           (0x624)
-#define HIGHBAND_COEF_RD_CUST_FLT1_01           (0x628)
-#define HIGHBAND_COEF_RD_CUST_FLT1_02           (0x62C)
-#define HIGHBAND_COEF_RD_CUST_FLT1_03           (0x630)
-#define HIGHBAND_COEF_LD_CUST_FLT1_00           (0x634)
-#define HIGHBAND_COEF_LD_CUST_FLT1_01           (0x638)
-#define HIGHBAND_COEF_LD_CUST_FLT1_02           (0x63C)
-#define HIGHBAND_COEF_LD_CUST_FLT1_03           (0x640)
-#define MDP_TDSHP_SIZE_PARA                     (0x674)
-#define MDP_TDSHP_FREQUENCY_WEIGHTING	        (0x678)
-#define MDP_TDSHP_FREQUENCY_WEIGHTING_FINAL	(0x67C)
-#define SIZE_PARAMETER_MODE_SEGMENTATION_LENGTH	(0x680)
-#define FINAL_SIZE_ADAPTIVE_WEIGHT_HUGE	        (0x684)
-#define FINAL_SIZE_ADAPTIVE_WEIGHT_BIG	        (0x688)
-#define FINAL_SIZE_ADAPTIVE_WEIGHT_MEDIUM	(0x68C)
-#define FINAL_SIZE_ADAPTIVE_WEIGHT_SMALL	(0x690)
-#define ACTIVE_PARA_FREQ_M	                (0x694)
-#define ACTIVE_PARA_FREQ_H	                (0x698)
-#define ACTIVE_PARA_FREQ_D	                (0x69C)
-#define ACTIVE_PARA_FREQ_L	                (0x700)
-#define ACTIVE_PARA	                        (0x704)
-#define CLASS_0_2_GAIN	                        (0x708)
-#define CLASS_3_5_GAIN	                        (0x70C)
-#define CLASS_6_8_GAIN	                        (0x710)
-#define LUMA_CHROMA_PARAMETER	                (0x714)
-#define MDP_TDSHP_STATUS_ROI_X	                (0x718)
-#define MDP_TDSHP_STATUS_ROI_Y	                (0x71C)
-#define FRAME_WIDTH_HIGHT	                (0x720)
-#define MDP_TDSHP_SHADOW_CTRL	                (0x724)
 
 #define AAL_SERVICE_FORCE_UPDATE 0x1
 #define AAL_DRE3_POINT_NUM		(17)
@@ -3723,13 +3667,6 @@ static int disp_aal_probe(struct platform_device *pdev)
 		AALERR("Failed to alloc aal_fo %d\n", ret);
 		goto error_primary;
 	}
-	// for Display Clarity
-	tdshp_node = of_find_compatible_node(NULL, NULL, "mediatek,disp_tdshp0");
-	if (!of_property_read_u32(tdshp_node, "mtk-tdshp-clarity-support",
-		&priv->primary_data->tdshp_clarity_support)) {
-		DDPMSG("disp_tdshp: mtk_tdshp_clarity_support = %d\n",
-			priv->primary_data->tdshp_clarity_support);
-	}
 
 	if (of_property_read_u32(dev->of_node, "mtk-aal-support",
 		&priv->primary_data->aal_fo->mtk_aal_support)) {
@@ -3759,18 +3696,8 @@ static int disp_aal_probe(struct platform_device *pdev)
 				priv->primary_data->dre30_enabled =
 					(priv->primary_data->dre30_en == 1) ? true : false;
 
-			// for Display Clarity
-			if (!of_property_read_u32(dev->of_node, "mtk-aal-clarity-support",
-					&priv->primary_data->aal_clarity_support))
-				DDPMSG("mtk_aal_clarity_support = %d\n",
-						priv->primary_data->aal_clarity_support);
-
-			if ((priv->primary_data->aal_clarity_support == 1)
-					&& (priv->primary_data->tdshp_clarity_support == 1)) {
-				priv->primary_data->disp_clarity_support = 1;
-				DDPMSG("%s: display clarity support = %d\n",
-					__func__, priv->primary_data->disp_clarity_support);
-			}
+			// aal clarity feature phase-out, default no-support
+			priv->primary_data->disp_clarity_support = 0;
 		}
 	}
 
