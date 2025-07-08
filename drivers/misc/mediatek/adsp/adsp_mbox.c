@@ -125,6 +125,15 @@ void adsp_ipi_handler(int irq, void *data, int cid)
 			(void *)recv_obj->share_buf, len);
 	adsp_mt_clr_sysirq(cid);
 
+	if (ipi_id >= ADSP_NR_IPI){
+		pr_notice("%s() invalid ipi_id %d\n", __func__, ipi_id);
+		return;
+	}
+	if (!adsp_ipi_descs[ipi_id].handler) {
+		pr_notice("%s() invalid ipi handler %d\n", __func__, ipi_id);
+		return;
+	}
+
 	if (ipi_id == ADSP_IPI_ADSP_A_READY ||
 	    ipi_id == ADSP_IPI_DVFS_SUSPEND ||
 	    ipi_id == ADSP_IPI_LOGGER_INIT)
