@@ -333,6 +333,8 @@ struct mtk_drm_private {
 	unsigned int total_srt[MAX_CRTC];
 	unsigned int no_hwc_layers;
 	unsigned int no_hwc_overlap;
+
+	unsigned int enable_bif;
 };
 
 struct mtk_drm_property {

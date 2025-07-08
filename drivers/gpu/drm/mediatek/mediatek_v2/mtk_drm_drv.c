@@ -12183,6 +12183,10 @@ static int mtk_drm_probe(struct platform_device *pdev)
 		private->is_tablet = true;
 		DDPFUNC("is tablet!\n");
 	}
+
+	if (!of_property_read_u32(dev->of_node, "bif-enable", &private->enable_bif))
+		DDPFUNC("enable_bif: %d\n", private->enable_bif);
+
 	init_secure_static_path_switch(dev, private);
 	if (private->secure_static_path_switch == true)
 		mtk_drm_helper_set_opt_by_name(private->helper_opt, "MTK_DRM_OPT_RPO", 0);

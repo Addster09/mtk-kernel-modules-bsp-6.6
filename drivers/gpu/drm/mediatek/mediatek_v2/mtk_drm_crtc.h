@@ -930,10 +930,15 @@ struct mtk_cwb_info {
 	enum CWB_BUFFER_TYPE type;
 	const struct mtk_cwb_funcs *funcs;
 };
+enum BIF_EN_MODE {
+	BIF_HS_IDLE = 1,
+	BIF_ALL_SCN = 2,
+};
 
 struct mtk_bif_info {
 	bool init;
 	bool bif_enable;
+	unsigned int bif_mode;	//BIF_EN_MODE
 	bool racing_en;
 	struct mtk_ddp_comp *wb_comp;
 	struct mtk_ddp_comp *read_comp;
@@ -1745,7 +1750,7 @@ enum addon_scenario mtk_crtc_wb_get_scn(struct mtk_crtc_state *state);
 void mtk_crtc_bif_enable_racing(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *handle);
 void mtk_crtc_bif_restore_path_mutex(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *handle);
 void mtk_crtc_bif_backup_path_mutex(struct mtk_drm_crtc *mtk_crtc);
-void mtk_crtc_bif_slbc_request(struct mtk_drm_crtc *mtk_crtc, bool en);
+bool mtk_crtc_bif_slbc_request(struct mtk_drm_crtc *mtk_crtc, bool en);
 void mtk_crtc_bif_keep_read_path(struct drm_crtc *crtc, struct cmdq_pkt *handle);
 void mtk_crtc_bif_path_prepare(struct mtk_drm_crtc *mtk_crtc);
 void mtk_crtc_bif_apsrc_ddren_control(struct mtk_drm_crtc *mtk_crtc, bool en);

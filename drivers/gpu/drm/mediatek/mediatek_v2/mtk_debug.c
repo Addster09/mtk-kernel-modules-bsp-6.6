@@ -3046,10 +3046,10 @@ static void process_dbg_opt(const char *opt)
 			g_mobile_log = 1;
 		else if (strncmp(opt + 7, "off", 3) == 0)
 			g_mobile_log = 0;
-	} else if (strncmp(opt, "bif_disable:", 12) == 0) {
+	} else if (strncmp(opt, "bif_force_en:", 13) == 0) {
 		struct drm_crtc *crtc;
 		struct mtk_drm_crtc *mtk_crtc;
-		bool bif_disable = false;
+		u32 v1 = 0, v2 = 0;
 
 		crtc = list_first_entry(&(drm_dev)->mode_config.crtc_list,
 			typeof(*crtc), head);
@@ -3058,15 +3058,17 @@ static void process_dbg_opt(const char *opt)
 			return;
 		}
 
-		if (strncmp(opt + 12, "on", 2) == 0)
-			bif_disable = true;
-		else if (strncmp(opt + 12, "off", 3) == 0)
-			bif_disable = false;
+		if (sscanf(opt, "bif_force_en:%d,%d\n", &v1, &v2) != 2) {
+			DDPMSG("echo bif_force_en:en,mode > /d/mtkfb\n");
+			return;
+		}
 
 		mtk_crtc = to_mtk_crtc(crtc);
 		DDP_MUTEX_LOCK(&mtk_crtc->lock, __func__, __LINE__);
-		mtk_crtc->bif_info->bif_enable = !bif_disable;
-		DDPMSG("%s, >> bif_enable:%d\n", __func__, mtk_crtc->bif_info->bif_enable);
+		mtk_crtc->bif_info->bif_enable = v1;
+		mtk_crtc->bif_info->bif_mode = (v2==0)?1:v2;
+		DDPMSG("%s, >> bif_enable:%d, bif_mode:%d\n", __func__,
+			mtk_crtc->bif_info->bif_enable, mtk_crtc->bif_info->bif_mode);
 		DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
 	} else if (strncmp(opt, "msync_debug:", 12) == 0) {
 		if (strncmp(opt + 12, "on", 2) == 0)
