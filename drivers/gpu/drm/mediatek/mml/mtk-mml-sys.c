@@ -383,7 +383,7 @@ static s32 sys_init(struct mml_comp *comp, struct mml_task *task,
 	return 0;
 }
 
-static void sys_sync_racing(struct mml_comp *comp, struct mml_task *task,
+static void sys_sync_disp(struct mml_comp *comp, struct mml_task *task,
 	struct mml_comp_config *ccfg)
 {
 	struct mml_dev *mml = task->config->mml;
@@ -430,7 +430,7 @@ static void sys_config_frame_racing(struct mml_comp *comp, struct mml_task *task
 			&lhs, &rhs);
 
 		if (likely(!mml_racing_ut))
-			sys_sync_racing(comp, task, ccfg);
+			sys_sync_disp(comp, task, ccfg);
 	} else {
 		/* clear nextspr2 and sync before everything start */
 		cmdq_pkt_assign_command(pkt, MML_CMDQ_NEXT_SPR2, 0);
@@ -460,6 +460,9 @@ static void sys_config_frame_dl(struct mml_comp *comp, struct mml_task *task,
 		rhs.value = ~(u16)MML_NEXTSPR_DUAL;
 		cmdq_pkt_logic_command(pkt, CMDQ_LOGIC_AND, MML_CMDQ_NEXT_SPR,
 			&lhs, &rhs);
+
+		if (cfg->disp_vdo && !mutex_dl_disp_sof_vdo)
+			sys_sync_disp(comp, task, ccfg);
 	} else {
 		/* clear nextspr2 and sync before everything start */
 		cmdq_pkt_assign_command(pkt, MML_CMDQ_NEXT_SPR2, 0);
@@ -670,13 +673,15 @@ static void config_mux(struct mml_sys *sys, struct cmdq_pkt *pkt,
 	}
 }
 
-static void sys_insert_begin_loop(struct mml_task *task,
+static void sys_insert_begin_loop(struct mml_comp *comp,
+	struct mml_task *task,
 	struct mml_comp_config *ccfg,
 	struct mml_sys *sys,
 	struct sys_frame_data *sys_frm,
 	struct cmdq_pkt *pkt)
 {
 	struct mml_frame_config *cfg = task->config;
+	const struct mml_topology_path *path = cfg->path[ccfg->pipe];
 	struct cmdq_operand lhs, rhs;
 
 	/* sync pipes at begin for racing mode */
@@ -690,11 +695,13 @@ static void sys_insert_begin_loop(struct mml_task *task,
 		}
 	}
 
-	lhs.reg = true;
-	lhs.idx = MML_CMDQ_ROUND_SPR;
-	rhs.reg = false;
-	rhs.value = 1;
-	cmdq_pkt_logic_command(pkt, CMDQ_LOGIC_ADD, MML_CMDQ_ROUND_SPR, &lhs, &rhs);
+	if (comp == path->mmlsys) {
+		lhs.reg = true;
+		lhs.idx = MML_CMDQ_ROUND_SPR;
+		rhs.reg = false;
+		rhs.value = 1;
+		cmdq_pkt_logic_command(pkt, CMDQ_LOGIC_ADD, MML_CMDQ_ROUND_SPR, &lhs, &rhs);
+	}
 
 	sys_frm->frame_loop_offset = cmdq_pkt_get_curr_offset(pkt);
 
@@ -750,7 +757,7 @@ static s32 sys_config_tile(struct mml_comp *comp, struct mml_task *task,
 
 	if (task->config->info.mode == MML_MODE_RACING) {
 		if (!sys_frm->frame_loop_offset)
-			sys_insert_begin_loop(task, ccfg, sys, sys_frm, pkt);
+			sys_insert_begin_loop(comp, task, ccfg, sys, sys_frm, pkt);
 	} else if (task->config->info.mode == MML_MODE_APUDC && !sys_frm->tile_idx) {
 		if (ccfg->pipe == 0) {
 			cmdq_pkt_wfe(pkt, sys->event_apu_start);
@@ -791,16 +798,36 @@ static s32 sys_config_tile(struct mml_comp *comp, struct mml_task *task,
 	return 0;
 }
 
-static s32 sys_wait(struct mml_comp *comp, struct mml_task *task,
-	struct mml_comp_config *ccfg, u32 idx)
+static s32 sys_mutex(struct mml_comp *comp, struct mml_task *task,
+	struct mml_comp_config *ccfg)
 {
+	struct mml_frame_config *cfg = task->config;
 	struct mml_sys *sys = comp_to_sys(comp);
 	struct cmdq_pkt *pkt = task->pkts[ccfg->pipe];
 	struct sys_frame_data *sys_frm = sys_frm_data(ccfg);
 
-	/* before all module wait, insert begin loop for next round */
-	if (task->config->info.mode == MML_MODE_DIRECT_LINK)
-		sys_insert_begin_loop(task, ccfg, sys, sys_frm, pkt);
+	/* before mutex enable, insert begin loop for next round */
+	if (task->config->info.mode == MML_MODE_DIRECT_LINK) {
+		if (cfg->disp_vdo && !mutex_dl_disp_sof_vdo)
+			sys_insert_begin_loop(comp, task, ccfg, sys, sys_frm, pkt);
+	}
+
+	return 0;
+}
+
+static s32 sys_wait(struct mml_comp *comp, struct mml_task *task,
+	struct mml_comp_config *ccfg, u32 idx)
+{
+	struct mml_frame_config *cfg = task->config;
+	struct mml_sys *sys = comp_to_sys(comp);
+	struct cmdq_pkt *pkt = task->pkts[ccfg->pipe];
+	struct sys_frame_data *sys_frm = sys_frm_data(ccfg);
+
+	/* before mutex enable, insert begin loop for next round */
+	if (task->config->info.mode == MML_MODE_DIRECT_LINK) {
+		if (cfg->disp_vdo && mutex_dl_disp_sof_vdo)
+			sys_insert_begin_loop(comp, task, ccfg, sys, sys_frm, pkt);
+	}
 
 	return 0;
 }
@@ -1062,6 +1089,12 @@ static s32 sys_repost(struct mml_comp *comp, struct mml_task *task,
 		sys_addr_update(comp, task, ccfg);
 		if (comp->sysid == path->mmlsys->sysid && task->dlo_status.inst_offset)
 			cmdq_pkt_backup_update(task->pkts[ccfg->pipe], &task->dlo_status);
+		if (comp->sysid == path->mmlsys->sysid && task->ovl_dli[0].inst_offset)
+			cmdq_pkt_backup_update(task->pkts[ccfg->pipe], &task->ovl_dli[0]);
+		if (comp->sysid == path->mmlsys->sysid && task->ovl_dli[1].inst_offset)
+			cmdq_pkt_backup_update(task->pkts[ccfg->pipe], &task->ovl_dli[1]);
+		if (comp->sysid == path->mmlsys->sysid && task->ovl_dli[2].inst_offset)
+			cmdq_pkt_backup_update(task->pkts[ccfg->pipe], &task->ovl_dli[2]);
 	}
 	return 0;
 }
@@ -1071,6 +1104,7 @@ static const struct mml_comp_config_ops sys_config_ops = {
 	.init = sys_init,
 	.frame = sys_config_frame,
 	.tile = sys_config_tile,
+	.mutex = sys_mutex,
 	.wait = sys_wait,
 	.post = sys_post,
 	.done = sys_done,
@@ -1407,16 +1441,23 @@ static void mml_sys_taskdone(struct mml_comp *comp, struct mml_task *task,
 	if (cfg->info.mode == MML_MODE_DIRECT_LINK && task->dlo_status.inst_offset &&
 		comp->sysid == cfg->path[ccfg->pipe]->mmlsys->sysid) {
 		u32 status1 = cmdq_pkt_backup_get(pkt, &task->dlo_status);
+		u32 validx = task->dlo_status.val_idx;
+		u32 ovldli_sz = cmdq_pkt_backup_get(pkt, &task->ovl_dli[0]);
+		u32 ovldli_status0 = cmdq_pkt_backup_get(pkt, &task->ovl_dli[1]);
+		u32 ovldli_status1 = cmdq_pkt_backup_get(pkt, &task->ovl_dli[2]);
 
-		if ((status1 & 0x0fff0000) != (task->dlo_size & 0x0fff0000))
-			mml_err("task job %u dlo size %#010x status %#010x not match",
-				task->job.jobid, task->dlo_size, status1);
-		else if (mml_dlo_dbg & BIT(2))
-			mml_log("task job %u dlo size %#010x status %#010x",
-				task->job.jobid, task->dlo_size, status1);
+		if ((status1 & 0x0fff0000) != (task->dlo_size & 0x0fff0000)) {
+			mml_err("task job %u dlo size %#010x(%u) status %#010x not match ovl %#010x %#010x %#010x",
+				task->job.jobid, task->dlo_size, validx, status1,
+				ovldli_sz, ovldli_status0, ovldli_status1);
+		} else if (mml_dlo_dbg & BIT(2))
+			mml_log("task job %u dlo size %#010x(%u) status %#010x ovl %#010x %#010x %#010x",
+				task->job.jobid, task->dlo_size, validx, status1,
+				ovldli_sz, ovldli_status0, ovldli_status1);
 		else if (mml_dlo_dbg & BIT(1))
-			mml_msg("task job %u dlo size %#010x status %#010x",
-				task->job.jobid, task->dlo_size, status1);
+			mml_msg("task job %u dlo size %#010x(%u) status %#010x ovl %#010x %#010x %#010x",
+				task->job.jobid, task->dlo_size, validx, status1,
+				ovldli_sz, ovldli_status0, ovldli_status1);
 
 		mml_mmp(dlo, MMPROFILE_FLAG_PULSE, task->dlo_size, status1);
 	}
@@ -2011,9 +2052,9 @@ static void sys_addon_config(struct mtk_ddp_comp *ddp_comp,
 
 	cfg = &addon_config->addon_mml_config;
 
-	mml_mmp(addon_addon_config, MMPROFILE_FLAG_PULSE, cfg->config_type.type, 0);
+	mml_mmp(addon_addon_cfg_sys, MMPROFILE_FLAG_PULSE, cfg->config_type.type, 0);
 
-	mml_msg("%s type:%d", __func__, cfg->config_type.type);
+	mml_log("%s type:%d", __func__, cfg->config_type.type);
 	if (cfg->config_type.type == ADDON_DISCONNECT)
 		sys_addon_disconnect(sys, cfg);
 	else
@@ -2278,6 +2319,10 @@ static const struct mml_comp_config_ops dl_config_ops = {
 
 #define MT6991_MML_DLO_ASYNC5_STATUS1	0x420
 
+#define OVL_DL_IN_RELAY1_SIZE 0x32800264
+#define OVL_DLI_ASYNC1_STATUS0 0x32800308
+#define OVL_DLI_ASYNC1_STATUS1 0x3280030c
+
 static s32 dlo_post_mt6991f(struct mml_comp *comp, struct mml_task *task,
 		   struct mml_comp_config *ccfg)
 {
@@ -2294,6 +2339,27 @@ static s32 dlo_post_mt6991f(struct mml_comp *comp, struct mml_task *task,
 		if (ret) {
 			mml_err("%s fail to backup dlo status", __func__);
 			task->dlo_status.inst_offset = 0;
+		}
+
+		ret = cmdq_pkt_backup(pkt, OVL_DL_IN_RELAY1_SIZE,
+			&task->ovl_dli[0]);
+		if (ret) {
+			mml_err("%s fail to backup OVL_DL_IN_RELAY1_SIZE", __func__);
+			task->ovl_dli[0].inst_offset = 0;
+		}
+
+		ret = cmdq_pkt_backup(pkt, OVL_DLI_ASYNC1_STATUS0,
+			&task->ovl_dli[1]);
+		if (ret) {
+			mml_err("%s fail to backup OVL_DLI_ASYNC1_STATUS0", __func__);
+			task->ovl_dli[1].inst_offset = 0;
+		}
+
+		ret = cmdq_pkt_backup(pkt, OVL_DLI_ASYNC1_STATUS1,
+			&task->ovl_dli[2]);
+		if (ret) {
+			mml_err("%s fail to backup OVL_DLI_ASYNC1_STATUS1", __func__);
+			task->ovl_dli[2].inst_offset = 0;
 		}
 	}
 

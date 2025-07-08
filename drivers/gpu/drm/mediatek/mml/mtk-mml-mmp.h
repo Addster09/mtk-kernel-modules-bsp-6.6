@@ -111,7 +111,8 @@ struct mml_mmp_events_t {
 
 	/* events for inline rotate disp addon */
 	mmp_event addon_mml_calc_cfg;
-	mmp_event addon_addon_config;
+	mmp_event addon_addon_cfg_sys;
+	mmp_event addon_addon_cfg_mutex;
 	mmp_event addon_start;
 	mmp_event addon_unprepare;
 	mmp_event addon_dle_config;

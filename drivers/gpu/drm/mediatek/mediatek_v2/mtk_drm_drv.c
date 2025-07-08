@@ -1568,6 +1568,7 @@ static enum mml_mode _mtk_atomic_mml_plane(struct drm_device *dev,
 	if (ret)
 		submit_kernel->info.disp_done_event = ret;
 
+	submit_kernel->disp_vdo = !mtk_crtc_is_frame_trigger_mode(crtc);
 	mml_drm_split_info(submit_kernel, submit_pq);
 
 	mtk_drm_idlemgr_kick(__func__, crtc, false); /* power on dsi */

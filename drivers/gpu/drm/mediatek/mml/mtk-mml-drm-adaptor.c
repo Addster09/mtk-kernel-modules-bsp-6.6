@@ -1414,6 +1414,7 @@ static void mml_drm_split_info_racing(struct mml_submit *submit, struct mml_subm
 	for (i = 0; i < MML_MAX_OUTPUTS; i++)
 		if (submit_pq->pq_param[i] && submit->pq_param[i])
 			*submit_pq->pq_param[i] = *submit->pq_param[i];
+	submit_pq->disp_vdo = submit->disp_vdo;
 
 	if (dest->rotate == MML_ROT_0 ||
 	    dest->rotate == MML_ROT_180) {
@@ -1555,6 +1556,7 @@ static void mml_drm_split_info_dl(struct mml_submit *submit, struct mml_submit *
 		if (submit_pq->pq_param[i] && submit->pq_param[i])
 			*submit_pq->pq_param[i] = *submit->pq_param[i];
 	submit_pq->info.mode = MML_MODE_DIRECT_LINK;
+	submit_pq->disp_vdo = submit->disp_vdo;
 
 	/* display layer pixel */
 	if (!submit->layer.width || !submit->layer.height) {

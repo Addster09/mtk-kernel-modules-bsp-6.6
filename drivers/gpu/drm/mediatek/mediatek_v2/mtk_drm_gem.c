@@ -894,8 +894,8 @@ void print_mml_submit(struct mml_submit *args)
 				args->pq_param[i]->user_info);
 		}
 	}
-	DDPMSG("sec:%lld, usec:%lld, update:%d\n",
-		args->end.sec, args->end.nsec, args->update);
+	DDPMSG("sec:%lld, usec:%lld\n",
+		args->end.sec, args->end.nsec);
 	DDPMSG("====  %s e ====\n", __func__);
 }
 

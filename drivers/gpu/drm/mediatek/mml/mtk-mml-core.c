@@ -575,6 +575,10 @@ static s32 command_make(struct mml_task *task, u32 pipe)
 					call_cfg_op(comp, reset, task, &ccfg[i]);
 				}
 			}
+
+			/* mmlsys may prepare ops after tile and before mutex start */
+			call_cfg_op(path->mmlsys, mutex, task, &ccfg[path->mmlsys_idx]);
+
 			/* first tile must wait eof before trigger */
 			path->mutex->config_ops->mutex(path->mutex, task,
 						       &ccfg[path->mutex_idx]);

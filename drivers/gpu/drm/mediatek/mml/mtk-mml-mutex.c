@@ -29,11 +29,8 @@
 #define MUTEX_MOD(id, offset)	((offset) + (id) * 0x20)
 #define MUTEX_SOF(id, offset)	((offset) + (id) * 0x20)
 
-int mml_mutex_dl_sof;
+int mml_mutex_dl_sof = 0x8;
 module_param(mml_mutex_dl_sof, int, 0644);
-
-#define mutex_dl_perf_en	(mml_mutex_dl_sof & BIT(1))
-#define mutex_dl_perf_log	(mml_mutex_dl_sof & BIT(2))
 
 struct mutex_data {
 	/* Count of display mutex HWs */
@@ -183,17 +180,27 @@ static s32 mutex_trigger(struct mml_comp *comp, struct mml_task *task,
 
 	/* DL mode and dpc off case, mutex sof control by dsi src */
 	if (cfg->info.mode == MML_MODE_DIRECT_LINK) {
-		if (mml_mutex_dl_sof) {
-			/* mutex en in disp pkt */
-			sof_en = false;
-		} else if (comp == path->mutex) {
-			/* wait pre-te in first mutex trigger */
-			cmdq_pkt_clear_event(pkt, mutex->event_prete);
-			cmdq_pkt_wait_no_clear(pkt, mutex->event_prete);
-		}
+		if (cfg->disp_vdo) {
+			if (mutex_dl_disp_sof_vdo) {
+				/* mutex en in disp pkt */
+				sof_en = false;
+			}
 
-		if (mutex_dl_perf_en && ccfg->pipe == 0 && comp == path->mutex)
-			cmdq_pkt_backup_stamp(pkt, &task->perf_prete);
+			if (mutex_dl_perf_en && ccfg->pipe == 0 && comp == path->mutex)
+				cmdq_pkt_backup_stamp(pkt, &task->perf_prete);
+		} else {
+			if (mutex_dl_disp_sof) {
+				/* mutex en in disp pkt */
+				sof_en = false;
+			} else if (comp == path->mutex) {
+				/* wait pre-te in first mutex trigger */
+				cmdq_pkt_clear_event(pkt, mutex->event_prete);
+				cmdq_pkt_wait_no_clear(pkt, mutex->event_prete);
+			}
+
+			if (mutex_dl_perf_en && ccfg->pipe == 0 && comp == path->mutex)
+				cmdq_pkt_backup_stamp(pkt, &task->perf_prete);
+		}
 	}
 
 	/* DL mode config sof only, other modes enable to trigger directly */
@@ -210,23 +217,24 @@ static s32 mutex_trigger(struct mml_comp *comp, struct mml_task *task,
 				cmdq_pkt_wfe(pkt, mutex->event_pipe1_mml);
 			}
 
-			cmdq_pkt_set_event(pkt, mml_ir_get_mml_ready_event(cfg->mml));
+			if (!cfg->disp_vdo || (cfg->disp_vdo && mutex_dl_disp_sof_vdo)) {
+				cmdq_pkt_set_event(pkt, mml_ir_get_mml_ready_event(cfg->mml));
 
-			if (cfg->dpc && (mml_dl_dpc & MML_DPC_MUTEX_VOTE)) {
+				if (cfg->dpc && (mml_dl_dpc & MML_DPC_MUTEX_VOTE)) {
 #ifndef MML_FPGA
-				mml_dpc_power_release_gce(comp->sysid, pkt);
-				cmdq_pkt_wfe(pkt, mml_ir_get_disp_ready_event(cfg->mml));
-				mml_dpc_power_keep_gce(comp->sysid, pkt,
-					mutex->data->gpr[ccfg->pipe],
-					&task->dpc_reuse_mutex);
-
+					mml_dpc_power_release_gce(comp->sysid, pkt);
+					cmdq_pkt_wfe(pkt, mml_ir_get_disp_ready_event(cfg->mml));
+					mml_dpc_power_keep_gce(comp->sysid, pkt,
+						mutex->data->gpr[ccfg->pipe],
+						&task->dpc_reuse_mutex);
 #endif
-			} else {
-				cmdq_pkt_wfe(pkt, mml_ir_get_disp_ready_event(cfg->mml));
-			}
+				} else {
+					cmdq_pkt_wfe(pkt, mml_ir_get_disp_ready_event(cfg->mml));
+				}
 
-			/* make sure mml wait disp frame done in current te */
-			cmdq_pkt_clear_event(pkt, cfg->info.disp_done_event);
+				/* make sure mml wait disp frame done in current te */
+				cmdq_pkt_clear_event(pkt, cfg->info.disp_done_event);
+			}
 
 			/* Note insert disp ready stamp after disp ready event in last mutex,
 			 * but update and retrieve data in first mutex.
@@ -257,7 +265,8 @@ static s32 mutex_wait_sof(struct mml_comp *comp, struct mml_task *task,
 				cmdq_pkt_backup_stamp(pkt, &task->perf_sof);
 		}
 
-		mutex_disable(mutex, pkt, path);
+		if (!cfg->disp_vdo && !mutex_dl_disp_sof)
+			mutex_disable(mutex, pkt, path);
 	}
 
 	return 0;
@@ -577,6 +586,9 @@ static void mutex_addon_config(struct mtk_ddp_comp *ddp_comp,
 {
 	struct mtk_addon_mml_config *cfg = &addon_config->addon_mml_config;
 	enum mml_mode mode = cfg->submit.info.mode;
+	bool disp_vdo = cfg->submit.disp_vdo;
+
+	mml_mmp(addon_addon_cfg_mutex, MMPROFILE_FLAG_PULSE, cfg->config_type.type, 0);
 
 	if (mode == MML_MODE_UNKNOWN) {
 		struct mml_mutex *mutex = ddp_comp_to_mutex(ddp_comp);
@@ -588,11 +600,12 @@ static void mutex_addon_config(struct mtk_ddp_comp *ddp_comp,
 		}
 
 		mode = mutex->connected_mode;
+		mml_log("%s change mode %d", __func__, mode);
 	}
 
 	if (mode == MML_MODE_DIRECT_LINK) {
 		/* in dpc enable case, mutex trigger by mml pkt directly */
-		if (mml_mutex_dl_sof)
+		if ((disp_vdo && mutex_dl_disp_sof_vdo) || (!disp_vdo && mutex_dl_disp_sof))
 			mutex_addon_config_dl(ddp_comp, prev, next, addon_config, pkt);
 	} else if (mode == MML_MODE_DDP_ADDON)
 		mutex_addon_config_addon(ddp_comp, prev, next, addon_config, pkt);

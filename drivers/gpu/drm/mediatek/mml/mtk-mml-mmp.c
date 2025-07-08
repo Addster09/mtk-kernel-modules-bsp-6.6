@@ -96,7 +96,8 @@ void mml_mmp_init(void)
 
 	parent = mml_mmp_events.addon;
 	mml_mmp_events.addon_mml_calc_cfg = mmprofile_register_event(parent, "mml_calc_cfg");
-	mml_mmp_events.addon_addon_config = mmprofile_register_event(parent, "addon_config");
+	mml_mmp_events.addon_addon_cfg_sys = mmprofile_register_event(parent, "addon_cfg_sys");
+	mml_mmp_events.addon_addon_cfg_mutex = mmprofile_register_event(parent, "addon_cfg_mutex");
 	mml_mmp_events.addon_start = mmprofile_register_event(parent, "start");
 	mml_mmp_events.addon_unprepare = mmprofile_register_event(parent, "unprepare");
 	mml_mmp_events.addon_dle_config = mmprofile_register_event(parent, "dle_config");

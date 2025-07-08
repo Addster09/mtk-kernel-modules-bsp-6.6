@@ -322,7 +322,7 @@ struct mml_submit {
 		uint64_t nsec;
 	} end;
 	struct mml_pq_param *pq_param[MML_MAX_OUTPUTS];
-	bool update;
+	bool disp_vdo;
 };
 
 #endif	/* __MTK_MML_H__ */
