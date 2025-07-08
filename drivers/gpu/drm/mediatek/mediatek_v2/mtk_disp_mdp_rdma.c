@@ -229,7 +229,7 @@ static void mtk_mdp_rdma_start(struct mtk_ddp_comp *comp, struct cmdq_pkt *handl
 	mtk_ddp_write_mask(comp, val,
 		DISP_REG_MDP_RDMA_INT_ENABLE, val, handle);
 
-	if ((bif_enabled(&mtk_crtc->base) != BIF_DISABLE) && mtk_crtc->bif_info->read_comp)
+	if (bif_enabled(&mtk_crtc->base) && mtk_crtc->bif_info->read_comp)
 		mtk_ddp_write_mask(comp, OUTPUT_10B | DDREN_REQ_DISABLE,
 			DISP_REG_MDP_RDMA_CON, OUTPUT_10B | DDREN_REQ_DISABLE, handle);
 	else

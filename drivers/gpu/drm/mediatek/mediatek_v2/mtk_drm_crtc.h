@@ -935,12 +935,10 @@ enum BIF_EN_MODE {
 	BIF_DISABLE = 0,
 	BIF_HS_IDLE = 1,
 	BIF_ALL_SCN = 2,
-	BIF_FORCE_OFF = 0xF,
 };
 
 struct mtk_bif_info {
-	enum BIF_EN_MODE bif_enable;
-	enum BIF_EN_MODE force_en;
+	int bif_enable;
 	bool racing_en;
 	struct mtk_ddp_comp *wb_comp;
 	struct mtk_ddp_comp *read_comp;
@@ -1672,7 +1670,7 @@ bool msync_is_on(struct mtk_drm_private *priv, struct mtk_panel_params *params,
 		unsigned int crtc_id, struct mtk_crtc_state *state,
 		struct mtk_crtc_state *old_state);
 
-enum BIF_EN_MODE bif_enabled(struct drm_crtc *crtc);
+int bif_enabled(struct drm_crtc *crtc);
 
 /* ********************* Legacy DISP API *************************** */
 unsigned int DISP_GetScreenWidth(void);

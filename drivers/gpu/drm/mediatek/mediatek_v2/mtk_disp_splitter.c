@@ -104,10 +104,7 @@ mtk_splitter_bif_write_config(struct mtk_ddp_comp *comp, struct mtk_ddp_config *
 	int width = cfg->w;
 	int height = cfg->h;
 	int value = 0;
-	int offset = 0;
-
-	if (comp->mtk_crtc->bif_info)
-		offset = comp->mtk_crtc->bif_info->wdma_offset;
+	int offset = comp->mtk_crtc->bif_info->wdma_offset;
 
 	DDPINFO("%s,comp:%s,(%dx%d)offset:%d\n", __func__, mtk_dump_comp_str(comp), width, height, offset);
 
@@ -128,10 +125,7 @@ mtk_splitter_bif_read_config(struct mtk_ddp_comp *comp, struct mtk_ddp_config *c
 {
 	int width = cfg->w/3;
 	int height = cfg->h;
-	int offset = 0;
-
-	if (comp->mtk_crtc->bif_info)
-		offset = comp->mtk_crtc->bif_info->wdma_offset;
+	int offset = comp->mtk_crtc->bif_info->wdma_offset;
 
 	DDPINFO("%s,comp:%s,(%dx%d)offset:%d\n", __func__, mtk_dump_comp_str(comp), width, height, offset);
 

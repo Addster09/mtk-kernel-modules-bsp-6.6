@@ -3052,33 +3052,6 @@ static void process_dbg_opt(const char *opt)
 			g_mobile_log = 1;
 		else if (strncmp(opt + 7, "off", 3) == 0)
 			g_mobile_log = 0;
-	} else if (strncmp(opt, "bif_force_en:", 13) == 0) {
-		struct drm_crtc *crtc;
-		struct mtk_drm_crtc *mtk_crtc;
-		u32 v1 = 0;
-
-		crtc = list_first_entry(&(drm_dev)->mode_config.crtc_list,
-			typeof(*crtc), head);
-		if (IS_ERR_OR_NULL(crtc)) {
-			DDPPR_ERR("find crtc fail\n");
-			return;
-		}
-
-		if (sscanf(opt, "bif_force_en:%d\n", &v1) != 1) {
-			DDPMSG("echo bif_force_en:mode > /d/mtkfb\n");
-			return;
-		}
-
-		if (v1 >= 2) {
-			DDPMSG("not support:%d\n", v1);
-			return;
-		}
-
-		mtk_crtc = to_mtk_crtc(crtc);
-		DDP_MUTEX_LOCK(&mtk_crtc->lock, __func__, __LINE__);
-		mtk_crtc->bif_info->force_en = v1;
-		DDPMSG("%s,bif_force_en:%d\n", __func__, mtk_crtc->bif_info->force_en);
-		DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
 	} else if (strncmp(opt, "msync_debug:", 12) == 0) {
 		if (strncmp(opt + 12, "on", 2) == 0)
 			g_msync_debug = 1;

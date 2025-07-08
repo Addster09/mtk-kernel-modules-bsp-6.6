@@ -103,6 +103,9 @@ module_param(debug_pu_skip, int, 0644);
 int debug_pu_wait = 1;
 module_param(debug_pu_wait, int, 0644);
 
+int bif_mode;
+module_param(bif_mode, int, 0644);
+
 static struct mtk_drm_property mtk_crtc_property[CRTC_PROP_MAX] = {
 	{DRM_MODE_PROP_ATOMIC, "OVERLAP_LAYER_NUM", 0, ULONG_MAX, 0},
 	{DRM_MODE_PROP_ATOMIC, "LAYERING_IDX", 0, ULONG_MAX, 0},
@@ -372,9 +375,9 @@ static void mtk_drm_crtc_reset(struct drm_crtc *crtc)
 
 	state->base.crtc = crtc;
 }
-enum BIF_EN_MODE bif_enabled(struct drm_crtc *crtc)
+int bif_enabled(struct drm_crtc *crtc)
 {
-	enum BIF_EN_MODE en = BIF_DISABLE;
+	int en = 0;
 	int crtc_index = drm_crtc_index(crtc);
 	struct mtk_drm_private *priv = crtc->dev->dev_private;
 	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
@@ -1442,7 +1445,7 @@ void mtk_drm_crtc_dump(struct drm_crtc *crtc)
 
 	for_each_comp_in_cur_crtc_path(comp, mtk_crtc, i, j) mtk_dump_reg(comp);
 
-	if (bif_enabled(crtc) != BIF_DISABLE) {
+	if (bif_enabled(crtc)) {
 		struct mtk_crtc_ddp_ctx *ddp_ctx = &mtk_crtc->ddp_ctx[mtk_crtc->ddp_mode];
 
 		for (i = 0; i < ddp_ctx->wb_comp_nr; i++) {
@@ -3662,8 +3665,6 @@ void mtk_crtc_bif_info_init(struct mtk_drm_crtc *mtk_crtc)
 		DDPPR_ERR("%s: bif_info allocate memory fail\n", __func__);
 		return;
 	}
-
-	mtk_crtc->bif_info->force_en = BIF_FORCE_OFF;
 }
 void mtk_crtc_update_bif_roi(struct mtk_drm_crtc *mtk_crtc)
 {
@@ -3694,9 +3695,9 @@ void mtk_crtc_update_bif_roi(struct mtk_drm_crtc *mtk_crtc)
 	bif_info->src_roi.width = w/3 + bif_info->wdma_offset;
 	bif_info->src_roi.height = h;
 
-	if (bif_info->force_en != BIF_FORCE_OFF) {
-		bif_info->bif_enable = bif_info->force_en;
-		DDPMSG("%s,force_en:%d\n", __func__, bif_info->force_en);
+	if (unlikely(bif_mode)) {
+		bif_info->bif_enable = bif_mode;
+		DDPMSG("%s,force mode:%d\n", __func__, bif_info->bif_enable);
 		return;
 	}
 	if (priv->enable_bif)
@@ -3986,7 +3987,7 @@ void mtk_crtc_ddp_prepare(struct mtk_drm_crtc *mtk_crtc)
 		mtk_ddp_comp_prepare(comp);
 	}
 
-	if (bif_enabled(crtc) != BIF_DISABLE) {
+	if (bif_enabled(crtc)) {
 		struct mtk_crtc_ddp_ctx *ddp_ctx = &mtk_crtc->ddp_ctx[mtk_crtc->ddp_mode];
 
 		for (i = 0; i < ddp_ctx->wb_comp_nr; i++) {
@@ -4094,7 +4095,7 @@ void mtk_crtc_ddp_unprepare(struct mtk_drm_crtc *mtk_crtc)
 		mtk_ddp_comp_unprepare(comp);
 	}
 
-	if (bif_enabled(crtc) != BIF_DISABLE) {
+	if (bif_enabled(crtc)) {
 		struct mtk_crtc_ddp_ctx *ddp_ctx = &mtk_crtc->ddp_ctx[mtk_crtc->ddp_mode];
 
 		for (i = 0; i < ddp_ctx->wb_comp_nr; i++) {
@@ -12258,7 +12259,7 @@ int mtk_crtc_attach_ddp_comp(struct drm_crtc *crtc, int ddp_mode,
 			comp->mtk_crtc = NULL;
 	}
 
-	if (bif_enabled(crtc) != BIF_DISABLE) {
+	if (bif_enabled(crtc)) {
 		struct mtk_crtc_ddp_ctx *ddp_ctx = &mtk_crtc->ddp_ctx[mtk_crtc->ddp_mode];
 
 		for (i = 0; i < ddp_ctx->wb_comp_nr; i++) {
@@ -12672,7 +12673,7 @@ void mtk_crtc_connect_default_path(struct mtk_drm_crtc *mtk_crtc)
 		}
 	}
 
-	if (bif_enabled(crtc) != BIF_DISABLE)
+	if (bif_enabled(crtc))
 		mtk_crtc_bif_path_prepare(mtk_crtc);
 
 	if (mtk_crtc->is_dual_pipe) {
@@ -13760,7 +13761,7 @@ void mtk_crtc_config_default_path(struct mtk_drm_crtc *mtk_crtc)
 		}
 	}
 
-	if (mtk_crtc->bif_info && (mtk_crtc->bif_info->bif_enable != BIF_DISABLE))
+	if (mtk_crtc->bif_info && mtk_crtc->bif_info->bif_enable)
 		mtk_crtc_bif_comp_config(mtk_crtc, &cfg, cmdq_handle);
 
 	if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_USE_PQ) &&
@@ -14497,7 +14498,7 @@ void mtk_drm_crtc_enable(struct drm_crtc *crtc, bool need_report_bw)
 	if (mtk_crtc->bif_info) {
 		mtk_crtc_update_bif_roi(mtk_crtc);
 
-		if (bif_enabled(crtc) != BIF_DISABLE) {
+		if (bif_enabled(crtc)) {
 			if (!mtk_crtc_bif_slbc_request(mtk_crtc, true))
 				mtk_crtc->bif_info->bif_enable = BIF_DISABLE;
 

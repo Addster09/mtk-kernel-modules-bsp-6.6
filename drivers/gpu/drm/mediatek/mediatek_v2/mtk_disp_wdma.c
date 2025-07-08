@@ -659,7 +659,7 @@ static void mtk_wdma_start(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle)
 		data->sodi_config(comp->mtk_crtc->base.dev, comp->id, handle,
 				  &en);
 
-	if ((bif_enabled(&comp->mtk_crtc->base) != BIF_DISABLE) && comp->mtk_crtc->bif_info->wb_comp)
+	if (bif_enabled(&comp->mtk_crtc->base) && comp->mtk_crtc->bif_info->wb_comp)
 		mtk_ddp_write_relaxed(comp, DISP_DDREN_REQ_DISABLE, DISP_REG_WDMA_DDREN_CTRL, handle);
 }
 
