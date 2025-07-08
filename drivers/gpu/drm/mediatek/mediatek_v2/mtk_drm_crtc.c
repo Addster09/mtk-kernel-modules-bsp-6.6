@@ -8491,6 +8491,8 @@ int get_comp_wait_event(struct mtk_drm_crtc *mtk_crtc,
 		return mtk_crtc->gce_obj.event[EVENT_UFBC_WDMA3_EOF];
 	} else if (comp->id == DDP_COMPONENT_OVLSYS_UFBC_WDMA0) {
 		return mtk_crtc->gce_obj.event[EVENT_OVLSYS_UFBC_WDMA0_EOF];
+	} else if (comp->id == DDP_COMPONENT_OVL_EXDMA0) {
+		return mtk_crtc->gce_obj.event[EVENT_OVLSYS0_EXDMA0_EOF];
 	}
 
 	DDPPR_ERR("The component has not frame done event\n");
@@ -20658,6 +20660,10 @@ static void mtk_crtc_get_event_name(struct mtk_drm_crtc *mtk_crtc, char *buf,
 	case EVENT_OVLSYS_DISP_OVL0_SOF:
 		len = snprintf(buf, buf_len, "disp_ovlsys_ovl_exdma3_sof%d",
 					drm_crtc_index(&mtk_crtc->base));
+		break;
+	case EVENT_OVLSYS0_EXDMA0_EOF:
+		len = snprintf(buf, buf_len, "disp_ovlsys0_exdma0_eof%d",
+			drm_crtc_index(&mtk_crtc->base));
 		break;
 	default:
 		DDPPR_ERR("%s invalid event_id:%d\n", __func__, event_id);
