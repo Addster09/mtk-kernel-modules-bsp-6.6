@@ -417,6 +417,12 @@ struct mml_topology_path {
 		};
 	};
 
+	/* bits to enable/disable ultra for this path */
+	struct {
+		phys_addr_t larb_base;
+		u32 ultra_mask;
+	} larbs[MML_MAX_LARB];
+
 	/* engine flag for this path */
 	u64 engine_flags;
 
@@ -916,7 +922,9 @@ struct mml_comp {
 	struct clk *clks[2];
 	struct device *larb_dev;
 	phys_addr_t larb_base;
-	u32 larb_port;
+	u8 larb_port;
+	u8 larb_port_stash;
+	u8 larb_idx;
 	s32 pw_cnt;
 	s32 mminfra_pw_cnt;
 	s32 clk_cnt;

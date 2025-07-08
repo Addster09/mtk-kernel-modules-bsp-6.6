@@ -352,6 +352,8 @@ static s32 sys_init(struct mml_comp *comp, struct mml_task *task,
 	struct mml_sys *sys = comp_to_sys(comp);
 	struct mml_frame_config *cfg = task->config;
 	struct cmdq_pkt *pkt = task->pkts[ccfg->pipe];
+	const struct mml_topology_path *path = cfg->path[ccfg->pipe];
+	u32 i;
 
 	if (cfg->dpc) {
 		if (mml_dl_dpc & MML_DPC_PKT_VOTE && cfg->info.mode != MML_MODE_DDP_ADDON)
@@ -361,20 +363,33 @@ static s32 sys_init(struct mml_comp *comp, struct mml_task *task,
 
 	if (mml_isdc(cfg->info.mode) && !mml_dev_get_couple_cnt(cfg->mml)) {
 		/* disable ultra in srt mode to avoid occupy bw */
-		cmdq_pkt_write(pkt, NULL,
-			comp->larb_base + SMI_LARB_DISABLE_ULTRA, 0xffffffff, U32_MAX);
+		for (i = 0; i < ARRAY_SIZE(path->larbs); i++) {
+			if (path->larbs[i].larb_base)
+				cmdq_pkt_write(pkt, NULL,
+					path->larbs[i].larb_base + SMI_LARB_DISABLE_ULTRA,
+					U32_MAX, path->larbs[i].ultra_mask);
+		}
 	} else if (cfg->info.mode == MML_MODE_DIRECT_LINK) {
 		/* enable ultra */
-		cmdq_pkt_write(pkt, NULL,
-			comp->larb_base + SMI_LARB_DISABLE_ULTRA, 0x0, U32_MAX);
+		for (i = 0; i < ARRAY_SIZE(path->larbs); i++) {
+			if (path->larbs[i].larb_base)
+				cmdq_pkt_write(pkt, NULL,
+					path->larbs[i].larb_base + SMI_LARB_DISABLE_ULTRA,
+					0, path->larbs[i].ultra_mask);
+		}
 
 		/* assign ddp path if underrun addon dump */
 		sys->ddp_path[ccfg->pipe] = cfg->path[ccfg->pipe];
 
 	} else if (cfg->info.mode == MML_MODE_RACING) {
 		/* enable ultra */
-		cmdq_pkt_write(pkt, NULL,
-			comp->larb_base + SMI_LARB_DISABLE_ULTRA, 0x0, U32_MAX);
+		for (i = 0; i < ARRAY_SIZE(path->larbs); i++) {
+			if (path->larbs[i].larb_base)
+				cmdq_pkt_write(pkt, NULL,
+					path->larbs[i].larb_base + SMI_LARB_DISABLE_ULTRA,
+					0, path->larbs[i].ultra_mask);
+		}
+
 	}
 #endif
 
