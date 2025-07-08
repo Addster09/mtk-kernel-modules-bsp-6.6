@@ -280,6 +280,7 @@ struct vcp_status_fp vcp_helper_fp = {
 	.get_ipidev                 = get_ipidev,
 	.vcp_get_io_device          = vcp_get_io_device,
 	.vcp_register_mminfra_cb    = vcp_register_mminfra_cb,
+	.vcp_mminfra_on_off_cb      = vcp_mminfra_on_off_cb,
 };
 
 #undef pr_debug
@@ -566,7 +567,6 @@ int vcp_register_mminfra_cb(mminfra_pwr_ptr fpt_on, mminfra_pwr_ptr fpt_off,
 	return 0;
 }
 
-
 int vcp_turn_mminfra_on(void)
 {
 	int ret = 0;
@@ -621,6 +621,14 @@ int vcp_turn_mminfra_off(void)
 	}
 
 	return ret;
+}
+
+int vcp_mminfra_on_off_cb(bool on)
+{
+	if (on == true)
+		return vcp_turn_mminfra_on();
+
+	return vcp_turn_mminfra_off();
 }
 
 static BLOCKING_NOTIFIER_HEAD(vcp_A_notifier_list);

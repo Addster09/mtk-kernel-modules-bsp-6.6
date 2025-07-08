@@ -254,6 +254,7 @@ struct vcp_status_fp vcp_helper_fp = {
 	.get_ipidev                 = get_ipidev,
 	.vcp_get_io_device          = vcp_get_io_device,
 	.vcp_register_mminfra_cb    = vcp_register_mminfra_cb,
+	.vcp_mminfra_on_off_cb      = vcp_mminfra_on_off_cb,
 };
 
 #undef pr_debug
@@ -452,6 +453,11 @@ bool is_mmup_enable(void)
 
 int vcp_register_mminfra_cb(mminfra_pwr_ptr fpt_on, mminfra_pwr_ptr fpt_off,
 	mminfra_dump_ptr mminfra_dump_func)
+{
+	return 0;
+}
+
+int vcp_mminfra_on_off_cb(bool on)
 {
 	return 0;
 }
