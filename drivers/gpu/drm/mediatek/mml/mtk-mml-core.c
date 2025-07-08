@@ -1092,6 +1092,7 @@ static void mml_core_qos_update_dpc(struct mml_frame_config *cfg, bool trigger)
 	u32 dpc_dvfs_lv = 0;
 	enum mml_sys_id sysid;
 	u32 i;
+	bool bw_en = false;
 
 	if (unlikely(!tp))
 		return;
@@ -1115,6 +1116,8 @@ static void mml_core_qos_update_dpc(struct mml_frame_config *cfg, bool trigger)
 				task_stash_hrt_max[sysid] = max_t(u32, task_stash_hrt_max[sysid],
 					task->dpc_hrt_write_bw[sysid]);
 			}
+
+			bw_en = true;
 		}
 
 		for (sysid = 0; sysid < mml_max_sys; sysid++) {
@@ -1130,6 +1133,9 @@ static void mml_core_qos_update_dpc(struct mml_frame_config *cfg, bool trigger)
 		hrt_bw_max = max_t(u32, hrt_bw_max, hrt_bw[sysid]);
 		dpc_dvfs_lv = max_t(u32, dpc_dvfs_lv, tp->qos[sysid].current_level[mml_tput_dpc]);
 	}
+
+	if (bw_en && !srt_bw_max && !hrt_bw_max)
+		mml_err("%s fail update task bw last task %p", __func__, task);
 
 	mml_msg_dpc("%s dpc dvfs level %u srt %u hrt %u hrt_mode %u trigger %s",
 		__func__, dpc_dvfs_lv, srt_bw_max, hrt_bw_max, mtk_mml_hrt_mode,
@@ -1552,7 +1558,7 @@ done:
 			mml_core_qos_calc(task_pipe_tmp->task, tmp_pipe, throughput);
 		}
 		/* update the max bw for each comp for first task in this client */
-		mml_core_qos_set(task, tmp_pipe, throughput, tput_up);
+		mml_core_qos_set(task_pipe_cur->task, tmp_pipe, throughput, tput_up);
 		bandwidth = task_pipe_cur->bandwidth;
 	} else {
 		if (task->config->info.dl_pos == MML_DL_POS_RIGHT)
