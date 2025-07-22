@@ -395,8 +395,6 @@ static void fpsgo_com_get_l2q_time(int pid, unsigned long long buf_id, int tgid,
 		unsigned long long pprev_queue_end_ts, unsigned long long dequeue_start_ts,
 		unsigned long long sf_buf_id, struct render_info *f_render)
 {
-		unsigned long long logic_head_ts = 0;
-		int has_logic_head = 0, is_logic_valid = 0;
 		int l2q_enable_pid_final = 0;
 
 		if (!f_render)
@@ -404,11 +402,8 @@ static void fpsgo_com_get_l2q_time(int pid, unsigned long long buf_id, int tgid,
 
 		l2q_enable_pid_final = f_render->attr.l2q_enable_by_pid;
 		if (fpsgo_touch_latency_ko_ready && l2q_enable_pid_final) {
-			is_logic_valid = fpsgo_comp2fstb_get_logic_head(pid, buf_id,
-				tgid, enqueue_end_time, prev_queue_end_ts, pprev_queue_end_ts,
-				dequeue_start_ts, &logic_head_ts, &has_logic_head);
-			fpsgo_comp_make_pair_l2q(f_render, enqueue_end_time, logic_head_ts,
-				has_logic_head, is_logic_valid, sf_buf_id);
+			fpsgo_comp_make_pair_l2q(f_render, enqueue_end_time, f_render->logic_head_ts,
+				f_render->has_logic_head, f_render->is_logic_valid, sf_buf_id);
 		}
 }
 
@@ -1104,6 +1099,9 @@ void fpsgo_ctrl2comp_dequeue_end(int pid,
 {
 	struct render_info *f_render;
 	int ret;
+	unsigned long long pprev_enqueue_end = 0, prev_enqueue_end = 0,
+		dequeue_start_ts = 0;
+	int l2q_enable_pid_final = 0;
 
 	fpsgo_render_tree_lock(__func__);
 
@@ -1141,11 +1139,21 @@ void fpsgo_ctrl2comp_dequeue_end(int pid,
 			f_render->frame_type = MFRC_BY_PASS_FRAME;
 	}
 
+	pprev_enqueue_end = f_render->prev_t_enqueue_end;
+	prev_enqueue_end = f_render->t_enqueue_end;
+	dequeue_start_ts = f_render->t_dequeue_start;
+
 	switch (f_render->frame_type) {
 	case NON_VSYNC_ALIGNED_TYPE:
 	case MFRC_FRAME:
 		f_render->t_dequeue_end = dequeue_end_time;
 		f_render->dequeue_length = dequeue_end_time - f_render->t_dequeue_start;
+		l2q_enable_pid_final = f_render->attr.l2q_enable_by_pid;
+		if (fpsgo_touch_latency_ko_ready && l2q_enable_pid_final) {
+			f_render->is_logic_valid = fpsgo_comp2fstb_get_logic_head(pid, f_render->buffer_id,
+				f_render->tgid, dequeue_end_time, prev_enqueue_end, pprev_enqueue_end,
+				dequeue_start_ts, &f_render->logic_head_ts, &f_render->has_logic_head);
+		}
 		fpsgo_comp2fbt_deq_end(f_render, dequeue_end_time);
 		fpsgo_systrace_c_fbt_debug(-300, 0, f_render->dequeue_length,
 			"%d_%d-dequeue_length", pid, f_render->frame_type);
