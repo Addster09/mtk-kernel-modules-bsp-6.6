@@ -8882,7 +8882,8 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				"MTK_DRM_OPT_SLC_ALL_CACHE",
 				"MTK_DRM_OPT_OVL_WCG_BY_COLOR_MODE",
 				"MTK_DRM_OPT_OVLSYS_CASCADE",
-				"MTK_DRM_OPT_LTPO_VM";
+				"MTK_DRM_OPT_LTPO_VM",
+				"MTK_DRM_OPT_MML_DL_SUB_CFG_CLINET";
 
 			helper-value = <0>, /*MTK_DRM_OPT_STAGE*/
 				<1>, /*MTK_DRM_OPT_USE_CMDQ*/
@@ -8962,7 +8963,8 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				<0>, /*MTK_DRM_OPT_SLC_ALL_CACHE*/
 				<0>, /*MTK_DRM_OPT_OVL_WCG_BY_COLOR_MODE*/
 				<0>, /*"MTK_DRM_OPT_OVLSYS_CASCADE"*/
-				<1>; /*MTK_DRM_OPT_LTPO_VM*/
+				<1>, /*MTK_DRM_OPT_LTPO_VM*/
+				<0>; /*"MTK_DRM_OPT_MML_DL_SUB_CFG_CLINET"*/
 
 		};
 

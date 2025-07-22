@@ -137,10 +137,12 @@ bootargs_ext = "rcu_nocbs=0-7";
 	bypass-pc-path = <1>;
 
 	helper-name-proj = "MTK_DRM_OPT_IDLEMGR_DISABLE_ROUTINE_IRQ",
+		"MTK_DRM_OPT_MML_DL_SUB_CFG_CLINET",
 		"MTK_DRM_OPT_OVL_WCG",
 		"MTK_DRM_OPT_OVL_WCG_BY_COLOR_MODE";
 
 	helper-value-proj = <1>, /*MTK_DRM_OPT_IDLEMGR_DISABLE_ROUTINE_IRQ*/
+		<1>, /*MTK_DRM_OPT_MML_DL_SUB_CFG_CLINET*/
 		<1>, /*MTK_DRM_OPT_OVL_WCG*/
 		<1>; /*MTK_DRM_OPT_OVL_WCG_BY_COLOR_MODE*/
 };
