@@ -249,6 +249,48 @@ int (*magt2fpsgo_notify_thread_status_fp)(unsigned int frameid,
 	unsigned long long tv_ts);
 EXPORT_SYMBOL(magt2fpsgo_notify_thread_status_fp);
 
+int (*magt2pelt_notify_pelt_hint_boost_fp)(int enable,
+	int pid_mode,
+	int pid,
+	int ratio);
+EXPORT_SYMBOL(magt2pelt_notify_pelt_hint_boost_fp);
+
+/*--------------------Set CPU mask by kernel------------------------*/
+int magt_set_affinity(int pid, int cpu_mask)
+{
+	ssize_t ret = 0;
+	struct task_struct *p;
+	struct cpumask mask;
+
+	rcu_read_lock();
+
+	p = find_task_by_vpid(pid);
+	if (!p) {
+		rcu_read_unlock();
+		ret = -ESRCH;
+		goto ret_set_aff;
+	}
+
+	get_task_struct(p);
+	rcu_read_unlock();
+
+	if (p->flags & PF_NO_SETAFFINITY) {
+		ret = -EINVAL;
+		put_task_struct(p);
+		goto out_put_task;
+	}
+
+	cpumask_clear(&mask);
+	*cpumask_bits(&mask) = cpu_mask;
+	ret = set_cpus_allowed_ptr_by_kernel(p, &mask);
+
+out_put_task:
+	put_task_struct(p);
+
+ret_set_aff:
+	return ret;
+}
+
 /*--------------------MAGT IOCTL------------------------*/
 static long magt_ioctl(struct file *filp,
 		unsigned int cmd, unsigned long arg)
@@ -306,7 +348,6 @@ static long magt_ioctl(struct file *filp,
 			tfiKM->tid_arr, tfiKM->tfps_arr, tfiKM->num);
 		break;
 	}
-
 	case MAGT_SET_DEP_LIST_V3:
 	{
 		struct dep_list_info_V3 *dliUM;
@@ -331,6 +372,28 @@ static long magt_ioctl(struct file *filp,
 
 		ret = magt2fpsgo_notify_dep_list_fp(dli.pid,
 			dli.user_dep_arr, dli.user_dep_num);
+		break;
+	}
+	case MAGT_PELT_HINT_BOOST:
+	{
+		struct pelt_hint_boost *phint;
+		struct pelt_hint_boost hint;
+
+		if (!magt2pelt_notify_pelt_hint_boost_fp) {
+			ret = -EAGAIN;
+			goto ret_ioctl;
+		}
+
+		phint = (struct pelt_hint_boost *)arg;
+
+		if (perfctl_copy_from_user(&hint, phint,
+				sizeof(struct pelt_hint_boost))) {
+			ret = -EFAULT;
+			goto ret_ioctl;
+		}
+
+		ret = magt2pelt_notify_pelt_hint_boost_fp(hint.enable,
+			hint.pid_mode, hint.pid, hint.ratio);
 		break;
 	}
 	case MAGT_GET_FPSGO_SUPPORT:
@@ -643,6 +706,76 @@ static long magt_ioctl(struct file *filp,
 		ret = magt2fpsgo_notify_thread_status_fp(tsiKM->frameid,
 			tsiKM->type, tsiKM->status, tsiKM->tv_ts);
 		break;
+	case MAGT_BIND_THREAD_TO_CPU:
+	{
+		struct thread_binding_info tbiKM;
+
+		// Check if the input parameters are valid,
+		// And Copy the data from userspace.
+		if (perfctl_copy_from_user(&tbiKM, (void *)arg,
+				sizeof(struct thread_binding_info))) {
+			ret = -EFAULT;
+			goto ret_ioctl;
+		}
+		pr_debug(TAG ": %s %d, copy_from_user success.", __FILE__, __LINE__);
+
+		// Bind the threads to the specified CPUs.
+		for (int i = 0; i < tbiKM.pid_num; i++) {
+			ret = magt_set_affinity(tbiKM.pid[i], tbiKM.core[i]);
+			if (ret < 0)
+				goto ret_ioctl;
+		}
+		pr_debug(TAG ": %s %d, Set Thread Affinity Finished.", __FILE__, __LINE__);
+
+		break;
+	}
+	case MAGT_GET_PID_BIND_BOOST:
+	{
+		struct ta_binding_info tabiKM;
+		struct task_struct *task;
+		struct pid *pid_struct;
+
+		// Check if the input parameters are valid,
+		// And Copy the data from userspace.
+		if (perfctl_copy_from_user(&tabiKM, (void *)arg,
+				sizeof(struct ta_binding_info))) {
+			ret = -EFAULT;
+			goto ret_ioctl;
+		}
+		pr_debug(TAG ": %s %d, copy_from_user success.", __FILE__, __LINE__);
+
+		/**
+		 * Traverse threads in top-app and bind them to the specified core.
+		 * Store the thread information and transfer back to userspace for reset later.
+		 */
+		int index = 0;
+
+		for (int i = 0; i < tabiKM.ta_num; i++) {
+			pid_struct = find_get_pid(tabiKM.ta_tasks[i]);
+			if (!pid_struct)
+				continue;
+
+			task = pid_task(pid_struct, PIDTYPE_PID);
+			for (int j = 0; j < tabiKM.thread_num; j++) {
+				if (task && strcmp(task->comm, tabiKM.thread_name[j]) == 0) {
+					int cpu, result = 0;
+					struct cpumask mask;
+
+					cpumask_copy(&mask, &task->cpus_mask);
+					for_each_cpu(cpu, &mask)
+						result |= (1 << cpu);
+					tabiKM.cpu_mask[index] = result;
+					tabiKM.ta_tasks[index] = tabiKM.ta_tasks[i];
+					index++;
+				}
+			}
+		}
+		tabiKM.ta_num = index;
+		perfctl_copy_to_user((void *)arg, &tabiKM, sizeof(struct ta_binding_info));
+		pr_debug(TAG ": %s %d, Search Thread Success.", __FILE__, __LINE__);
+
+		break;
+	}
 
 	default:
 		pr_debug(TAG "%s %d: unknown cmd %x\n",
