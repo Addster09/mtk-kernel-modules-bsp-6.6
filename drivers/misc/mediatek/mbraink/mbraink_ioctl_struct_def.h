@@ -53,7 +53,7 @@
 #define NETLINK_EVENT_IMGSYS_NOTIFY "NLEvent_IMGSYSNotify"
 #define NETLINK_EVENT_AUDIOADSPNOTIFY "NLEvent_ADSPEvt"
 #define NETLINK_EVENT_CCCI_NOTIFY "NLEvent_CCCINotify"
-
+#define NETLINK_EVENT_SYSCPUFREQ "NLEvent_SysCpufreq"
 
 #define NETLINK_EVENT_MESSAGE_SIZE		1024
 
@@ -593,6 +593,19 @@ struct mbraink_wifi2mbr_wakeupinfo_data {
 	u16 count;
 	u32 idx;
 	struct mbraink_wakeup_reason_struct wakeup_data[MAX_WIFI_WAKEUP_INFO_SZ];
+};
+
+struct mbraink_cpufreq_trace {
+	unsigned short tgid;
+	u64 cputime_l;
+	u64 cputime_m;
+	u64 cputime_b;
+};
+
+struct mbraink_cpufreq_trace_data {
+	unsigned short tracing_idx;
+	unsigned short tracing_count;
+	struct mbraink_cpufreq_trace drv_data[MAX_TRACE_PID_NUM];
 };
 
 #endif
