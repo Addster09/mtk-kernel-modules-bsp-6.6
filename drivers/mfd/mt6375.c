@@ -6,6 +6,7 @@
  */
 
 #include <dt-bindings/mfd/mt6375.h>
+#include <linux/cpumask.h>
 #include <linux/i2c.h>
 #include <linux/init.h>
 #include <linux/interrupt.h>
@@ -216,13 +217,8 @@ static int mt6375_irq_map(struct irq_domain *h, unsigned int virq,
 	struct i2c_client *client = to_i2c_client(ddata->dev);
 
 	irq_set_chip_data(virq, ddata);
-	if (hwirq == MT6375_GM30_EVT)
-		irq_set_chip_and_handler(virq, &ddata->irq_chip,
-					 handle_simple_irq);
-	else {
-		irq_set_chip(virq, &ddata->irq_chip);
-		irq_set_nested_thread(virq, 1);
-	}
+	irq_set_chip(virq, &ddata->irq_chip);
+	irq_set_nested_thread(virq, 1);
 	irq_set_parent(virq, client->irq);
 	irq_set_noprobe(virq);
 
@@ -233,14 +229,6 @@ static const struct irq_domain_ops mt6375_domain_ops = {
 	.map = mt6375_irq_map,
 	.xlate = irq_domain_xlate_onetwocell,
 };
-
-static irqreturn_t mt6375_irq_handler(int irq, void *data)
-{
-	struct mt6375_data *ddata = data;
-
-	generic_handle_irq(irq_find_mapping(ddata->domain, MT6375_GM30_EVT));
-	return IRQ_WAKE_THREAD;
-}
 
 static irqreturn_t mt6375_irq_thread(int irq, void *data)
 {
@@ -263,8 +251,10 @@ static irqreturn_t mt6375_irq_thread(int irq, void *data)
 		if (evt[i])
 			set_bit(i, &evt_bitmap);
 	}
-	if (!evt_bitmap)
+	if (!evt_bitmap) {
+		dev_info(ddata->dev, "%s: evt_bitmap = 0\n", __func__);
 		return IRQ_HANDLED;
+	}
 	start = ffs(evt_bitmap) - 1;
 	end = fls(evt_bitmap) - 1;
 	evt_count = end - start + 1;
@@ -281,11 +271,12 @@ static irqreturn_t mt6375_irq_thread(int irq, void *data)
 		start = 0;
 	/* handle irq, PD_EVT first */
 	for (i = end; i >= start; i--) {
-		if (!evt[i] || i == (MT6375_GM30_EVT / 8))
+		if (!evt[i])
 			continue;
 		for (j = 0; j < 8; j++) {
 			if (!(evt[i] & BIT(j)))
 				continue;
+			dev_dbg(ddata->dev, "%s: handle (i,j) = (%d, %d)\n", __func__, i, j);
 			handle_nested_irq(irq_find_mapping(ddata->domain,
 							   i * 8 + j));
 		}
@@ -298,6 +289,9 @@ static int mt6375_add_irq_chip(struct mt6375_data *ddata)
 {
 	int ret;
 	struct i2c_client *client = to_i2c_client(ddata->dev);
+	struct task_struct *irq_thread;
+	struct cpumask new_cpumask;
+	struct irq_desc *desc;
 
 	memset(ddata->mask_buf, 0xff, MT6375_IRQ_REGS);
 	ret = regmap_bulk_write(ddata->rmap, MT6375_REG_CHG_MSK0,
@@ -329,10 +323,8 @@ static int mt6375_add_irq_chip(struct mt6375_data *ddata)
 		return -ENOMEM;
 	}
 
-	ret = devm_request_threaded_irq(ddata->dev, client->irq,
-					mt6375_irq_handler, mt6375_irq_thread,
-					IRQF_ONESHOT, dev_name(ddata->dev),
-					ddata);
+	ret = devm_request_threaded_irq(ddata->dev, client->irq, NULL, mt6375_irq_thread,
+					IRQF_ONESHOT, dev_name(ddata->dev), ddata);
 	if (ret) {
 		dev_err(ddata->dev, "failed to request irq %d for %s\n",
 			client->irq, dev_name(ddata->dev));
@@ -340,6 +332,12 @@ static int mt6375_add_irq_chip(struct mt6375_data *ddata)
 		return ret;
 	}
 
+	desc = irq_to_desc(client->irq);
+	irq_thread = desc->action->thread;
+	cpumask_copy(&new_cpumask, cpu_online_mask);
+	cpumask_clear_cpu(0, &new_cpumask);
+	if (cpumask_any(&new_cpumask) < nr_cpu_ids)
+		set_cpus_allowed_ptr(irq_thread, &new_cpumask);
 	return 0;
 }
 
