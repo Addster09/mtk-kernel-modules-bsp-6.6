@@ -417,8 +417,10 @@ static irqreturn_t gauge_irq_thread(int irq, void *data)
 		return IRQ_HANDLED;
 	}
 
-	if (!memcmp(status_buf, no_status, NUM_IRQ_REG))
+	if (!memcmp(status_buf, no_status, NUM_IRQ_REG)) {
+		dev_dbg(priv->dev, "%s: status is 0\n", __func__);
 		return IRQ_HANDLED;
+	}
 
 	/* mask irqs */
 	for (i = 0; i < NUM_IRQ_REG; i++) {
@@ -438,6 +440,8 @@ static irqreturn_t gauge_irq_thread(int irq, void *data)
 			if (!(status & BIT(j)))
 				continue;
 
+			dev_info(priv->dev, "%s, handle gauge irq (i=%d,j=%d)\n",
+				 __func__, i, j);
 			handle_nested_irq(irq_find_mapping(priv->domain, i * 8 + j));
 			handled = true;
 		}
@@ -456,7 +460,9 @@ static irqreturn_t gauge_irq_thread(int irq, void *data)
 	if (ret)
 		dev_err(priv->dev, "Error clear INT status\n");
 
-	return handled ? IRQ_HANDLED : IRQ_NONE;
+	if (!handled)
+		dev_info(priv->dev, "%s: no event trigger\n", __func__);
+	return IRQ_HANDLED;
 }
 
 static int gauge_add_irq_chip(struct mt6375_priv *priv)
