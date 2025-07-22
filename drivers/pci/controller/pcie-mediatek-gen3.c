@@ -2519,6 +2519,10 @@ static int mtk_pcie_control_vote_v2(struct mtk_pcie_port *port, bool hw_mode_en,
 	int err = 0;
 	u32 val;
 
+	/* 6991 RC no need vote */
+	if (!who)
+		return 0;
+
 	spin_lock_irqsave(&port->vote_lock, flags);
 
 	if (who)
