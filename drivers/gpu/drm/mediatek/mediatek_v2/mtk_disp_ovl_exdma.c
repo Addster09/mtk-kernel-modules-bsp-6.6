@@ -883,13 +883,6 @@ static void mtk_ovl_exdma_start(struct mtk_ddp_comp *comp, struct cmdq_pkt *hand
 
 	value = 0;
 	mask = 0;
-	SET_VAL_MASK(value, mask, 1, FLD_DISP_OVL_EXT_DDR_EN_OPT);
-	SET_VAL_MASK(value, mask, 1, FLD_DDISP_OVL_FORCE_EXT_DDR_EN);
-	cmdq_pkt_write(handle, comp->cmdq_base,
-			   comp->regs_pa + DISP_REG_OVL_DUMMY_REG,
-			   value, mask);
-	value = 0;
-	mask = 0;
 	SET_VAL_MASK(value, mask, 1, DATAPATH_CON_FLD_LAYER_SMI_ID_EN);
 	SET_VAL_MASK(value, mask, 1, DATAPATH_CON_FLD_HDR_GCLAST_EN);
 	SET_VAL_MASK(value, mask, 1, DATAPATH_CON_FLD_GCLAST_EN);
@@ -4303,7 +4296,11 @@ void mtk_ovl_exdma_dump_golden_setting(struct mtk_ddp_comp *comp)
 	}
 
 	rg0 = DISP_REG_OVL_RDMA_BURST_CON1;
-	DDPDUMP("0x%03lx:0x%08x\n", rg0, readl(rg0 + baddr));
+	rg1 = DISP_REG_OVL_DUMMY_REG;
+	DDPDUMP("0x%03lx:0x%08x 0x%03lx:0x%08x\n",
+		rg0, readl(rg0 + baddr),
+		rg1, readl(rg1 + baddr));
+
 
 	rg0 = DISP_REG_OVL_RDMA_GREQ_NUM;
 	rg1 = DISP_REG_OVL_RDMA_GREQ_URG_NUM;
