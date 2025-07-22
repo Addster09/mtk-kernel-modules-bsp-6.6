@@ -85,6 +85,7 @@
 struct mtk_disp_mdp_rdma_data {
 	void (*sodi_config)(struct drm_device *drm, enum mtk_ddp_comp_id id,
 			struct cmdq_pkt *handle, void *data);
+	bool skip_irq;
 };
 
 struct mtk_disp_mdp_rdma {
@@ -114,6 +115,9 @@ static irqreturn_t mtk_disp_mdp_rdma_irq_handler(int irq, void *dev_id)
 	mdp_rdma = &priv->ddp_comp;
 	if (IS_ERR_OR_NULL(mdp_rdma))
 		return IRQ_NONE;
+
+	if (priv->data->skip_irq)
+		return IRQ_HANDLED;
 
 	if (mtk_drm_top_clk_isr_get(mdp_rdma) == false) {
 		DDPIRQ("%s, top clk off\n", __func__);
@@ -225,9 +229,12 @@ static void mtk_mdp_rdma_start(struct mtk_ddp_comp *comp, struct cmdq_pkt *handl
 
 	mtk_ddp_write_mask(comp, ROT_ENABLE,
 		DISP_REG_MDP_RDMA_EN, ROT_ENABLE, handle);
-	val = FRAME_COMPLETE_INT | UNDERRUN_INT;
-	mtk_ddp_write_mask(comp, val,
-		DISP_REG_MDP_RDMA_INT_ENABLE, val, handle);
+
+	if (data && !data->skip_irq) {
+		val = FRAME_COMPLETE_INT | UNDERRUN_INT;
+		mtk_ddp_write_mask(comp, val,
+			DISP_REG_MDP_RDMA_INT_ENABLE, val, handle);
+	}
 
 	if (bif_enabled(&mtk_crtc->base) && mtk_crtc->bif_info->read_comp)
 		mtk_ddp_write_mask(comp, OUTPUT_10B | DDREN_REQ_DISABLE,
@@ -813,21 +820,25 @@ static int mtk_disp_mdp_rdma_probe(struct platform_device *pdev)
 
 	/* Disable and clear pending interrupts */
 	writel(0x0, priv->ddp_comp.regs + DISP_REG_MDP_RDMA_INT_STATUS);
+	dsb(sy);
 	writel(0x0, priv->ddp_comp.regs + DISP_REG_MDP_RDMA_INT_ENABLE);
-
-	ret = devm_request_irq(dev, irq, mtk_disp_mdp_rdma_irq_handler,
-			       IRQF_TRIGGER_NONE | IRQF_SHARED, dev_name(dev),
-			       priv);
-	if (ret < 0) {
-		DDPAEE("%s:%d, failed to request irq:%d ret:%d comp_id:%d\n",
-				__func__, __LINE__,
-				irq, ret, comp_id);
-		return ret;
-	}
+	dsb(sy);
 
 	priv->data = of_device_get_match_data(dev);
 	if (priv->data == NULL)
 		dev_err(dev, "priv->data is NULL\n");
+
+	if (!priv->data->skip_irq) {
+		ret = devm_request_irq(dev, irq, mtk_disp_mdp_rdma_irq_handler,
+					   IRQF_TRIGGER_NONE | IRQF_SHARED, dev_name(dev),
+					   priv);
+		if (ret < 0) {
+			DDPAEE("%s:%d, failed to request irq:%d ret:%d comp_id:%d\n",
+					__func__, __LINE__,
+					irq, ret, comp_id);
+			return ret;
+		}
+	}
 
 	platform_set_drvdata(pdev, priv);
 
@@ -856,6 +867,7 @@ static int mtk_disp_mdp_rdma_remove(struct platform_device *pdev)
 
 static const struct mtk_disp_mdp_rdma_data mt6991_mdp_rdma_driver_data = {
 	.sodi_config = mt6991_mtk_sodi_config,
+	.skip_irq = true,
 };
 
 static const struct of_device_id mtk_disp_mdp_rdma_driver_dt_match[] = {
