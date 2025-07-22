@@ -303,6 +303,9 @@ struct fpsgo_boost_attr {
 	/* boost LR */
 	int boost_lr_by_pid;
 
+	/* L3 cache policy */
+	int set_l3_cache_ct_by_pid;
+
 	/* set idle prefer */
 	int set_ls_by_pid;
 	int ls_groupmask_by_pid;
