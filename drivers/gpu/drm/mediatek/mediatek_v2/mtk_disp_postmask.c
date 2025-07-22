@@ -164,6 +164,7 @@ struct mtk_disp_postmask_tile_overhead_v {
 
 struct mtk_disp_postmark_tile_overhead postmark_tile_overhead = { 0 };
 struct mtk_disp_postmask_tile_overhead_v postmask_tile_overhead_v = { 0 };
+static void mtk_postmask_ddren(struct mtk_ddp_comp *comp, bool en, struct cmdq_pkt *handle);
 
 static inline struct mtk_disp_postmask *comp_to_postmask(struct mtk_ddp_comp *comp)
 {
@@ -444,10 +445,6 @@ static void mtk_postmask_config(struct mtk_ddp_comp *comp,
 			DDPMSG("postmask force relay\n");
 			force_relay = 1;
 		}
-		if (bif_enabled(&comp->mtk_crtc->base)) {
-			DDPINFO("%s, bif force relay\n", __func__);
-			force_relay = 1;
-		}
 
 		value = (REG_FLD_VAL((CFG_FLD_RELAY_MODE), force_relay) |
 			 REG_FLD_VAL((CFG_FLD_DRAM_MODE), 1) |
@@ -500,12 +497,14 @@ static void mtk_postmask_config(struct mtk_ddp_comp *comp,
 #endif
 		/* config relay mode */
 	} else {
+		postmask->postmask_force_relay = 1;
 		value = (REG_FLD_VAL((CFG_FLD_RELAY_MODE), 1) |
 			 REG_FLD_VAL((CFG_FLD_DRAM_MODE), 1) |
 			 REG_FLD_VAL((CFG_FLD_BGCLR_IN_SEL), 1) |
 			 REG_FLD_VAL((CFG_FLD_GCLAST_EN), 1) |
 			 REG_FLD_VAL((CFG_FLD_STALL_CG_ON), 1));
 		mtk_ddp_write_relaxed(comp, value, DISP_POSTMASK_CFG, handle);
+		mtk_postmask_ddren(comp, 0, handle);
 	}
 }
 
@@ -590,17 +589,11 @@ static int mtk_postmask_io_cmd(struct mtk_ddp_comp *comp,
 			       enum mtk_ddp_io_cmd io_cmd, void *params);
 static void mtk_postmask_bypass(struct mtk_ddp_comp *comp, int bypass,
 	int caller, struct cmdq_pkt *handle);
-static void mtk_postmask_ddren(struct mtk_ddp_comp *comp, int en, struct cmdq_pkt *handle);
 
 static void mtk_postmask_start(struct mtk_ddp_comp *comp,
 			       struct cmdq_pkt *handle)
 {
 	DDPDBG("%s\n", __func__);
-
-	if (bif_enabled(&comp->mtk_crtc->base)) {
-		mtk_postmask_bypass(comp, 1, 0, handle);
-		mtk_postmask_ddren(comp, 0, handle);
-	}
 
 #ifdef IF_ZERO	/* enable only if irq can be handled */
 	mtk_postmask_io_cmd(comp, handle, IRQ_LEVEL_NORMAL, NULL);
@@ -622,18 +615,21 @@ static void mtk_postmask_stop(struct mtk_ddp_comp *comp,
 	cmdq_pkt_write(handle, comp->cmdq_base,
 		       comp->regs_pa + DISP_POSTMASK_INTSTA, 0, ~0);
 }
-static void mtk_postmask_ddren(struct mtk_ddp_comp *comp, int en, struct cmdq_pkt *handle)
+static void mtk_postmask_ddren(struct mtk_ddp_comp *comp, bool en, struct cmdq_pkt *handle)
 {
 	struct mtk_disp_postmask *postmask = comp_to_postmask(comp);
 
-	DDPINFO("%s, comp_id: %d, en: %d\n", __func__, comp->id, en);
+	DDPINFO("%s,comp:%s,en:%d,relay:%d\n", __func__,
+		mtk_dump_comp_str(comp), en, postmask->postmask_force_relay);
+
+	/* relay mode set ddren disable */
+	if (postmask->postmask_force_relay)
+		en = 0;
 
 	if (en)
-		cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + DISP_POSTMASK_BANK_CON,
-			0x0, DDREN_REQ_DIS);
+		mtk_ddp_write_mask(comp, 0x0, DISP_POSTMASK_BANK_CON, DDREN_REQ_DIS, handle);
 	else
-		cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + DISP_POSTMASK_BANK_CON,
-			DDREN_REQ_DIS, DDREN_REQ_DIS);
+		mtk_ddp_write_mask(comp, DDREN_REQ_DIS, DISP_POSTMASK_BANK_CON, DDREN_REQ_DIS, handle);
 }
 static void mtk_postmask_bypass(struct mtk_ddp_comp *comp, int bypass,
 	int caller, struct cmdq_pkt *handle)
@@ -646,11 +642,6 @@ static void mtk_postmask_bypass(struct mtk_ddp_comp *comp, int bypass,
 	/* postmask bypass control by round_corner_en and bebug flag */
 	//if (postmask->postmask_debug)
 		//return;
-
-	if (bif_enabled(&comp->mtk_crtc->base)) {
-		bypass = 1;
-		DDPINFO("%s, bif force relay\n", __func__);
-	}
 
 	postmask->postmask_force_relay = bypass;
 
@@ -1039,10 +1030,6 @@ static int mtk_postmask_set_partial_update(struct mtk_ddp_comp *comp,
 			DDPDBG("%s, postmask force relay\n", __func__);
 			force_relay = 1;
 		}
-		if (bif_enabled(&comp->mtk_crtc->base)) {
-			force_relay = 1;
-			DDPINFO("%s, bif force relay\n", __func__);
-		}
 
 		cmdq_pkt_write(handle, comp->cmdq_base,
 			comp->regs_pa + DISP_POSTMASK_SIZE,
@@ -1091,10 +1078,6 @@ static int mtk_postmask_set_partial_update(struct mtk_ddp_comp *comp,
 		} else if (postmask->postmask_force_relay) {
 			DDPINFO("%s, postmask force relay\n", __func__);
 			force_relay = 1;
-		}
-		if (bif_enabled(&comp->mtk_crtc->base)) {
-			force_relay = 1;
-			DDPINFO("%s, bif force relay\n", __func__);
 		}
 
 		cmdq_pkt_write(handle, comp->cmdq_base,
@@ -1151,6 +1134,7 @@ static const struct mtk_ddp_comp_funcs mtk_disp_postmask_funcs = {
 	.config_overhead = mtk_disp_postmark_config_overhead,
 	.config_overhead_v = mtk_disp_postmask_config_overhead_v,
 	.partial_update = mtk_postmask_set_partial_update,
+	.ddren_config = mtk_postmask_ddren,
 };
 
 static const struct component_ops mtk_disp_postmask_component_ops = {

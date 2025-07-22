@@ -601,6 +601,8 @@ void mtk_crtc_bif_apsrc_ddren_control(struct mtk_drm_crtc *mtk_crtc, bool en)
 	for (id = DDP_COMPONENT_OVL_EXDMA0; id <= DDP_COMPONENT_OVL1_EXDMA9; id ++)
 		mtk_ddp_comp_ddren_config(priv->ddp_comp[id], en, NULL);
 
+	mtk_ddp_comp_ddren_config(priv->ddp_comp[DDP_COMPONENT_POSTMASK0], en, NULL);
+
 	mtk_vidle_apsrc_set(en);
 
 	if (en)
