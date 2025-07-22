@@ -69,6 +69,9 @@
 
 #define ALWAYS_PREULTRA 0xFFFF
 
+int dbg_urgent_high;
+module_param(dbg_urgent_high, int, 0644);
+
 //#define DSI_SELF_PATTERN
 #define DSI_START 0x00
 #define SKEWCAL_START BIT(4)
@@ -348,7 +351,9 @@
 
 #define DSI_BUF_CON0(data)	(data->dsi_buf_con_base ? data->dsi_buf_con_base : 0x400)
 #define BUF_BUF_EN BIT(0)
-#define BUF_VDE_BLOCK_URGENT BIT(3)
+#define MT6989_BUF_VDE_BLOCK_URGENT BIT(3)
+#define MT6991_BUF_VDE_BLOCK_URGENT BIT(1)
+#define MT6991_BUF_VDE_BLOCK_ULTRA BIT(3)
 #define BUF_PREURGENT_EN BIT(20)
 #define BUF_PREURGENT_MODE BIT(21)
 #define DSI_BUF_CON1(data)	(DSI_BUF_CON0(data) + 0x4)
@@ -2972,6 +2977,8 @@ static void mtk_dsi_tx_buf_rw(struct mtk_dsi *dsi)
 				dsi->driver_data->urgent_lo_fifo_us : 11;
 	urgent_hi_fifo_us = dsi->driver_data->urgent_hi_fifo_us ?
 				dsi->driver_data->urgent_hi_fifo_us : 12;
+	urgent_hi_fifo_us = dbg_urgent_high ?
+				dbg_urgent_high : urgent_hi_fifo_us;
 	output_valid_us = dsi->driver_data->output_valid_fifo_us ?
 				dsi->driver_data->output_valid_fifo_us : 25;
 
@@ -3107,6 +3114,8 @@ static void mtk_dsi_tx_buf_rw(struct mtk_dsi *dsi)
 		u32 line_time_ns = 0;
 		u64 buf_preurgent_high = 0;
 		u32 prefetch_time = 0;
+		u32 fld_block_urgent = 0;
+		u32 fld_block_ultra = 0;
 		struct drm_display_mode *mode = mtk_crtc_get_display_mode_by_comp(__func__,
 						&mtk_crtc->base, comp, false);
 
@@ -3120,11 +3129,22 @@ static void mtk_dsi_tx_buf_rw(struct mtk_dsi *dsi)
 		DDPINFO("%s buf_preurgent_high=%llu, prefetch_time=%d\n",
 			__func__, buf_preurgent_high, prefetch_time);
 
+		if (priv && priv->data && priv->data->mmsys_id == MMSYS_MT6989) { // MT6989 MT6878 MT6899)
+			fld_block_urgent = MT6989_BUF_VDE_BLOCK_URGENT;
+			//fld_block_ultra = MT6989_BUF_VDE_BLOCK_ULTRA;
+		} else {
+			fld_block_urgent = MT6991_BUF_VDE_BLOCK_URGENT;
+			fld_block_ultra = MT6991_BUF_VDE_BLOCK_ULTRA;
+		}
 		if (line_time_ns != 0 && mode) {
-			if (prefetch_time - buf_preurgent_high > 0 &&
+			if (dsi->driver_data->non_block_urgent_wa) {
+				buf_preurgent_high = 0;
+				mtk_dsi_mask(dsi, DSI_BUF_CON0(dsi->driver_data), fld_block_ultra, 0);
+			}
+			if (prefetch_time > buf_preurgent_high &&
 				prefetch_time - buf_preurgent_high >= buf_preurgent_high) {
 				buf_preurgent_high = prefetch_time - buf_preurgent_high;
-			} else if (prefetch_time - buf_preurgent_high > 0 &&
+			} else if (prefetch_time > buf_preurgent_high &&
 					prefetch_time - buf_preurgent_high < buf_preurgent_high) {
 				buf_preurgent_high = prefetch_time - buf_preurgent_high;
 				DDPINFO("prefetch_time is too small! urgent signal will usually be sent\n");
@@ -3135,14 +3155,17 @@ static void mtk_dsi_tx_buf_rw(struct mtk_dsi *dsi)
 
 			mtk_dsi_mask(dsi, DSI_BUF_CON0(dsi->driver_data), BUF_PREURGENT_MODE, 0);
 			writel(buf_preurgent_high, dsi->regs + DSI_BUF_PREURGENT_HIGH(dsi->driver_data));
-			mtk_dsi_mask(dsi, DSI_BUF_CON0(dsi->driver_data), BUF_VDE_BLOCK_URGENT, 0);
+
+			//BUF_VDE_BLOCK_URGENT
+			mtk_dsi_mask(dsi, DSI_BUF_CON0(dsi->driver_data), fld_block_urgent, 0);
 			mtk_dsi_mask(dsi, DSI_BUF_CON0(dsi->driver_data), BUF_PREURGENT_EN, BUF_PREURGENT_EN);
 		} else {
 			writel(0, dsi->regs + DSI_BUF_PREURGENT_HIGH(dsi->driver_data));
-			mtk_dsi_mask(dsi, DSI_BUF_CON0(dsi->driver_data), BUF_VDE_BLOCK_URGENT, 1);
+			//BUF_VDE_BLOCK_URGENT
+			mtk_dsi_mask(dsi, DSI_BUF_CON0(dsi->driver_data), fld_block_urgent, fld_block_urgent);
 			mtk_dsi_mask(dsi, DSI_BUF_CON0(dsi->driver_data), BUF_PREURGENT_EN, 0);
 			DDPINFO("line_time/mode err, disable preurgent\n");
-			}
+		}
 	} else if(mtk_crtc_is_frame_trigger_mode(&mtk_crtc->base) &&
 		(dsi->driver_data->support_pre_urgent & PREURGENT_SUPPORT_CMD)) {
 		/* absolute timer mode for cmd mode */
@@ -3150,6 +3173,8 @@ static void mtk_dsi_tx_buf_rw(struct mtk_dsi *dsi)
 		u32 ps_wc = 0, ps_wc_bits = 0, fps, urgent_threshold;
 		int prefetch_time, urgent_time;
 		struct mtk_panel_dsc_params *dsc_params = &ext->params->dsc_params;
+		u32 fld_block_urgent = 0;
+		u32 fld_block_ultra = 0;
 
 		fps = mtk_crtc->panel_ext->params->dyn_fps.vact_timing_fps;
 		fps = fps > 0 ? fps : drm_mode_vrefresh(&mtk_crtc->base.state->adjusted_mode);
@@ -3174,14 +3199,27 @@ static void mtk_dsi_tx_buf_rw(struct mtk_dsi *dsi)
 		urgent_time = urgent_time > urgent_hi_fifo_us ?
 					urgent_time : urgent_hi_fifo_us;
 
+		if (priv && priv->data && priv->data->mmsys_id == MMSYS_MT6989) {// MT6989 MT6878 MT6899)
+			fld_block_urgent = MT6989_BUF_VDE_BLOCK_URGENT;
+			//fld_block_ultra = MT6989_BUF_VDE_BLOCK_ULTRA
+		} else {
+			fld_block_urgent = MT6991_BUF_VDE_BLOCK_URGENT;
+			fld_block_ultra = MT6991_BUF_VDE_BLOCK_ULTRA;
+		}
+		if (dsi->driver_data->non_block_urgent_wa) {
+			urgent_time = output_valid_us;
+			mtk_dsi_mask(dsi, DSI_BUF_CON0(dsi->driver_data), fld_block_ultra, 0);
+		}
+
 		urgent_threshold = urgent_time * dsi->data_rate / 8 / 64;
-		mtk_dsi_mask(dsi, DSI_BUF_CON0(dsi->driver_data), BUF_VDE_BLOCK_URGENT, 0);
-		mtk_dsi_mask(dsi, DSI_BUF_CON0(dsi->driver_data), BUF_PREURGENT_MODE, 1);
+		mtk_dsi_mask(dsi, DSI_BUF_CON0(dsi->driver_data), fld_block_urgent, 0);
+		mtk_dsi_mask(dsi, DSI_BUF_CON0(dsi->driver_data), BUF_PREURGENT_MODE, BUF_PREURGENT_MODE);
 		writel(urgent_threshold, dsi->regs + DSI_BUF_PREURGENT_HIGH(dsi->driver_data));
 		mtk_dsi_mask(dsi, DSI_BUF_CON0(dsi->driver_data), BUF_PREURGENT_EN, BUF_PREURGENT_EN);
 
 		DDPMSG("%s,urgent_threshold=%d,prefetch_time=%d,urgent_time=%d,rframe_time=%d,fps=%d\n",
 				__func__, urgent_threshold, prefetch_time, urgent_time, rframe_time, fps);
+		DDPMSG("datarate: %d\n", dsi->data_rate);
 	}
 }
 
@@ -15360,7 +15398,7 @@ static const struct mtk_dsi_driver_data mt6991_dsi_driver_data = {
 	.ultra_lo_fifo_us = 40,
 	.ultra_hi_fifo_us = 41,
 	.urgent_lo_fifo_us = 17,
-	.urgent_hi_fifo_us = 18,
+	.urgent_hi_fifo_us = 37,
 	.output_valid_fifo_us = 50,
 	.max_vfp = 0x7ffe,
 	.mmclk_by_datarate = mtk_dsi_set_mmclk_by_datarate_V2,
@@ -15368,7 +15406,8 @@ static const struct mtk_dsi_driver_data mt6991_dsi_driver_data = {
 	.n_verion = VER_N3,
 	.require_phy_reset = false,
 	.keep_hs_eotp = true,
-	.support_pre_urgent = PREURGENT_SUPPORT_VDO,
+	.support_pre_urgent = PREURGENT_SUPPORT_ALL,
+	.non_block_urgent_wa = true,
 	.reg_phy_base = 0x600,
 	.reg_20_ofs = 0x020,
 	.reg_30_ofs = 0x030,
