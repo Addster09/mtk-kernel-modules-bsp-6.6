@@ -889,12 +889,14 @@ static void mme_get_dump_buffer(unsigned int start, void *p_block_buf, unsigned 
 		}
 	}
 
+	spin_lock(&p_str_buffer_lock);
 	MMEINFO("p_str_buffer:%px, g_str_buffer_size:%d", p_str_buffer, g_str_buffer_size);
 	mme_dump_buffer(p_str_buffer, p_block_buf, g_str_buffer_size,
 					block_buf_size, &total_pos, &region_base, &block_pos);
-	if (block_pos == block_buf_size)
+	if (block_pos == block_buf_size){
+		spin_unlock(&p_str_buffer_lock);
 		return;
-	spin_lock(&p_str_buffer_lock);
+	}
 	if (p_str_buffer) {
 		MMEMSG("p_str_buffer_refcnt:%d", p_str_buffer_refcnt);
 		p_str_buffer_refcnt--;
