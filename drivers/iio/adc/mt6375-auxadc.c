@@ -791,8 +791,10 @@ static irqreturn_t auxadc_irq_thread(int irq, void *data)
 
 	if (priv->dinfo && priv->dinfo->pre_irq_handler) {
 		ret = priv->dinfo->pre_irq_handler(priv);
-		if (ret == 0)
+		if (ret == 0) {
+			dev_info(priv->dev, "%s: gm3 evt is 0\n", __func__);
 			return IRQ_HANDLED;
+		}
 	}
 
 	ret = regmap_raw_read(priv->regmap, rg_xlate(priv, HK_TOP_INT_STATUS0),
@@ -802,8 +804,10 @@ static irqreturn_t auxadc_irq_thread(int irq, void *data)
 		return IRQ_HANDLED;
 	}
 
-	if (!memcmp(status_buf, no_status, NUM_IRQ_REG))
+	if (!memcmp(status_buf, no_status, NUM_IRQ_REG)) {
+		dev_dbg(priv->dev, "%s: status is 0\n", __func__);
 		return IRQ_HANDLED;
+	}
 
 	ret = mt6375_auxadc_check_vbat_event(priv, status_buf);
 	if (ret < 0)
@@ -852,7 +856,9 @@ static irqreturn_t auxadc_irq_thread(int irq, void *data)
 			dev_info(dev, "%s, Failed to do post irq handler\n", __func__);
 	}
 
-	return handled ? IRQ_HANDLED : IRQ_NONE;
+	if (!handled)
+		dev_info(priv->dev, "%s: no event trigger\n", __func__);
+	return IRQ_HANDLED;
 }
 
 static int mt6375_auxadc_add_irq_chip(struct mt6375_priv *priv)
