@@ -1451,8 +1451,6 @@ void mtk_drm_idlemgr_kick(const char *source, struct drm_crtc *crtc,
 	if (idlemgr_ctx->is_idle) {
 		DDPINFO("[LP] kick idle from [%s] time[%llu]\n", source,
 			local_clock() - idlemgr_ctx->enter_idle_ts);
-		if (mtk_crtc->esd_ctx)
-			atomic_set(&mtk_crtc->esd_ctx->target_time, 0);
 
 		if (mtk_crtc->enabled)
 			mtk_vidle_user_power_keep(DISP_VIDLE_USER_HSIDLE);	/* no polling for this user */

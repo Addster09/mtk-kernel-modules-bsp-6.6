@@ -41,6 +41,8 @@
 #define esd_timer_to_mtk_crtc(x) container_of(x, struct mtk_drm_crtc, esd_timer)
 
 int debug_force_esd;
+static int recovery_cnt;
+
 module_param(debug_force_esd, int, 0644);
 
 static DEFINE_MUTEX(pinctrl_lock);
@@ -137,6 +139,7 @@ static inline int need_wait_esd_eof(struct drm_crtc *crtc,
 
 	return ret;
 }
+static int mtk_drm_esd_recover(struct drm_crtc *crtc);
 
 static void esd_cmdq_timeout_cb(struct cmdq_cb_data data)
 {
@@ -149,10 +152,10 @@ static void esd_cmdq_timeout_cb(struct cmdq_cb_data data)
 		DDPMSG("%s find crtc fail\n", __func__);
 		return;
 	}
-
+	esd_ctx->chk_sta = 0xff;
 	DDPMSG("[error]%s cmdq timeout out\n", __func__);
 	DDPMSG("read flush fail\n");
-	esd_ctx->chk_sta = 0xff;
+
 	if (is_bdg_supported()) {
 		if (mtk_crtc) {
 			output_comp = mtk_ddp_comp_request_output(mtk_crtc);
@@ -168,19 +171,157 @@ static void esd_cmdq_timeout_cb(struct cmdq_cb_data data)
 	}
 }
 
+static void esd_check_done_cb(struct cmdq_cb_data data)
+{
+	struct mtk_cmdq_cb_data *cb_data = data.data;
+	struct drm_crtc *crtc = cb_data->crtc;
+	struct mtk_drm_crtc *mtk_crtc = NULL;
+	int index = drm_crtc_index(crtc);
+	struct mtk_ddp_comp *output_comp;
+	bool need_lock = true;
+	struct mtk_drm_private *private = NULL;
+	int ret;
+	struct mtk_drm_esd_ctx *esd_ctx = NULL;
+	struct cmdq_pkt *cmdq_handle2;
+	struct mtk_panel_ext *panel_ext = NULL;
+
+	CRTC_MMP_MARK(index, esd_check, 2, 6);
+	if (!crtc) {
+		DDPPR_ERR("%s invalid CRTC context, stop thread\n", __func__);
+		goto done;
+	}
+	mtk_crtc = to_mtk_crtc(crtc);
+	if (!mtk_crtc) {
+		DDPPR_ERR("%s invalid mtk_crtc stop thread\n", __func__);
+		goto done;
+	}
+	output_comp = mtk_ddp_comp_request_output(mtk_crtc);
+	if (unlikely(!output_comp)) {
+		DDPPR_ERR("%s:invalid output comp\n", __func__);
+		goto done;
+	}
+	if (mtk_drm_is_idle(crtc) && mtk_dsi_is_cmd_mode(output_comp)) {
+		DDPINFO("[ESD%u]%s esd check callback in idle\n", index, __func__);
+		mtk_drm_idlemgr_kick(__func__, &mtk_crtc->base, index);
+	}
+	index = drm_crtc_index(crtc);
+	esd_ctx = mtk_crtc->esd_ctx;
+	if (!esd_ctx) {
+		DDPPR_ERR("%s invalid ESD context, stop thread\n", __func__);
+		goto done;
+	}
+
+	if (!esd_ctx->chk_active)
+		goto done;
+
+	panel_ext = mtk_crtc->panel_ext;
+	if (unlikely(!(panel_ext && panel_ext->params))) {
+		DDPPR_ERR("can't find panel_ext handle\n");
+		goto done;
+	}
+	private = crtc->dev->dev_private;
+	if (atomic_read(&private->kernel_pm.status) != KERNEL_PM_RESUME) {
+		DDPPR_ERR("%s pm status is not resume goto done\n", __func__);
+		goto done;
+	}
+	if (need_lock) {
+		DDP_COMMIT_LOCK(&private->commit.lock, __func__, __LINE__);
+		DDP_MUTEX_LOCK_CONDITION(&mtk_crtc->lock, __func__, __LINE__, false);
+		CRTC_MMP_MARK(index, esd_check, 0x20CF, 0);
+	}
+	if(!(mtk_crtc->enabled)) {
+		DDPINFO("%s:%d, slepted\n", __func__, __LINE__);
+		DDP_MUTEX_UNLOCK_CONDITION(&mtk_crtc->lock, __func__, __LINE__, false);
+		DDP_COMMIT_UNLOCK(&private->commit.lock, __func__, __LINE__);
+		goto done;
+	}
+
+	CRTC_MMP_MARK(index, esd_check, 2, 7);
+	if (mtk_drm_is_idle(crtc) && mtk_dsi_is_cmd_mode(output_comp)) {
+		DDPINFO("[ESD%u]%s esd check in idle\n", index, __func__);
+		mtk_drm_idlemgr_kick(__func__, &mtk_crtc->base, index);
+	}
+	mtk_vidle_user_power_keep(DISP_VIDLE_USER_CRTC);
+
+	mtk_ddp_comp_io_cmd(output_comp, NULL, CONNECTOR_READ_EPILOG,
+					NULL);
+	CRTC_MMP_MARK(index, esd_check, 2, 8);
+	ret = mtk_ddp_comp_io_cmd(output_comp, NULL, ESD_CHECK_CMP,
+					 (void *)mtk_crtc);
+	CRTC_MMP_MARK(index, esd_check, 2, ret);
+
+	if (ret || debug_force_esd || esd_ctx->chk_sta == 0xff) {
+		recovery_cnt++;
+		if (recovery_cnt > 5)
+			goto check_done;
+		if (debug_force_esd)
+			debug_force_esd = 0;
+		if (esd_ctx->chk_sta == 0xff) {
+			if (need_wait_esd_eof(crtc, panel_ext)) {
+				/* TODO: set ESD_EOF event through CPU is better */
+				mtk_crtc_pkt_create(&cmdq_handle2, crtc,
+					mtk_crtc->gce_obj.client[CLIENT_CFG]);
+
+				cmdq_pkt_set_event(
+					cmdq_handle2,
+					mtk_crtc->gce_obj.event[EVENT_CABC_EOF]);
+				cmdq_pkt_flush(cmdq_handle2);
+				cmdq_pkt_destroy(cmdq_handle2);
+			}
+		}
+
+		DDPPR_ERR("[ESD%u]esd check fail, will do esd recovery. try=%d\n",
+			index, recovery_cnt);
+		mtk_drm_esd_recover(crtc);
+		esd_ctx->recovery_flag = 1;
+		mtk_crtc->recovery_flg = true;
+		_mtk_esd_check_read(crtc);
+	}else
+		recovery_cnt = 0;
+
+check_done:
+	if (ret != 0 && recovery_cnt > 5) {
+		recovery_cnt = 0;
+		DDPPR_ERR(
+			"[ESD%u]after esd recovery %d times, still fail, disable esd check\n",
+			index, ESD_TRY_CNT);
+		mtk_disp_esd_check_switch(crtc, false);
+
+		if (need_lock) {
+			mtk_vidle_user_power_release(DISP_VIDLE_USER_CRTC);
+			DDP_MUTEX_UNLOCK_CONDITION(&mtk_crtc->lock, __func__, __LINE__, false);
+			DDP_COMMIT_UNLOCK(&private->commit.lock, __func__, __LINE__);
+		}
+		goto done;
+	} else if (esd_ctx->recovery_flag && ret == 0 && esd_ctx->chk_sta != 0xff) {
+		DDPPR_ERR("[ESD%u] esd recovery success\n", index);
+		esd_ctx->recovery_flag = 0;
+		atomic_set(&mtk_crtc->esd_notice_status, 0);
+	}
+	if (need_lock) {
+		mtk_vidle_user_power_release(DISP_VIDLE_USER_CRTC);
+		DDP_MUTEX_UNLOCK_CONDITION(&mtk_crtc->lock, __func__, __LINE__, false);
+		DDP_COMMIT_UNLOCK(&private->commit.lock, __func__, __LINE__);
+	}
+	esd_ctx->chk_sta = 0;
+done:
+	cmdq_pkt_destroy(cb_data->cmdq_handle);
+	kfree(cb_data);
+}
+
 int _mtk_esd_check_read(struct drm_crtc *crtc)
 {
 	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
 	struct mtk_ddp_comp *output_comp;
-	struct mtk_panel_ext *panel_ext;
 	struct cmdq_pkt *cmdq_handle, *cmdq_handle2;
 	struct mtk_drm_esd_ctx *esd_ctx;
 	int index = drm_crtc_index(crtc);
-	int ret = 0;
+	struct mtk_cmdq_cb_data *cb_data;
 
 	DDPINFO("[ESD%u]%s\n", index, __func__);
 
 	output_comp = mtk_ddp_comp_request_output(mtk_crtc);
+
 	if (unlikely(!output_comp)) {
 		DDPPR_ERR("%s:invalid output comp\n", __func__);
 		return -EINVAL;
@@ -191,17 +332,14 @@ int _mtk_esd_check_read(struct drm_crtc *crtc)
 		mtk_drm_idlemgr_kick(__func__, &mtk_crtc->base, index);
 	}
 
-	mtk_ddp_comp_io_cmd(output_comp, NULL, REQ_PANEL_EXT, &panel_ext);
-	if (unlikely(!(panel_ext && panel_ext->params))) {
-		DDPPR_ERR("%s:can't find panel_ext handle\n", __func__);
-		return -EINVAL;
-	}
-
 	esd_ctx = mtk_crtc->esd_ctx;
 
 	cmdq_handle = cmdq_pkt_create(mtk_crtc->gce_obj.client[CLIENT_CFG]);
 	cmdq_handle->err_cb.cb = esd_cmdq_timeout_cb;
 	cmdq_handle->err_cb.data = crtc;
+	cb_data = kmalloc(sizeof(*cb_data), GFP_KERNEL);
+	cb_data->cmdq_handle = cmdq_handle;
+	cb_data->crtc = crtc;
 
 	CRTC_MMP_MARK(index, esd_check, 2, 1);
 
@@ -229,17 +367,14 @@ int _mtk_esd_check_read(struct drm_crtc *crtc)
 		mtk_vblank_config_rec_end_cal(mtk_crtc, cmdq_handle, ESD_CHECK);
 	} else { /* VDO mode */
 		if (mtk_crtc_with_sub_path(crtc, mtk_crtc->ddp_mode))
-			mtk_crtc_wait_frame_done(mtk_crtc, cmdq_handle, DDP_SECOND_PATH,
-						 (mtk_crtc->is_mml || mtk_crtc->is_mml_dl) ? 0 : 1);
+			mtk_crtc_wait_frame_done(mtk_crtc, cmdq_handle, DDP_SECOND_PATH, 0);
 		else
-			mtk_crtc_wait_frame_done(mtk_crtc, cmdq_handle, DDP_FIRST_PATH,
-						 (mtk_crtc->is_mml || mtk_crtc->is_mml_dl) ? 0 : 1);
+			mtk_crtc_wait_frame_done(mtk_crtc, cmdq_handle, DDP_FIRST_PATH, 0);
 		cmdq_pkt_wfe(cmdq_handle,
 				mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
 
 		if (mtk_crtc->msync2.msync_on) {
 			u32 vfp_early_stop = 1;
-
 			mtk_ddp_comp_io_cmd(output_comp, cmdq_handle, DSI_VFP_EARLYSTOP,
 							&vfp_early_stop);
 		}
@@ -262,53 +397,13 @@ int _mtk_esd_check_read(struct drm_crtc *crtc)
 				    NULL);
 		cmdq_pkt_set_event(cmdq_handle,
 				mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
-		if (atomic_read(&esd_ctx->target_time) == 0) {
-			if (esd_ctx->chk_retry < ESD_CHK_TRY_CNT) {
-				esd_ctx->chk_retry++;
-				ret = 0;
-				DDPINFO("%s: miss target line, retry count:%u\n",
-					__func__, esd_ctx->chk_retry);
-				goto done;
-			}
-			DDPMSG("%s: miss target line, retry timeout:%u\n",
-				__func__, esd_ctx->chk_retry);
-		}
 	}
-	esd_ctx->chk_retry = 0;
-	esd_ctx->chk_sta = 0;
 	CRTC_MMP_MARK(index, esd_check, 2, 4);
-	cmdq_pkt_flush(cmdq_handle);
+	cmdq_pkt_flush_threaded(cmdq_handle, esd_check_done_cb, (void *)cb_data);
 
 	CRTC_MMP_MARK(index, esd_check, 2, 5);
 
-
-	mtk_ddp_comp_io_cmd(output_comp, NULL, CONNECTOR_READ_EPILOG,
-				    NULL);
-	if (esd_ctx->chk_sta == 0xff) {
-		ret = -1;
-		if (need_wait_esd_eof(crtc, panel_ext)) {
-			/* TODO: set ESD_EOF event through CPU is better */
-			mtk_crtc_pkt_create(&cmdq_handle2, crtc,
-				mtk_crtc->gce_obj.client[CLIENT_CFG]);
-
-			if (mtk_dsi_is_cmd_mode(output_comp))
-				cmdq_pkt_set_event(cmdq_handle2,
-					mtk_crtc->gce_obj.event[EVENT_CABC_EOF]);
-			else
-				cmdq_pkt_set_event(cmdq_handle2,
-					mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
-
-			cmdq_pkt_flush(cmdq_handle2);
-			cmdq_pkt_destroy(cmdq_handle2);
-		}
-		goto done;
-	}
-
-	ret = mtk_ddp_comp_io_cmd(output_comp, NULL, ESD_CHECK_CMP,
-				  (void *)mtk_crtc);
-done:
-	cmdq_pkt_destroy(cmdq_handle);
-	return ret;
+	return 0;
 }
 
 static irqreturn_t _esd_check_ext_te_irq_handler(int irq, void *data)
@@ -457,13 +552,12 @@ static int mtk_drm_esd_check(struct drm_crtc *crtc)
 
 	/* switch ESD check mode */
 	if (_can_switch_check_mode(crtc, panel_ext) &&
-	    !mtk_crtc_is_frame_trigger_mode(crtc) &&
-	    esd_ctx->chk_retry == 0)
+	    !mtk_crtc_is_frame_trigger_mode(crtc))
 		esd_ctx->chk_mode =
 			(esd_ctx->chk_mode == READ_EINT) ? READ_LCM : READ_EINT;
 
 done:
-	CRTC_MMP_EVENT_END(index, esd_check, esd_ctx->chk_retry, ret);
+	CRTC_MMP_EVENT_END(index, esd_check, 0, ret);
 	mtk_drm_trace_end();
 	return ret;
 }
@@ -597,6 +691,7 @@ int mtk_drm_esd_testing_process(struct mtk_drm_esd_ctx *esd_ctx, bool need_lock)
 		int i = 0;
 		int recovery_flg = 0;
 		unsigned int crtc_idx = 0;
+		struct mtk_panel_ext *panel_ext;
 
 		if (!esd_ctx) {
 			DDPPR_ERR("%s invalid ESD context, stop thread\n", __func__);
@@ -618,6 +713,13 @@ int mtk_drm_esd_testing_process(struct mtk_drm_esd_ctx *esd_ctx, bool need_lock)
 			return -EINVAL;
 		}
 		crtc_idx = drm_crtc_index(crtc);
+
+		panel_ext = mtk_crtc->panel_ext;
+		if (unlikely(!(panel_ext && panel_ext->params))) {
+			DDPPR_ERR("can't find panel_ext handle\n");
+			return -EINVAL;
+		}
+
 
 		private = crtc->dev->dev_private;
 		if (need_lock) {
@@ -670,39 +772,6 @@ int mtk_drm_esd_testing_process(struct mtk_drm_esd_ctx *esd_ctx, bool need_lock)
 		return 0;
 }
 
-static void mtk_esd_timer_do(struct timer_list *esd_timer)
-{
-	//wake up interrupt
-	struct mtk_drm_esd_ctx *esd_ctx =
-		container_of(esd_timer, struct mtk_drm_esd_ctx, esd_timer);
-	struct mtk_drm_crtc *mtk_crtc = NULL;
-	unsigned int index = 0;
-
-	if (!esd_ctx) {
-		DDPPR_ERR("%s invalid ESD_CTX\n", __func__);
-		return;
-	}
-
-	if (esd_ctx->crtc)
-		mtk_crtc = to_mtk_crtc(esd_ctx->crtc);
-	if (mtk_crtc)
-		index = drm_crtc_index(&mtk_crtc->base);
-	CRTC_MMP_MARK(index, target_time, 0x10000, 1);
-	atomic_set(&esd_ctx->target_time, 1);
-	wake_up_interruptible(&esd_ctx->check_task_wq);
-}
-
-static void init_esd_timer(struct mtk_drm_esd_ctx *esd_ctx)
-{
-	if (unlikely(!esd_ctx)) {
-		DDPPR_ERR("%s invalid ESD context\n", __func__);
-		return;
-	}
-
-	timer_setup(&esd_ctx->esd_timer, mtk_esd_timer_do, 0);
-	mod_timer(&esd_ctx->esd_timer, jiffies + (1*HZ));
-}
-
 static int mtk_drm_esd_check_worker_kthread(void *data)
 {
 	struct sched_param param = {.sched_priority = 87};
@@ -724,31 +793,15 @@ static int mtk_drm_esd_check_worker_kthread(void *data)
 		if (esd_ctx->chk_en == 0)
 			continue;
 
-		esd_ctx->chk_retry = 0;
-		do {
-			init_esd_timer(esd_ctx);
-			atomic_set(&esd_ctx->target_time, 0);
-
-			ret = wait_event_interruptible(
-				esd_ctx->check_task_wq,
-				atomic_read(&esd_ctx->check_wakeup) &&
-				(atomic_read(&esd_ctx->target_time) ||
-					esd_ctx->chk_mode == READ_EINT));
-			if (ret < 0) {
-				DDPINFO("[ESD]check thread waked up accidently\n");
-				del_timer_sync(&esd_ctx->esd_timer);
-				continue;
-			}
-			CRTC_MMP_MARK(index, esd_check, 0x57A7, esd_ctx->chk_retry);
-			del_timer_sync(&esd_ctx->esd_timer);
-			mtk_drm_esd_testing_process(esd_ctx, true);
-		} while (esd_ctx->chk_retry > 0);
-
-		if (atomic_read(&esd_ctx->target_time)) {
-			CRTC_MMP_MARK(index, target_time, 0x10000, 0);
-			atomic_set(&esd_ctx->target_time, 0);
+		ret = wait_event_interruptible(
+			esd_ctx->check_task_wq,
+			atomic_read(&esd_ctx->check_wakeup));
+		if (ret < 0) {
+			DDPINFO("[ESD]check thread waked up accidently\n");
+			continue;
 		}
-
+		CRTC_MMP_MARK(index, esd_check, 0x57A7, 0);
+		mtk_drm_esd_testing_process(esd_ctx, true);
 		/* 2. other check & recovery */
 		if (kthread_should_stop())
 			break;
@@ -866,7 +919,6 @@ static void mtk_disp_esd_chk_init(struct drm_crtc *crtc)
 	init_waitqueue_head(&esd_ctx->ext_te_wq);
 	atomic_set(&esd_ctx->check_wakeup, 0);
 	atomic_set(&esd_ctx->ext_te_event, 0);
-	atomic_set(&esd_ctx->target_time, 0);
 
 	init_waitqueue_head(&mtk_crtc->esd_notice_wq);
 	atomic_set(&mtk_crtc->esd_notice_status, 0);
