@@ -377,17 +377,31 @@ static void mtk_drm_crtc_reset(struct drm_crtc *crtc)
 }
 int bif_enabled(struct drm_crtc *crtc)
 {
-	int en = 0;
-	int crtc_index = drm_crtc_index(crtc);
-	struct mtk_drm_private *priv = crtc->dev->dev_private;
-	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
+	int en = 0, crtc_index = 0;
+	struct mtk_drm_private *priv = NULL;
+	struct mtk_drm_crtc *mtk_crtc = NULL;
 
+	if (!crtc)
+		return en;
+
+	if (!crtc->dev)
+		return en;
+
+	priv = crtc->dev->dev_private;
+	if (!priv)
+		return en;
+
+	mtk_crtc = to_mtk_crtc(crtc);
+
+	if (!mtk_crtc)
+		return en;
 	if (!mtk_crtc->bif_info)
 		return en;
 	if (!mtk_crtc->bif_info->wdma_offset)
 		return en;
 	if (!priv->data->support_bif)
 		return en;
+	crtc_index = drm_crtc_index(crtc);
 	if (crtc_index) {
 		DDPDBG("%s:invalid crtc:0x%p, index:%d\n", __func__, crtc, crtc_index);
 		return en;
@@ -494,11 +508,22 @@ void mtk_crtc_bif_enable_racing(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *
 		cmdq_pkt_write(handle, bif_info->read_comp->cmdq_base,
 			bif_info->read_comp->larb_cons[0], GENMASK(19, 16), GENMASK(19, 16));
 
-	if ((bif_enabled(crtc) == BIF_HS_IDLE) && priv->data->bif_path_insert) {
+	if ((bif_enabled(crtc) == BIF_HS_IDLE) && priv->data->bif_path_insert)
 		priv->data->bif_path_insert(mtk_crtc, handle);
-		mtk_disp_mutex_remove_comp_with_cmdq(mtk_crtc, dsc_comp->id, handle, 0);
-		mtk_crtc_bif_enable_mutex(mtk_crtc, handle);
+
+	if (bif_enabled(crtc)  == BIF_ALL_SCN) {
+		struct mtk_ddp_comp *comp;
+		int i;
+
+		for_each_comp_in_crtc_target_path(comp, mtk_crtc, i, DDP_FIRST_PATH) {
+		if (mtk_ddp_comp_get_type(comp->id) != MTK_DISP_VIRTUAL) {
+			mtk_disp_mutex_add_comp_with_cmdq(mtk_crtc, comp->id,
+				false, handle, 0);
+			}
+		}
 	}
+	mtk_disp_mutex_remove_comp_with_cmdq(mtk_crtc, dsc_comp->id, handle, 0);
+	mtk_crtc_bif_enable_mutex(mtk_crtc, handle);
 
 	if (priv->data->bif_racing_config)
 		priv->data->bif_racing_config(handle, mtk_crtc, true);
@@ -562,7 +587,7 @@ void mtk_crtc_bif_restore_path_mutex(struct mtk_drm_crtc *mtk_crtc, struct cmdq_
 			mtk_crtc->bif_info->wb_comp->larb_cons[0], 0x0, GENMASK(19, 16));
 }
 
-void mtk_crtc_bif_keep_read_path(struct drm_crtc *crtc, struct cmdq_pkt *handle)
+void mtk_crtc_bif_keep_read_path(struct drm_crtc *crtc, struct cmdq_pkt *handle, bool bw)
 {
 	struct mtk_drm_private *priv = crtc->dev->dev_private;
 	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
@@ -580,6 +605,9 @@ void mtk_crtc_bif_keep_read_path(struct drm_crtc *crtc, struct cmdq_pkt *handle)
 
 	if (priv->data->bif_read_path_mutex)
 		priv->data->bif_read_path_mutex(mtk_crtc, handle);
+
+	if (!bw)
+		return;
 
 	/* clr bw */
 	bw_zero = 0;
@@ -5737,6 +5765,9 @@ void _mtk_crtc_atmoic_addon_module_connect(
 		_mtk_crtc_cwb_addon_module_connect(
 					   crtc, ddp_mode, cmdq_handle);
 	}
+
+	if (bif_enabled(crtc)  == BIF_ALL_SCN)
+		mtk_crtc_bif_enable_racing(mtk_crtc, cmdq_handle);
 
 	/* reset ovl_pq_in_cb and ovl_pq_out_cb for safety */
 	if (lye_state->rpo_lye || lye_state->mml_ir_lye || lye_state->mml_dl_lye)
@@ -12322,6 +12353,9 @@ static void mtk_crtc_addon_connector_disconnect(struct drm_crtc *crtc,
 	struct mtk_ddp_comp *dsc_comp;
 	struct mtk_drm_private *priv = mtk_crtc->base.dev->dev_private;
 
+	if (bif_enabled(crtc) == BIF_ALL_SCN)
+		return;
+
 	if (panel_ext && panel_ext->dsc_params.enable) {
 #ifdef MTK_DSI1_SUPPORT_DSC1
 		struct mtk_ddp_comp *comp = mtk_ddp_comp_request_output(mtk_crtc);
@@ -12435,6 +12469,9 @@ void mtk_crtc_addon_connector_connect(struct drm_crtc *crtc,
 	struct mtk_ddp_comp *dsc_comp, *splitter_comp;
 	struct mtk_drm_private *priv = mtk_crtc->base.dev->dev_private;
 	struct mtk_ddp_comp *output_comp;
+
+	if (bif_enabled(crtc) == BIF_ALL_SCN)
+		return;
 
 	if (panel_ext && panel_ext->dsc_params.enable) {
 		struct mtk_ddp_config cfg;
@@ -12641,6 +12678,7 @@ void mtk_crtc_connect_default_path(struct mtk_drm_crtc *mtk_crtc)
 	struct mtk_panel_params *panel_ext = mtk_drm_get_lcm_ext_params(&mtk_crtc->base);
 	enum mtk_ddp_comp_id prev_id, next_id;
 	bool only_output;
+	bool bif_skip_add = false;
 
 	only_output = (priv && priv->usage[drm_crtc_index(crtc)] == DISP_OPENING);
 	/* connect path */
@@ -12659,11 +12697,27 @@ void mtk_crtc_connect_default_path(struct mtk_drm_crtc *mtk_crtc)
 		tmp_comp = mtk_crtc_get_comp(crtc, mtk_crtc->ddp_mode, i, j + 1);
 		next_id = tmp_comp ? tmp_comp->id : DDP_COMPONENT_ID_MAX;
 
+
+		if (bif_enabled(crtc) == BIF_ALL_SCN) {
+			if ((comp->id == DDP_COMPONENT_POSTALIGN0) &&
+				mtk_ddp_comp_get_type(next_id) == MTK_DISP_VIRTUAL)
+				bif_skip_add = true;
+			else if ((comp->id == DDP_COMPONENT_SPLITTER0_IN_CB1) &&
+				mtk_ddp_comp_get_type(next_id) == MTK_DISP_VIRTUAL)
+				bif_skip_add = true;
+			if (comp->id == DDP_COMPONENT_DSI0)
+				bif_skip_add = false;
+		}
+
 		DDPINFO("%s, %s --> %s --> %s\n", __func__,
 			mtk_dump_comp_str_id(prev_id),
 			mtk_dump_comp_str(comp),
 			mtk_dump_comp_str_id(next_id));
-		mtk_ddp_add_comp_to_path(mtk_crtc, comp, prev_id,
+
+		if (bif_skip_add)
+			DDPMSG("%s,skip\n", __func__);
+		else
+			mtk_ddp_add_comp_to_path(mtk_crtc, comp, prev_id,
 					 next_id);
 	}
 
@@ -12685,8 +12739,16 @@ void mtk_crtc_connect_default_path(struct mtk_drm_crtc *mtk_crtc)
 		}
 	}
 
-	if (bif_enabled(crtc))
+	if (bif_enabled(crtc)) {
 		mtk_crtc_bif_path_prepare(mtk_crtc);
+
+		/* default enable bif mutex */
+		if (bif_enabled(crtc) == BIF_ALL_SCN) {
+			if (priv->data->bif_path_insert_for_all_scn)
+				priv->data->bif_path_insert_for_all_scn(mtk_crtc, NULL);
+			mtk_crtc_bif_enable_mutex(mtk_crtc, NULL);
+		}
+	}
 
 	if (mtk_crtc->is_dual_pipe) {
 		if (!only_output)
@@ -18634,6 +18696,39 @@ void mtk_drm_atomic_gce_delay(struct cmdq_pkt *pkt, struct mtk_drm_crtc *mtk_crt
 	// for debug
 	//cmdq_pkt_dump_buf(pkt, 0);
 }
+static void mtk_drm_bif_wb_cb(struct cmdq_cb_data data)
+{
+#ifndef DRM_CMDQ_DISABLE
+	struct mtk_cmdq_cb_data *cb_data = data.data;
+	struct drm_crtc *crtc = cb_data->crtc;
+	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
+	struct mtk_drm_private *priv = NULL;
+	unsigned int bw_zero;
+	struct mtk_ddp_comp *wb_comp;
+
+	if (mtk_crtc->base.dev && mtk_crtc->base.dev->dev_private)
+		priv = mtk_crtc->base.dev->dev_private;
+
+	bw_zero = 0;
+	if (priv && priv->power_state) {
+		DDP_MUTEX_LOCK(&mtk_crtc->lock, __func__, __LINE__);
+
+		if (mtk_crtc->bif_info) {
+			wb_comp = mtk_crtc->bif_info->wb_comp;
+
+			if (wb_comp) {
+				mtk_ddp_comp_io_cmd(wb_comp, NULL, PMQOS_SET_HRT_BW, &bw_zero);
+				wb_comp->hrt_bw = bw_zero;
+			}
+		}
+
+		DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
+	}
+
+	cmdq_pkt_destroy(cb_data->cmdq_handle);
+	kfree(cb_data);
+#endif
+}
 
 int mtk_crtc_gce_flush(struct drm_crtc *crtc, void *gce_cb,
 	void *cb_data, struct cmdq_pkt *cmdq_handle)
@@ -18977,6 +19072,41 @@ int mtk_crtc_gce_flush(struct drm_crtc *crtc, void *gce_cb,
 		fence_idx = state->prop_val[CRTC_PROP_OUTPUT_FENCE_IDX];
 		session_id = mtk_get_session_id(crtc);
 		mtk_crtc_release_output_buffer_fence_by_idx(crtc, session_id, fence_idx);
+	}
+
+
+	if (bif_enabled(crtc) == BIF_ALL_SCN) {
+		struct mtk_cmdq_cb_data *bif_wb_cb_data = kmalloc(sizeof(*bif_wb_cb_data), GFP_KERNEL);
+
+		if (bif_wb_cb_data)
+			bif_wb_cb_data->crtc = crtc;
+		else {
+			DDPPR_ERR("bif_wb_cb_data alloc fail\n");
+			return -EINVAL;
+		}
+
+		event = mtk_crtc->bif_info->wb_frame_done_event;
+		mtk_crtc_pkt_create(&handle, crtc, client);
+
+		if (!handle) {
+			DDPPR_ERR("%s:%d NULL handle\n", __func__, __LINE__);
+			kfree(bif_wb_cb_data);
+			return -EINVAL;
+		}
+
+		cmdq_pkt_wfe(handle, event);
+
+		if (priv->data->bif_racing_config)
+			priv->data->bif_racing_config(handle, mtk_crtc, false);
+
+		mtk_crtc_bif_keep_read_path(crtc, handle, false);
+
+		bif_wb_cb_data->cmdq_handle = handle;
+
+		if (cmdq_pkt_flush_threaded(handle, mtk_drm_bif_wb_cb, bif_wb_cb_data) < 0) {
+			DDPPR_ERR("failed to flush gce_cb threaded\n");
+			kfree(bif_wb_cb_data);
+		}
 	}
 
 	return 0;

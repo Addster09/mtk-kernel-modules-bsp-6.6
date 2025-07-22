@@ -973,7 +973,7 @@ static void mtk_drm_vdo_mode_enter_idle(struct drm_crtc *crtc)
 
 		cmdq_pkt_clear_event(handle, mtk_crtc->bif_info->wb_frame_done_event);
 		cmdq_pkt_wfe(handle, mtk_crtc->bif_info->wb_frame_done_event);
-		mtk_crtc_bif_keep_read_path(crtc, handle);
+		mtk_crtc_bif_keep_read_path(crtc, handle, true);
 	}
 	comp = mtk_ddp_comp_request_output(mtk_crtc);
 	if (comp) {

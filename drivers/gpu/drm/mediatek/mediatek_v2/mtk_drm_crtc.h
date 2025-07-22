@@ -1750,7 +1750,7 @@ void mtk_crtc_bif_enable_racing(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *
 void mtk_crtc_bif_restore_path_mutex(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *handle);
 void mtk_crtc_bif_backup_path_mutex(struct mtk_drm_crtc *mtk_crtc);
 bool mtk_crtc_bif_slbc_request(struct mtk_drm_crtc *mtk_crtc, bool en);
-void mtk_crtc_bif_keep_read_path(struct drm_crtc *crtc, struct cmdq_pkt *handle);
+void mtk_crtc_bif_keep_read_path(struct drm_crtc *crtc, struct cmdq_pkt *handle, bool bw);
 void mtk_crtc_bif_path_prepare(struct mtk_drm_crtc *mtk_crtc);
 void mtk_crtc_bif_apsrc_ddren_control(struct mtk_drm_crtc *mtk_crtc, bool en);
 void mtk_crtc_update_bif_roi(struct mtk_drm_crtc *mtk_crtc);

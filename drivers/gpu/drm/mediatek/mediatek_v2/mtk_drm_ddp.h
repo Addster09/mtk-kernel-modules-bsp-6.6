@@ -462,5 +462,6 @@ void mtk_disp_bif_racing_config_MT6991(struct cmdq_pkt *handle, struct mtk_drm_c
 void mtk_disp_bif_keep_read_mutex_MT6991(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *handle);
 void mtk_ddp_insert_bif_racing_MT6991(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *handle);
 void mtk_ddp_remove_bif_racing_MT6991(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *handle);
-
+void mtk_ddp_insert_bif_for_all_scn_MT6991(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *handle);
+void mtk_ddp_remove_bif_for_all_scn_MT6991(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *handle);
 #endif /* MTK_DRM_DDP_H */
