@@ -519,7 +519,7 @@ static long device_ioctl(struct file *filp,
 		if (fpsgo_notify_qudeq_fp)
 			fpsgo_notify_qudeq_fp(0,
 					msgKM->start, msgKM->tid,
-					msgKM->identifier, 0);
+					msgKM->identifier, msgKM->sf_buf_id);
 		break;
 	case FPSGO_QUEUE_CONNECT:
 		if (fpsgo_notify_connect_fp)

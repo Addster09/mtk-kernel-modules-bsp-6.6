@@ -56,7 +56,8 @@ void fpsgo_composer_exit(void);
 
 void fpsgo_ctrl2comp_dequeue_end(int pid,
 			unsigned long long dequeue_end_time,
-			unsigned long long identifier);
+			unsigned long long identifier,
+			unsigned long long sf_buf_id);
 void fpsgo_ctrl2comp_dequeue_start(int pid,
 			unsigned long long dequeue_start_time,
 			unsigned long long identifier);

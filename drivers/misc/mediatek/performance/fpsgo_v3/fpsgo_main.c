@@ -297,7 +297,7 @@ static void fpsgo_notifier_wq_cb_qudeq(int qudeq,
 			FPSGO_LOGI("[FPSGO_CB] DEQUEUE End: pid %d\n",
 					cur_pid);
 			fpsgo_ctrl2comp_dequeue_end(cur_pid,
-					curr_ts, id);
+					curr_ts, id, sf_buf_id);
 		}
 		break;
 	default:
