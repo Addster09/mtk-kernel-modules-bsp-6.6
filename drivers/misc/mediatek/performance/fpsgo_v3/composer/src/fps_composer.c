@@ -74,9 +74,12 @@ static DEFINE_MUTEX(fpsgo_boost_cb_lock);
 static DEFINE_MUTEX(fpsgo_boost_lock);
 static DEFINE_MUTEX(user_hint_lock);
 static DEFINE_MUTEX(fpsgo_frame_info_cb_lock);
+static DEFINE_MUTEX(cur_l2q_info_lock);
 
 static fpsgo_notify_is_boost_cb notify_fpsgo_boost_cb_list[MAX_FPSGO_CB_NUM];
 static struct render_frame_info_cb fpsgo_frame_info_cb_list[FPSGO_MAX_CALLBACK_NUM];
+static struct FSTB_FRAME_L2Q_INFO cur_l2q_info;
+
 
 void (*enable_ux_jank_detection_fp)(bool enable, const char *info, int tgid, int pid);
 EXPORT_SYMBOL(enable_ux_jank_detection_fp);
@@ -306,6 +309,66 @@ static void fpsgo_com_do_jank_detection_hint(struct work_struct *psWork)
 	fpsgo_render_tree_unlock(__func__);
 
 	kfree(hint);
+}
+
+static void fpsgo_comp_set_logic_head(struct render_info *f_render,
+	unsigned long long sf_buf_id, unsigned long long logic_head_ts,
+	int logic_head_is_valid)
+{
+	unsigned long long expected_fps = 0, expected_time = 0;
+
+	if (!f_render)
+		return;
+
+	mutex_lock(&cur_l2q_info_lock);
+	cur_l2q_info.pid = f_render->pid;
+	cur_l2q_info.buf_id = f_render->buffer_id;
+	cur_l2q_info.sf_buf_id = sf_buf_id;
+
+	expected_fps = (unsigned long long) f_render->boost_info.target_fps;
+
+	if (expected_fps)
+		expected_time = div64_u64(NSEC_PER_SEC, expected_fps);
+
+	if (logic_head_ts) {
+		cur_l2q_info.logic_head_fixed_ts = logic_head_ts;
+		cur_l2q_info.logic_head_ts = logic_head_ts;
+	} else {
+		if (f_render->pid == cur_l2q_info.pid)
+			cur_l2q_info.logic_head_fixed_ts +=	expected_time;
+		cur_l2q_info.logic_head_ts = 0;
+	}
+	cur_l2q_info.is_logic_head_alive = logic_head_is_valid;
+
+	mutex_unlock(&cur_l2q_info_lock);
+}
+
+int fpsgo_get_now_logic_head(unsigned long long sf_buffer_id,
+	int *pid, unsigned long long *logic_head_ts, unsigned int *is_logic_head_alive,
+	unsigned long long *now_ts)
+{
+	int ret = 0;
+	unsigned long long now_ktime_ns = 0;
+
+	now_ktime_ns = fpsgo_get_time();
+
+	mutex_lock(&cur_l2q_info_lock);
+
+	if (pid)
+		*pid = cur_l2q_info.pid;
+	if (logic_head_ts)
+		*logic_head_ts = cur_l2q_info.logic_head_fixed_ts;
+	if (is_logic_head_alive)
+		*is_logic_head_alive = cur_l2q_info.is_logic_head_alive;
+	if (now_ts)
+		*now_ts = now_ktime_ns;
+
+	fpsgo_main_trace("[%s] sf_buf_id=%llu, pid=%d, logic_ts=%llu, is_logic_alive=%d, now_ts=%llu",
+		__func__, sf_buffer_id, cur_l2q_info.pid, cur_l2q_info.logic_head_fixed_ts,
+		cur_l2q_info.is_logic_head_alive, now_ktime_ns);
+
+	mutex_unlock(&cur_l2q_info_lock);
+	return ret;
 }
 
 static int fpsgo_comp_make_pair_l2q(struct render_info *f_render,
@@ -1153,6 +1216,7 @@ void fpsgo_ctrl2comp_dequeue_end(int pid,
 			f_render->is_logic_valid = fpsgo_comp2fstb_get_logic_head(pid, f_render->buffer_id,
 				f_render->tgid, dequeue_end_time, prev_enqueue_end, pprev_enqueue_end,
 				dequeue_start_ts, &f_render->logic_head_ts, &f_render->has_logic_head);
+			fpsgo_comp_set_logic_head(f_render, 0, f_render->logic_head_ts, f_render->has_logic_head);
 		}
 		fpsgo_comp2fbt_deq_end(f_render, dequeue_end_time);
 		fpsgo_systrace_c_fbt_debug(-300, 0, f_render->dequeue_length,

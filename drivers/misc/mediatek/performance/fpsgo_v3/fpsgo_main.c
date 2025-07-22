@@ -1501,6 +1501,7 @@ static int __init fpsgo_init(void)
 	magt2fpsgo_get_fpsgo_frame_info = get_fpsgo_frame_info;
 #endif
 	fpsgo_get_lr_pair_fp = fpsgo_get_lr_pair;
+	fpsgo_get_now_logic_head_fp = fpsgo_get_now_logic_head;
 	fpsgo_set_rl_l2q_enable_fp = fpsgo_set_rl_l2q_enable;
 	fpsgo_set_rl_expected_l2q_us_fp = fpsgo_set_expected_l2q_us;
 

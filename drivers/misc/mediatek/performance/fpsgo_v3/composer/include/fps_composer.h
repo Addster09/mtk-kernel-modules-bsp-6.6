@@ -124,5 +124,9 @@ int notify_fpsgo_touch_latency_ko_ready(void);
 int fpsgo_com_set_mfrc_active(int tgid, int enable);
 int fpsgo_com_get_mfrc_is_active(int tgid);
 
+int fpsgo_get_now_logic_head(unsigned long long sf_buffer_id,
+	int *pid, unsigned long long *logic_head_ts, unsigned int *is_logic_head_alive,
+	unsigned long long *now_ts);
+
 #endif
 

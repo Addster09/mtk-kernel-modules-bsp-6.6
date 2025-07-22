@@ -398,6 +398,8 @@ struct fbt_powerRL_limit {
 };
 
 struct FSTB_FRAME_L2Q_INFO {
+	int pid;
+	unsigned long long buf_id;
 	unsigned long long sf_buf_id;
 	unsigned long long queue_end_ns;
 	unsigned long long logic_head_ts;
