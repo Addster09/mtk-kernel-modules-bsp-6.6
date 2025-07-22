@@ -619,7 +619,7 @@ static void mtk_postmask_ddren(struct mtk_ddp_comp *comp, bool en, struct cmdq_p
 {
 	struct mtk_disp_postmask *postmask = comp_to_postmask(comp);
 
-	DDPINFO("%s,comp:%s,en:%d,relay:%d\n", __func__,
+	DDPDBG("%s,comp:%s,en:%d,relay:%d\n", __func__,
 		mtk_dump_comp_str(comp), en, postmask->postmask_force_relay);
 
 	/* relay mode set ddren disable */

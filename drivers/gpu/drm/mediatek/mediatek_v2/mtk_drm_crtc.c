@@ -424,10 +424,10 @@ void mtk_crtc_bif_backup_path_mutex(struct mtk_drm_crtc *mtk_crtc)
 	mtk_crtc->bif_info->dispsys_1[0] = readl(ddp->side_regs + DISP_REG_MUTEX_MOD(0, ddp->data, mutex->id));
 	mtk_crtc->bif_info->dispsys_1[1] = readl(ddp->side_regs + DISP_REG_MUTEX_MOD(1, ddp->data, mutex->id));
 
-	DDPINFO("bif_bk_m,ovlsys_0_0:0x%x,ovlsys_0_1:0x%x,ovlsys_1_0:0x%x,ovlsys_1_1:0x%x\n",
+	DDPDBG("bif_bk_m,ovlsys_0_0:0x%x,ovlsys_0_1:0x%x,ovlsys_1_0:0x%x,ovlsys_1_1:0x%x\n",
 		mtk_crtc->bif_info->ovlsys_0[0],  mtk_crtc->bif_info->ovlsys_0[1],
 		mtk_crtc->bif_info->ovlsys_1[0], mtk_crtc->bif_info->ovlsys_1[1]);
-	DDPINFO("bif_bk_m,dispsys_0_0:0x%x,dispsys_0_1:0x%x,dispsys_1_0:0x%x,dispsys_1_1:0x%x\n",
+	DDPDBG("bif_bk_m,dispsys_0_0:0x%x,dispsys_0_1:0x%x,dispsys_1_0:0x%x,dispsys_1_1:0x%x\n",
 		mtk_crtc->bif_info->dispsys_0[0], mtk_crtc->bif_info->dispsys_0[1],
 		mtk_crtc->bif_info->dispsys_1[0], mtk_crtc->bif_info->dispsys_1[1]);
 
@@ -519,10 +519,10 @@ void mtk_crtc_bif_restore_path_mutex(struct mtk_drm_crtc *mtk_crtc, struct cmdq_
 			__func__, __LINE__,
 			&ddp->mutex[mutex->id], mutex, mutex->id);
 
-	DDPINFO("bif_rs_m,ovlsys_0_0:0x%x,ovlsys_0_1:0x%x,ovlsys_1_0:0x%x,ovlsys_1_1:0x%x\n",
+	DDPDBG("bif_rs_m,ovlsys_0_0:0x%x,ovlsys_0_1:0x%x,ovlsys_1_0:0x%x,ovlsys_1_1:0x%x\n",
 		mtk_crtc->bif_info->ovlsys_0[0], mtk_crtc->bif_info->ovlsys_0[1],
 		mtk_crtc->bif_info->ovlsys_1[0], mtk_crtc->bif_info->ovlsys_1[1]);
-	DDPINFO("bif_rs_m,dispsys_0_0:0x%x,dispsys_0_1:0x%x,dispsys_1_0:0x%x,dispsys_1_1:0x%x\n",
+	DDPDBG("bif_rs_m,dispsys_0_0:0x%x,dispsys_0_1:0x%x,dispsys_1_0:0x%x,dispsys_1_1:0x%x\n",
 		mtk_crtc->bif_info->dispsys_0[0], mtk_crtc->bif_info->dispsys_0[1],
 		mtk_crtc->bif_info->dispsys_1[0], mtk_crtc->bif_info->dispsys_1[1]);
 
@@ -596,12 +596,22 @@ void mtk_crtc_bif_apsrc_ddren_control(struct mtk_drm_crtc *mtk_crtc, bool en)
 {
 	struct drm_crtc *crtc = &mtk_crtc->base;
 	struct mtk_drm_private *priv = crtc->dev->dev_private;
-	enum mtk_ddp_comp_id id = DDP_COMPONENT_OVL_EXDMA0;
+	struct mtk_crtc_state *mtk_crtc_state = to_mtk_crtc_state(crtc->state);
+	struct mtk_ddp_comp *comp = NULL;
+	int i = 0, j = 0, tgt_comp = 0;
 
-	for (id = DDP_COMPONENT_OVL_EXDMA0; id <= DDP_COMPONENT_OVL1_EXDMA9; id ++)
-		mtk_ddp_comp_ddren_config(priv->ddp_comp[id], en, NULL);
+	for_each_comp_in_crtc_path_bound(comp, mtk_crtc, i, j, 1)
+		mtk_ddp_comp_ddren_config(comp, en, NULL);
 
-	mtk_ddp_comp_ddren_config(priv->ddp_comp[DDP_COMPONENT_POSTMASK0], en, NULL);
+	if (priv->data->ovl_exdma_rule && mtk_crtc_state->lye_state.rpo_lye) {
+		mtk_addon_get_comp(crtc, mtk_crtc_state->lye_state.rpo_lye, &tgt_comp, NULL);
+		mtk_ddp_comp_ddren_config(priv->ddp_comp[tgt_comp], en, NULL);
+	}
+
+	if (priv->data->ovl_exdma_rule && mtk_crtc_state->lye_state.mml_dl_lye) {
+		mtk_addon_get_comp(crtc, mtk_crtc_state->lye_state.mml_dl_lye, &tgt_comp, NULL);
+		mtk_ddp_comp_ddren_config(priv->ddp_comp[tgt_comp], en, NULL);
+	}
 
 	mtk_vidle_apsrc_set(en);
 
