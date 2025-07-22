@@ -41,9 +41,6 @@ static unsigned int is_wrot_sram_available;
 static unsigned int is_wrot_sram;
 static struct drm_crtc *share_sram_crtc;
 
-int bif_profile;
-module_param(bif_profile, int, 0644);
-
 unsigned int can_use_wrot_sram(void)
 {
 	return is_wrot_sram_available && is_wrot_sram_enabled;
@@ -915,9 +912,10 @@ static void mtk_drm_vdo_mode_enter_idle(struct drm_crtc *crtc)
 	struct mtk_ddp_comp *comp;
 	unsigned int avail_bw = 0, bw_base = 0;
 	unsigned int req_bw = avail_bw + 1;
-	u64 start_time = 0, end_time = 0, duration = 0;
+	struct mtk_drm_idlemgr_perf *perf = mtk_crtc->idlemgr->perf;
+	u64 start_time = 0, end_time = 0, cost = 0;
 
-	if (unlikely(bif_profile))
+	if (perf)
 		start_time = local_clock();
 
 	mtk_crtc_pkt_create(&handle, crtc, client);
@@ -998,10 +996,11 @@ static void mtk_drm_vdo_mode_enter_idle(struct drm_crtc *crtc)
 		if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_MMQOS_SUPPORT))
 			mtk_disp_set_hrt_bw(mtk_crtc, 0);
 	}
-	if (unlikely(bif_profile)) {
+	if (perf) {
 		end_time = local_clock();
-		duration = (end_time - start_time)/1000;
-		drm_trace_tag_value("t_enter_idle", duration);
+		cost = div_u64((end_time - start_time), 1000);
+
+		mtk_drm_idlemgr_perf_update(crtc, true, cost);
 	}
 }
 
@@ -1033,9 +1032,10 @@ static void mtk_drm_vdo_mode_leave_idle(struct drm_crtc *crtc)
 	struct cmdq_client *client = mtk_crtc->gce_obj.client[CLIENT_CFG];
 	struct mtk_ddp_comp *comp;
 	unsigned int *trace;
-	u64 start_time = 0, end_time = 0, duration = 0;
+	struct mtk_drm_idlemgr_perf *perf = mtk_crtc->idlemgr->perf;
+	u64 start_time = 0, end_time = 0, cost = 0;
 
-	if (unlikely(bif_profile))
+	if (perf)
 		start_time = local_clock();
 
 	mtk_crtc_pkt_create(&handle, crtc, client);
@@ -1081,10 +1081,11 @@ static void mtk_drm_vdo_mode_leave_idle(struct drm_crtc *crtc)
 	cmdq_pkt_flush(handle);
 	cmdq_pkt_destroy(handle);
 
-	if (unlikely(bif_profile)) {
+	if (perf) {
 		end_time = local_clock();
-		duration = (end_time - start_time)/1000;
-		drm_trace_tag_value("t_leave_idle", duration);
+		cost = div_u64((end_time - start_time), 1000);
+
+		mtk_drm_idlemgr_perf_update(crtc, false, cost);
 	}
 }
 
