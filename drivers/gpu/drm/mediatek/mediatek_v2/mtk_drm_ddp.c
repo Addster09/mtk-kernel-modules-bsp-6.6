@@ -33261,7 +33261,8 @@ static irqreturn_t mtk_disp_mutex_irq_handler(int irq, void *dev_id)
 		return IRQ_NONE;
 	}
 
-	if (priv->data->mmsys_id != MMSYS_MT6991)
+	if (priv->data->mmsys_id != MMSYS_MT6991 &&
+		priv->data->mmsys_id != MMSYS_MT6899)
 		val = readl(ddp->regs + DISP_REG_MUTEX_INTSTA) & DISP_MUTEX_INT_MSK;
 	else
 		val = readl(ddp->side_regs + DISP_REG_MUTEX_INTSTA) & DISP_MUTEX_INT_MSK;
@@ -33274,7 +33275,8 @@ static irqreturn_t mtk_disp_mutex_irq_handler(int irq, void *dev_id)
 	DRM_MMP_MARK(IRQ, ddp->regs_pa, val);
 	DDPIRQ("MM_MUTEX irq, val:0x%x\n", val);
 
-	if (priv->data->mmsys_id != MMSYS_MT6991) {
+	if (priv->data->mmsys_id != MMSYS_MT6991 &&
+		priv->data->mmsys_id != MMSYS_MT6899) {
 		writel(~val, ddp->regs + DISP_REG_MUTEX_INTSTA);
 		if (likely(ddp->side_regs))
 			writel(0, ddp->side_regs + DISP_REG_MUTEX_INTSTA);
