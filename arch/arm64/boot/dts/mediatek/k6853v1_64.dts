@@ -128,7 +128,6 @@
 		reg = <1>;
 		pm-enable-gpios = <&pio 84 0>;
 		reset-gpios = <&pio 86 0>;
-		leden-gpios = <&pio 136 0>;
 		bias-gpios = <&pio 137 0>,
 			<&pio 138 0>;
 		pinctrl-names = "default";
