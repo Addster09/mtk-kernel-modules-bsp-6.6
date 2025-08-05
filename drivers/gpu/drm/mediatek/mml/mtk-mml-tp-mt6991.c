@@ -1420,6 +1420,11 @@ static enum mml_mode tp_query_mode_dl(struct mml_dev *mml, struct mml_frame_info
 		goto decouple;
 	}
 
+	if (!MML_FMT_COMPRESS(info->src.format)) {
+		*reason = mml_query_format;
+		goto decouple;
+	}
+
 	if ((!rotated && dest->crop.r.width < MML_MIN_SIZE) ||
 		(rotated && dest->crop.r.height < MML_MIN_SIZE)) {
 		*reason = mml_query_min_size;
