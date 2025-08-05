@@ -32,6 +32,20 @@ struct render_info_fps {
 	int target_fps;
 };
 
+void game_lock_from_private(void *lock)
+{
+	if (lock != NULL)
+		mutex_lock(lock);
+}
+EXPORT_SYMBOL(game_lock_from_private);
+
+void game_unlock_from_private(void *lock)
+{
+	if (lock != NULL)
+		mutex_unlock(lock);
+}
+EXPORT_SYMBOL(game_unlock_from_private);
+
 int game_get_tgid(int pid)
 {
 	struct task_struct *tsk;
@@ -209,6 +223,7 @@ static int __init game_init(void)
 	}
 	wake_up_process(kGame_task);
 	game_sysfs_init();
+	game_ec_init();
 	loom_init();
 end:
 	return ret;
