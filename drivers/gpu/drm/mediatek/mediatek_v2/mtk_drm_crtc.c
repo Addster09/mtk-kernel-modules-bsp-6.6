@@ -10336,6 +10336,7 @@ static ktime_t mtk_check_preset_fence_timestamp(struct drm_crtc *crtc)
 	bool pass = false;
 	unsigned long flags;
 	struct mtk_panel_params *params = mtk_crtc->panel_ext->params;
+	struct mtk_drm_private *priv = crtc->dev->dev_private;
 
 	is_frame_mode = mtk_crtc_is_frame_trigger_mode(crtc);
 	cur_time = mtk_crtc->pf_time;
@@ -10382,6 +10383,22 @@ static ktime_t mtk_check_preset_fence_timestamp(struct drm_crtc *crtc)
 			DDPINFO("Wait time over %d ms, start %lld, wait %lld, cur %lld\n",
 				(1000 / te_freq / 2), start_time, wait_time, cur_time);
 			CRTC_MMP_MARK(id, present_fence_timestamp, start_time, wait_time);
+		}
+	}
+
+	if (priv && priv->data->mmsys_id == MMSYS_MT6781) {
+		int vrefresh = 0;
+		ktime_t new_time = ktime_get();
+
+		vrefresh = drm_mode_vrefresh(
+				&mtk_crtc->base.state->adjusted_mode);
+		if (vrefresh > 0 &&
+			ktime_to_us(new_time - mtk_crtc->pf_time) >=
+			(500000 / vrefresh)) {
+			DDPINFO("%s:pf_time too early,reget it,pf_time = %lld, new_time = %lld, fps = %d\n",
+				__func__, mtk_crtc->pf_time, new_time, vrefresh);
+			cur_time = new_time;
+			mtk_crtc->pf_time = cur_time;
 		}
 	}
 
