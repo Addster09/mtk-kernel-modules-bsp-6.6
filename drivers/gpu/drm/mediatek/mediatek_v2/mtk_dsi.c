@@ -3386,6 +3386,20 @@ static void mtk_dsi_calc_vdo_timing(struct mtk_dsi *dsi)
 					(hfp_minimum / 2));
 		}
 	} else {
+		if (dsi->mode_flags & MIPI_DSI_MODE_VIDEO_BURST) {
+			if (priv->data->mmsys_id == MMSYS_MT6991)
+				horizontal_frontporch_byte = t_hfp * dsi_tmp_buf_bpp - 18;
+			else
+				horizontal_frontporch_byte =
+					ALIGN_TO((t_hfp * dsi_tmp_buf_bpp - 18), 4);
+		} else {
+			if (priv->data->mmsys_id == MMSYS_MT6991)
+				horizontal_frontporch_byte = t_hfp * dsi_tmp_buf_bpp - 12;
+			else
+				horizontal_frontporch_byte =
+					ALIGN_TO((t_hfp * dsi_tmp_buf_bpp - 12), 4);
+		}
+
 		if (dsi->mode_flags & MIPI_DSI_MODE_VIDEO_SYNC_PULSE) {
 			if (priv->data->mmsys_id == MMSYS_MT6991) {
 				horizontal_sync_active_byte = t_hsa * dsi_tmp_buf_bpp - 10;
@@ -3395,6 +3409,23 @@ static void mtk_dsi_calc_vdo_timing(struct mtk_dsi *dsi)
 					ALIGN_TO((t_hsa * dsi_tmp_buf_bpp - 10), 4);
 				horizontal_backporch_byte =
 					ALIGN_TO((t_hbp * dsi_tmp_buf_bpp - 10), 4);
+			}
+			if (dsi->ext && dsi->ext->params->vdo_per_frame_lp_enable) {
+				u32 ps_wc, v_active_roundup;
+
+				ps_wc = readl(dsi->regs + DSI_PSCTRL(dsi->driver_data)) & 0x7fff;
+				pr_notice("[####] hsyn=0x%x chbp=0x%x hfp=0x%x ps_wc=0x%x lanes=%d\n",
+						horizontal_sync_active_byte, horizontal_backporch_byte,
+						horizontal_frontporch_byte, ps_wc, dsi->lanes);
+				v_active_roundup = (32 + horizontal_sync_active_byte +
+						horizontal_backporch_byte + ps_wc +
+						horizontal_frontporch_byte) % dsi->lanes;
+				if (v_active_roundup)
+					horizontal_frontporch_byte = horizontal_frontporch_byte +
+						dsi->lanes - v_active_roundup;
+
+				pr_notice("[####]v_active_roundup=%d horizontal_frontporch_byte=0x%x %s\n",
+						v_active_roundup, horizontal_frontporch_byte, __func__);
 			}
 		} else {
 			if (priv->data->mmsys_id == MMSYS_MT6991) {
@@ -3407,13 +3438,41 @@ static void mtk_dsi_calc_vdo_timing(struct mtk_dsi *dsi)
 					ALIGN_TO(((t_hbp + t_hsa) * dsi_tmp_buf_bpp -
 					10), 4);
 			}
-		}
+			if (dsi->ext && dsi->ext->params->vdo_per_frame_lp_enable) {
+				if (dsi->mode_flags & MIPI_DSI_MODE_VIDEO_BURST) {
+					u32 ps_wc, bllp_wc, v_active_roundup;
 
-		if (priv->data->mmsys_id == MMSYS_MT6991)
-			horizontal_frontporch_byte = t_hfp * dsi_tmp_buf_bpp - 12;
-		else
-			horizontal_frontporch_byte =
-				ALIGN_TO((t_hfp * dsi_tmp_buf_bpp - 12), 4);
+					ps_wc = readl(dsi->regs + DSI_PSCTRL(dsi->driver_data)) & 0x7fff;
+					bllp_wc = readl(dsi->regs + DSI_BLLP_WC(dsi->driver_data)) & 0xfff;
+					pr_notice("[####] hbp=0x%x hfp=0x%x ps_wc=0x%x bllp_wc=0x%x lanes=%d\n",
+							horizontal_backporch_byte, horizontal_frontporch_byte,
+							ps_wc, bllp_wc, dsi->lanes);
+					v_active_roundup = (28 + horizontal_backporch_byte + ps_wc +
+							horizontal_frontporch_byte + bllp_wc) % dsi->lanes;
+					if (v_active_roundup)
+						horizontal_frontporch_byte = horizontal_frontporch_byte +
+							dsi->lanes - v_active_roundup;
+
+					pr_notice("[####]v_active_roundup=%d horizontal_frontporch_byte=0x%x %s\n",
+							v_active_roundup, horizontal_frontporch_byte, __func__);
+				} else {
+					u32 ps_wc, v_active_roundup;
+
+					ps_wc = readl(dsi->regs + DSI_PSCTRL(dsi->driver_data)) & 0x7fff;
+					pr_notice("[####] hbp=0x%x hfp=0x%x ps_wc=0x%x lanes=%d\n",
+							horizontal_backporch_byte, horizontal_frontporch_byte,
+							ps_wc, dsi->lanes);
+					v_active_roundup = (22 + horizontal_backporch_byte + ps_wc +
+							horizontal_frontporch_byte) % dsi->lanes;
+					if (v_active_roundup)
+						horizontal_frontporch_byte = horizontal_frontporch_byte +
+							dsi->lanes - v_active_roundup;
+
+					pr_notice("[####]v_active_roundup=%d horizontal_frontporch_byte=0x%x %s\n",
+							v_active_roundup, horizontal_frontporch_byte, __func__);
+				}
+			}
+		}
 		/* Check DPHY HFP minimum limitation */
 		if (dsi->driver_data->n_verion >= VER_N4 && t_hfp < dsi->hfp_minimum_dphy) {
 			static int print_err;
