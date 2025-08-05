@@ -21,6 +21,7 @@ mtk_game_objs += game.o \
 	loom/loom_base.o \
 	loom/loom_loading_ctrl.o \
 	loom/loom_rescue.o \
+	loom/loom_ofp.o \
 	loom/loom.o
 
 obj-$(CONFIG_MTK_GAME) += mtk_game.o

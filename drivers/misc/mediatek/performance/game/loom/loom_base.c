@@ -19,9 +19,9 @@ static int loom_task_cfg_length;
 static int loom_render_num;
 static HLIST_HEAD(loom_render_list);
 static HLIST_HEAD(loom_task_cfg);
-static DEFINE_MUTEX(render_lock);
-static DEFINE_MUTEX(cfg_lock);
-static DEFINE_MUTEX(mode_lock);
+static DEFINE_MUTEX(render_lock);	// main lock for loom
+static DEFINE_MUTEX(cfg_lock);		// lock for loom_task_cfg
+static DEFINE_MUTEX(mode_lock);		// lock for register fpsgo callback
 //static DEFINE_MUTEX(loom_cb_lock);  need or not??
 
 void *loom_alloc(int size)
@@ -122,7 +122,7 @@ void loom_clear_loom_attr(struct hlist_head *head)
 }
 
 /* use for delete loom lc active list */
-static void loom_clear_loading_ctrl_list(struct list_head *head)
+void loom_clear_loading_ctrl_list(struct list_head *head)
 {
 	struct loom_loading_ctrl *iter = NULL, *tmp = NULL;
 
@@ -295,6 +295,7 @@ struct loom_attr_info *loom_search_add_task_cfg(struct hlist_head *head, int mod
 
 	iter->vip_set = 0;
 	iter->cmask_set = 0;
+	iter->is_exclusive = 0;
 out:
 	return iter;
 }
@@ -328,7 +329,7 @@ struct loom_render_info *loom_search_add_render_info(int tgid, int add)
 	iter->tgid = tgid;
 	iter->pid = 0;
 	iter->buffer_id = 0;
-	iter->target_fps = 0;
+	iter->q_cnt = 0;
 	iter->last_update_ts = 0;
 	INIT_HLIST_HEAD(&iter->active_list);
 	INIT_LIST_HEAD(&iter->lc_active_list);

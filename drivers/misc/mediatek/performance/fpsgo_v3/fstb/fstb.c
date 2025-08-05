@@ -564,6 +564,7 @@ int fpsgo_other2fstb_get_fps(int pid, unsigned long long bufID,
 
 	return 0;
 }
+EXPORT_SYMBOL(fpsgo_other2fstb_get_fps);
 
 static int fstb_enter_delete_render_info(int clear, int *r_pid_arr,
 	unsigned long long *r_bufid_arr, int r_num)

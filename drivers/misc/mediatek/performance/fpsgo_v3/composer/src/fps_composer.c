@@ -75,6 +75,7 @@ static DEFINE_MUTEX(fpsgo_boost_lock);
 static DEFINE_MUTEX(user_hint_lock);
 static DEFINE_MUTEX(fpsgo_frame_info_cb_lock);
 static DEFINE_MUTEX(cur_l2q_info_lock);
+static DEFINE_MUTEX(loom_cb_lock);
 
 static fpsgo_notify_is_boost_cb notify_fpsgo_boost_cb_list[MAX_FPSGO_CB_NUM];
 static struct render_frame_info_cb fpsgo_frame_info_cb_list[FPSGO_MAX_CALLBACK_NUM];
@@ -311,6 +312,29 @@ static void fpsgo_com_do_jank_detection_hint(struct work_struct *psWork)
 
 	kfree(hint);
 }
+
+void (*fpsgo2game_noitfy_loom_queue_end_fp)(int rpid, int tgid, unsigned long long buf_id);
+void fpsgo_notify_loom_qudeq_cb(int rpid, int tgid, unsigned long long buf_id)
+{
+	if (!rpid || !tgid || !buf_id)
+		return;
+
+	mutex_lock(&loom_cb_lock);
+	if (fpsgo2game_noitfy_loom_queue_end_fp)
+		fpsgo2game_noitfy_loom_queue_end_fp(rpid, tgid, buf_id);
+	mutex_unlock(&loom_cb_lock);
+}
+
+void register_fpsgo_loom_cb(int set, fpsgo_loom_callback cb)
+{
+	mutex_lock(&loom_cb_lock);
+	if (set)
+		fpsgo2game_noitfy_loom_queue_end_fp = cb;
+	else
+		fpsgo2game_noitfy_loom_queue_end_fp = NULL;
+	mutex_unlock(&loom_cb_lock);
+}
+EXPORT_SYMBOL(register_fpsgo_loom_cb);
 
 static void fpsgo_comp_set_logic_head(struct render_info *f_render,
 	unsigned long long sf_buf_id, unsigned long long logic_head_ts,
@@ -978,6 +1002,8 @@ void fpsgo_ctrl2comp_enqueue_end(int pid,
 	unsigned long long sf_buf_id)
 {
 	int ret;
+	int tgid = 0;
+	unsigned long long buffer_id = 0;
 	unsigned long cb_mask = 0;
 	unsigned long long raw_runtime = 0;
 	unsigned long long running_time = 0;
@@ -999,6 +1025,9 @@ void fpsgo_ctrl2comp_enqueue_end(int pid,
 	ret = fpsgo_com_refetch_buffer(f_render, pid, identifier, 0);
 	if (!ret)
 		goto exit;
+
+	tgid = fpsgo_get_tgid(pid);
+	buffer_id = f_render->buffer_id;
 
 	f_render->hwui = fpsgo_search_and_add_hwui_info(f_render->pid, 0) ?
 			RENDER_INFO_HWUI_TYPE : RENDER_INFO_HWUI_NONE;
@@ -1135,6 +1164,9 @@ void fpsgo_ctrl2comp_enqueue_end(int pid,
 exit:
 	fpsgo_thread_unlock(&f_render->thr_mlock);
 	fpsgo_render_tree_unlock(__func__);
+
+	/* loom frame callback */
+	fpsgo_notify_loom_qudeq_cb(pid, tgid, buffer_id);
 }
 
 void fpsgo_ctrl2comp_dequeue_start(int pid,
