@@ -2128,6 +2128,8 @@ done:
 DEFINE_PER_CPU(cpumask_var_t, mtk_select_rq_mask);
 static DEFINE_PER_CPU(cpumask_t, energy_cpus);
 
+void (*vip_loom_select_task_rq_fair_hook)(struct task_struct *p, int *target_cpu, int *flag);
+EXPORT_SYMBOL(vip_loom_select_task_rq_fair_hook);
 void mtk_find_energy_efficient_cpu(void *data, struct task_struct *p, int prev_cpu, int sync,
 					int *new_cpu)
 {
@@ -2158,6 +2160,7 @@ void mtk_find_energy_efficient_cpu(void *data, struct task_struct *p, int prev_c
 	struct cpumask vip_candidate;
 #if IS_ENABLED(CONFIG_MTK_SCHED_VIP_TASK)
 	struct vip_task_struct *vts = &((struct mtk_task *) p->android_vendor_data1)->vip_task;
+	int loom_select_reason = -1;
 
 	vip_prio = get_vip_task_prio(p);
 	is_vip = prio_is_vip(vip_prio, NOT_VIP);
@@ -2169,6 +2172,21 @@ void mtk_find_energy_efficient_cpu(void *data, struct task_struct *p, int prev_c
 
 	if (!get_eas_hook())
 		return;
+
+	/* vip loom algo. */
+	if (vip_loom_select_task_rq_fair_hook) {
+		int flag = NONE;
+
+		vip_loom_select_task_rq_fair_hook(p, new_cpu, &flag);
+		if (*new_cpu != INT_MAX)
+			loom_select_reason = LB_LOOM_ALGO;
+		if (flag == ORIGINAL_PATH)
+			loom_select_reason = LB_LOOM_OP;
+	}
+	if (loom_select_reason != -1) {
+		select_reason = loom_select_reason;
+		goto done;
+	}
 
 	cpumask_clear(&allowed_cpu_mask);
 

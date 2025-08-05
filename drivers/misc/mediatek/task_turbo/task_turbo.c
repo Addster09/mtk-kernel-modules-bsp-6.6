@@ -18,6 +18,7 @@
 #include <linux/percpu-defs.h>
 #include <linux/input.h>
 #include <linux/sched/signal.h>
+#include <linux/of.h>
 
 #include <kernel/futex/futex.h>
 #include <kernel/sched/sched.h>
@@ -34,6 +35,7 @@
 
 #include <task_turbo.h>
 #include <task_turbo_v.h>
+#include "eas/eas_plus.h"
 #include <eas/vip.h>
 #if IS_ENABLED(CONFIG_MTK_FPSGO_V3) || IS_ENABLED(CONFIG_MTK_FPSGO)
 #include <fstb.h>
@@ -115,6 +117,8 @@ DEFINE_PER_CPU(unsigned long, cpu_scale) = SCHED_CAPACITY_SCALE;
 #define SEGMENT_IDX		30
 #define MAX_LOOM_BUF_SIZE 4
 #define MAX_NR_CPUS CONFIG_MAX_NR_CPUS
+#define HWCODE_IDX		20
+#define SEGMENT_IDX		30
 
 static uint32_t latency_turbo = SUB_FEAT_LOCK | SUB_FEAT_BINDER |
 				SUB_FEAT_SCHED;
@@ -168,7 +172,6 @@ static int hmp_compare(void *priv, const struct list_head *a, const struct list_
 static inline void fillin_cluster(struct cluster_info *cinfo,
 		struct hmp_domain *hmpd);
 static void sys_set_turbo_task(struct task_struct *p);
-static unsigned long capacity_of(int cpu);
 static void init_turbo_attr(struct task_struct *p);
 static unsigned long cpu_util(int cpu, struct task_struct *p, int dst_cpu, int boost);
 static inline unsigned long task_util(struct task_struct *p);
@@ -193,11 +196,19 @@ static int f_tgid;
 static ktime_t cur_touch_time;
 static ktime_t cur_touch_down_time;
 static u64 enforced_qualified_mask;
+#if IS_ENABLED(CONFIG_MTK_SCHED_FAST_LOAD_TRACKING)
+static atomic_t vip_loom_flt_cfg;
+static int flt_orig_mode = -1;
+#endif
+static atomic_t vip_loom_select_cfg;
 static DEFINE_SPINLOCK(loom_affinity_lock);
 static struct affinity_data_node loom_rec_buffer[MAX_LOOM_BUF_SIZE];
 static atomic_t loom_cpu_dedicated_enable;
 int (*loom_set_cpus_allowed_ptr_by_kernel_fp)(struct task_struct *p, const struct cpumask *new_mask);
 EXPORT_SYMBOL(loom_set_cpus_allowed_ptr_by_kernel_fp);
+static const char * const caller_id_desc[] = {
+	"DEBUG_NODE", "FPSGO", "UX", "VIDEO"
+};
 
 struct devinfo_tag {
 	u32 data_size;
@@ -235,6 +246,8 @@ static bool is_device_support_loom(void)
 {
 	static const struct loom_support_rule rules[] = {
 		{ 0x1471, 0x00 },
+		{ 0x1357, 0x05 },
+		{ 0x1357, 0x13 },
 		{ 0x6899, 0x08 },
 	};
 
@@ -252,7 +265,7 @@ static bool is_device_support_loom(void)
 			continue;
 
 		if (!rules[i].segment_mask ||
-		    (tags->data[SEGMENT_IDX] & rules[i].segment_mask))
+		    (tags->data[SEGMENT_IDX] == rules[i].segment_mask))
 			return true;
 	}
 	return false;
@@ -721,9 +734,6 @@ MODULE_PARM_DESC(enable_binder_nonvip_inheritance, "Enable or disable binder non
 int enforce_ct_to_vip(int val, int caller_id)
 {
 	u64 tmp_mask;
-	static const char * const caller_id_desc[] = {
-		"DEBUG_NODE", "FPSGO", "UX", "VIDEO"
-	};
 
 	if (caller_id < 0 || caller_id >= MAX_TYPE)
 		return -EINVAL;
@@ -1317,11 +1327,6 @@ static inline bool is_rwsem_reader_owned(struct rw_semaphore *sem)
 	return rwsem_test_oflags(sem, RWSEM_READER_OWNED);
 }
 
-static unsigned long capacity_of(int cpu)
-{
-	return cpu_rq(cpu)->cpu_capacity;
-}
-
 /*
  * cpu_util_without: compute cpu utilization without any contributions from *p
  * @cpu: the CPU which utilization is requested
@@ -1489,7 +1494,7 @@ int find_best_turbo_cpu(struct task_struct *p)
 			}
 
 			spare_cap =
-			     max_t(long, capacity_of(iter_cpu) - cpu_util_without(iter_cpu, p), 0);
+			     max_t(long, cpu_rq(iter_cpu)->cpu_capacity - cpu_util_without(iter_cpu, p), 0);
 			if (spare_cap > max_spare_cap) {
 				max_spare_cap = spare_cap;
 				max_spare_cpu = iter_cpu;
@@ -2784,6 +2789,63 @@ static void loom_affinity_node_init(void)
 	spin_unlock_irqrestore(&loom_affinity_lock, flags);
 }
 
+void vip_loom_select_task_rq_fair(struct task_struct *p, int *target_cpu, int *flag)
+{
+#if IS_ENABLED(CONFIG_MTK_SCHED_VIP_TASK)
+	int vip_prio = get_vip_task_prio(p);
+	bool is_vip = prio_is_vip(vip_prio, NOT_VIP);
+
+	if (is_vip)
+		return;
+#endif
+
+	if (atomic_read(&vip_loom_select_cfg))
+		*flag = ORIGINAL_PATH;
+}
+
+int vip_loom_select_cfg_apply(int val, int caller_id)
+{
+	if (!is_device_support_loom())
+		return -EINVAL;
+
+	if (val < 0 || caller_id < 0 || caller_id >= MAX_TYPE)
+		return -EINVAL;
+
+	atomic_set(&vip_loom_select_cfg, !!val);
+
+	trace_vip_loom("select_cfg", !!val, caller_id_desc[caller_id]);
+
+	return 0;
+}
+EXPORT_SYMBOL(vip_loom_select_cfg_apply);
+
+#if IS_ENABLED(CONFIG_MTK_SCHED_FAST_LOAD_TRACKING)
+int vip_loom_flt_cfg_apply(int val, int caller_id)
+{
+	if (!is_device_support_loom())
+		return -EINVAL;
+
+	if (val < 0 || caller_id < 0 || caller_id >= MAX_TYPE)
+		return -EINVAL;
+
+	atomic_set(&vip_loom_flt_cfg, !!val);
+
+	if (atomic_read(&vip_loom_flt_cfg) && flt_get_mode() != FLT_MODE_0) {
+		if (flt_orig_mode == -1)
+			flt_orig_mode = flt_get_mode();
+		flt_set_mode(FLT_MODE_0);
+	} else if (!atomic_read(&vip_loom_flt_cfg) && flt_get_mode() != flt_orig_mode) {
+		if (flt_orig_mode != -1)
+			flt_set_mode(flt_orig_mode);
+	}
+
+	trace_vip_loom("flt_cfg", !!val, caller_id_desc[caller_id]);
+
+	return 0;
+}
+EXPORT_SYMBOL(vip_loom_flt_cfg_apply);
+#endif
+
 static int __init init_task_turbo(void)
 {
 	int ret, ret_erri_line;
@@ -2935,6 +2997,7 @@ static int __init init_task_turbo(void)
 		pr_info("%s: init input handler failed, returned %d\n", TAG, ret);
 
 	task_turbo_enforce_ct_to_vip_fp = enforce_ct_to_vip;
+	vip_loom_select_task_rq_fair_hook = vip_loom_select_task_rq_fair;
 
 	loom_affinity_node_init();
 

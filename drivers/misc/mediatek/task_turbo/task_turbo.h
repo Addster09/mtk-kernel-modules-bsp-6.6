@@ -65,6 +65,16 @@ struct cluster_info {
 	int cpu;
 };
 
+/* FLT mode */
+enum _flt_mode {
+	FLT_MODE_0 = 0,
+	FLT_MODE_1 = 1,
+	FLT_MODE_2 = 2,
+	FLT_MODE_3 = 3,
+	FLT_MODE_4 = 4,
+	FLT_MODE_NUM,
+};
+
 struct cpu_time {
 	u64 time;
 };
@@ -80,6 +90,11 @@ struct affinity_data_node {
 
 extern int (*task_turbo_enforce_ct_to_vip_fp)(int val, int caller_id);
 extern inline int get_vip_task_prio(struct task_struct *p);
+#if IS_ENABLED(CONFIG_MTK_SCHED_FAST_LOAD_TRACKING)
+extern void flt_set_mode(u32 mode);
+extern u32 flt_get_mode(void);
+#endif
+extern void (*vip_loom_select_task_rq_fair_hook)(struct task_struct *p, int *target_cpu, int *flag);
 
 /*
  * Nice levels are multiplicative, with a gentle 10% change for every

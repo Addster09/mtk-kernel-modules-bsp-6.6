@@ -57,6 +57,8 @@ DECLARE_PER_CPU(unsigned long, min_freq);
 #define LB_RT_SAME_FIRST     (0x80002)
 #define LB_RT_FAIL_FIRST     (0x80004)
 #define LB_SHORTCUT_COMPRESS (0x100000)
+#define LB_LOOM_OP (0x1000000)
+#define LB_LOOM_ALGO (0x1000001)
 
 /*
  * energy_env - Utilization landscape for energy estimation.
@@ -185,6 +187,11 @@ extern void set_newly_idle_balance_interval_us(unsigned int interval_us);
 extern unsigned int get_newly_idle_balance_interval_us(void);
 extern void set_get_thermal_headroom_interval_tick(unsigned int tick);
 extern unsigned int get_thermal_headroom_interval_tick(void);
+
+enum VIP_LOOM_SELECTOR {
+	NONE,
+	ORIGINAL_PATH,
+};
 
 /* add struct for user to control soft affinity */
 enum {

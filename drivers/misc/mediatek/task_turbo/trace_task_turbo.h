@@ -365,6 +365,27 @@ TRACE_EVENT(turbo_vip,
 		__entry->enf_mask)
 );
 
+TRACE_EVENT(vip_loom,
+	TP_PROTO(const char *desc, int val, const char *caller),
+	TP_ARGS(desc, val, caller),
+	TP_STRUCT__entry(
+		__string(desc, desc)
+		__field(int, val)
+		__string(caller, caller)
+	),
+
+	TP_fast_assign(
+		__assign_str(desc, desc);
+		__entry->val = val;
+		__assign_str(caller, caller);
+	),
+
+	TP_printk("desc=%s val=%d caller=%s",
+		__get_str(desc),
+		__entry->val,
+		__get_str(caller))
+);
+
 TRACE_EVENT(loom_bind_to_specify_cpu,
 
 	TP_PROTO(unsigned int loom_affinity_enable, int *pid, int *aff_cpu, int dup_set, int ret),
