@@ -4346,8 +4346,15 @@ irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 #endif
 				if (aee || aee_v2){
 #if IS_ENABLED(CONFIG_ARM64)
-					DDPAEE_FATAL("[IRQ] %s:buffer underrun. TS: 0x%08x\n",
-						mtk_dump_comp_str(comp), (u32)arch_timer_read_counter());
+#if defined(DISP_COMPLEX_AEE_DUMP)
+					DDPAEE_TRACE_TOP("[IRQ] %s:buffer underrun. TS:0x%llx, NTS:0x%llx\n",
+						mtk_dump_comp_str(comp), (u64)arch_timer_read_counter(),
+						(u64)sched_clock());
+#else
+					DDPAEE_FATAL("[IRQ] %s:buffer underrun. TS:0x%llx, NTS:0x%llx\n",
+						mtk_dump_comp_str(comp), (u32)arch_timer_read_counter(),
+						(u64)sched_clock());
+#endif
 #else
 					DDPAEE("[IRQ] %s:buffer underrun\n", mtk_dump_comp_str(comp));
 #endif

@@ -85,6 +85,7 @@ endif
 ifeq ($(strip $(MGK_INTERNAL)),true)
 ccflags-y += -DDISP_STASH_ENABLE
 ccflags-y += -DDRM_PARTIAL_UPDATE
+ccflags-y += -DDISP_COMPLEX_AEE_DUMP
 endif
 
 ifeq ($(CONFIG_DRM_MEDIATEK_DPTX_AUTO),y)
