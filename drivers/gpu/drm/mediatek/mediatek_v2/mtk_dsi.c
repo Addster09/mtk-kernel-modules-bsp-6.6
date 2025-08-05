@@ -15935,6 +15935,7 @@ static int mtk_dsi_probe(struct platform_device *pdev)
 	num_irqs = platform_irq_count(pdev);
 
 	if (num_irqs) {
+		unsigned int cpu_num = 0;
 		irq = platform_get_irq(pdev, 0);
 
 		if (irq < 0) {
@@ -15945,6 +15946,10 @@ static int mtk_dsi_probe(struct platform_device *pdev)
 
 
 		irq_set_status_flags(irq, IRQ_TYPE_LEVEL_HIGH);
+		ret = of_property_read_u32(dev->of_node,
+				"cpu-num", &cpu_num);
+		if (cpu_num != 0)
+			ret = irq_force_affinity(irq, cpumask_of(cpu_num));
 		ret = devm_request_irq(
 			&pdev->dev, irq, dsi->driver_data->irq_handler,
 			IRQF_TRIGGER_NONE | IRQF_SHARED, dev_name(&pdev->dev), dsi);
