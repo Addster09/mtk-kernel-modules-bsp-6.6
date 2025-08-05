@@ -1124,7 +1124,7 @@ static int fbt_set_l3_ct(int l3_cache_ct, int pid ,int spid_action ,int group )
 {
 
 	int ret = 0;
-#if IS_ENABLED(CONFIG_MTK_SCHEDULER) && IS_ENABLED(CONFIG_MTK_CPUQOS_V3)
+#if IS_ENABLED(CONFIG_MTK_SCHEDULER) && IS_ENABLED(CONFIG_MTK_CPUQOS_V3) && IS_ENABLED(CONFIG_MTK_CPUQOS_EXT)
 	if (!pid)
 		return -EINVAL;
 
