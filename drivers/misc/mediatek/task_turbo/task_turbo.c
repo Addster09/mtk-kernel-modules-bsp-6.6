@@ -204,8 +204,6 @@ static atomic_t vip_loom_select_cfg;
 static DEFINE_SPINLOCK(loom_affinity_lock);
 static struct affinity_data_node loom_rec_buffer[MAX_LOOM_BUF_SIZE];
 static atomic_t loom_cpu_dedicated_enable;
-int (*loom_set_cpus_allowed_ptr_by_kernel_fp)(struct task_struct *p, const struct cpumask *new_mask);
-EXPORT_SYMBOL(loom_set_cpus_allowed_ptr_by_kernel_fp);
 static const char * const caller_id_desc[] = {
 	"DEBUG_NODE", "FPSGO", "UX", "VIDEO"
 };
@@ -2480,10 +2478,7 @@ static int loom_set_affinity(int pid, int aff_cpu)
 		goto out_put_task;
 	}
 
-	if (loom_set_cpus_allowed_ptr_by_kernel_fp)
-		ret = loom_set_cpus_allowed_ptr_by_kernel_fp(p, &aff_mask);
-	else
-		ret = set_cpus_allowed_ptr(p, &aff_mask);
+	ret = set_cpus_allowed_ptr_by_kernel(p, &aff_mask);
 
 out_put_task:
 	put_task_struct(p);
