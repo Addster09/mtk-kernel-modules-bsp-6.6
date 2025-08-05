@@ -4551,21 +4551,6 @@ irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 			}
 		}
 
-		if (status & TARGET_LINE_INT_FLAG) {
-			if (mtk_crtc && mtk_crtc->esd_ctx) {
-				if ((comp->id == DDP_COMPONENT_DSI0 ||
-					 comp->id == DDP_COMPONENT_DSI1 ||
-					 comp->id == DDP_COMPONENT_DSI2) &&
-					(priv->data->mmsys_id == MMSYS_MT6989 ||
-					 priv->data->mmsys_id == MMSYS_MT6899 ||
-					 priv->data->mmsys_id == MMSYS_MT6991)) {
-					CRTC_MMP_MARK(index, target_time, comp->id, 0xffff0001);
-					atomic_set(&mtk_crtc->esd_ctx->target_time, 1);
-					wake_up_interruptible(&mtk_crtc->esd_ctx->check_task_wq);
-				}
-			}
-		}
-
 		if (status & FRAME_DONE_INT_FLAG) {
 			if (mtk_dsi_is_cmd_mode(comp) &&
 				(inten & FRAME_DONE_INT_FLAG) && underrun_happened) {
@@ -4583,14 +4568,6 @@ irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 					writel(inten, dsi->regs + DSI_INTEN);
 				}
 				underrun_happened = 0;
-			}
-			if (mtk_crtc && mtk_crtc->esd_ctx) {
-				if (comp->id == DDP_COMPONENT_DSI0 ||
-					 comp->id == DDP_COMPONENT_DSI1 ||
-					 comp->id == DDP_COMPONENT_DSI2) {
-					CRTC_MMP_MARK(index, target_time, comp->id, 0xffff0000);
-					atomic_set(&mtk_crtc->esd_ctx->target_time, 0);
-				}
 			}
 
 			drm_trace_tag_mark("dsi_frame_done");
@@ -14016,9 +13993,12 @@ static int mtk_dsi_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
 			DDPPR_ERR("GCE handle is NULL\n");
 			return 0;
 		}
-
+		/*
+		 * rd_rdy don't clear and wait for ESD &
+		 * Read LCM will clear the bit.
+		 */
 		cmdq_pkt_write(handle, comp->cmdq_base,
-			comp->regs_pa + DSI_INTSTA, 0x0, ~0);
+			comp->regs_pa + DSI_INTSTA, 0x0, 0xfffffffe);
 
 		if (atomic_read(&comp->mtk_crtc->force_high_step) == 1) {
 			DDPMSG("IRQ_LEVEL_NORMAL force_high_step = 1, skip underrun irq\n");
