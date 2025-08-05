@@ -1693,6 +1693,11 @@ static int vow_service_ReadVoiceData_Internal(void)
 		vow_vbuf_length = VOW_VBUF_LENGTH * 2;
 
 	while(1) {
+		if (vowserv.kernel_voicedata_idx >= (vow_vbuf_length >> 1)) {
+			// already full, stop reading from queue
+			/*VOWDRV_DEBUG("[vow check] vow knl buf full\n");*/
+			break;
+		}
 		spin_lock_irqsave(&vow_rec_queue_lock, rec_queue_flags);
 		rec_queue = vow_get_rec_ipi_queue();
 		spin_unlock_irqrestore(&vow_rec_queue_lock, rec_queue_flags);
@@ -1707,45 +1712,39 @@ static int vow_service_ReadVoiceData_Internal(void)
 		buf_length = rec_queue->rec_buf_length;
 		if (buf_length != 0) {
 			unsigned int buffer_bound = 0;
+			unsigned int read_buf_sample = 0;
 
-			if ((vowserv.kernel_voicedata_idx + (buf_length >> 1))
+			read_buf_sample = (dual_ch_transfer == true)?
+					  buf_length : (buf_length >> 1);
+			if ((vowserv.kernel_voicedata_idx + read_buf_sample)
 			    > (vowserv.voicedata_user_size >> 1)) {
 				VOWDRV_DEBUG(
-				"[vow check]data_idx=0x%x(W), buf_length=0x%x(B)\n",
-					vowserv.kernel_voicedata_idx, buf_length);
-				VOWDRV_DEBUG(
-				"[vow check] user_size=0x%x(B), buf_offset=0x%x(B)\n",
-					(unsigned int)vowserv.voicedata_user_size,
-					buf_offset);
+			"[vow check] data_idx=0x%x(W), r_buf_sample=0x%x(W), user_size=0x%x(B)\n",
+					vowserv.kernel_voicedata_idx, read_buf_sample,
+					(unsigned int)vowserv.voicedata_user_size);
 				/* VOW_ASSERT(0); */
-				mutex_lock(&vow_vmalloc_lock);
-				vowserv.kernel_voicedata_idx = 0;
-				mutex_unlock(&vow_vmalloc_lock);
+				if (buf_length > VOW_VOICE_RECORD_BIG_THRESHOLD) {
+					// only seamless buffer package will reset buf idx
+					mutex_lock(&vow_vmalloc_lock);
+					vowserv.kernel_voicedata_idx = 0;
+					mutex_unlock(&vow_vmalloc_lock);
+				} else {
+					/*VOWDRV_DEBUG("drop 1 vow pkg, pkg_len: %d\n",*/
+					/*  buf_length);*/
+					// drop one frame and continuously transfer to HAL
+					break;
+				}
 			}
 
-			if ((vowserv.kernel_voicedata_idx + buf_length) > vow_vbuf_length) {
-				VOWDRV_DEBUG(
-				"%s(), voicedata_idx=0x%x, buf_length=0x%x, vbuf_length=0x%x",
-					__func__,
-					vowserv.kernel_voicedata_idx,
-					buf_length,
-					vow_vbuf_length);
-				stop_condition = 1;
-				return stop_condition;
-			}
-
-			if (dual_ch_transfer == true)
-				buffer_bound = VOW_MAX_MIC_NUM * VOW_VOICEDATA_SIZE;
-			else
-				buffer_bound = VOW_VOICEDATA_SIZE;
+			buffer_bound = VOW_VOICEDATA_SIZE;
 
 			if (buf_offset > buffer_bound) {
 				VOWDRV_DEBUG(
-				"%s(), buf_offset=0x%x, buf_length=0x%x, VOICEDATA_SZ=0x%x\n",
+				"%s(), buf_offset=0x%x, buf_length=0x%x, buffer_bound=0x%x\n",
 					__func__,
 					buf_offset,
 					buf_length,
-					VOW_VOICEDATA_SIZE);
+					buffer_bound);
 				stop_condition = 1;
 				return stop_condition;
 			}
@@ -1763,17 +1762,7 @@ static int vow_service_ReadVoiceData_Internal(void)
 				    &vowserv.voicedata_kernel_ptr[vowserv.kernel_voicedata_idx],
 				    vowserv.voicedata_scp_ptr + buf_offset, buf_length);
 			}
-			mutex_unlock(&vow_vmalloc_lock);
-			if (buf_length > VOW_VOICE_RECORD_BIG_THRESHOLD) {
-				/* means now is start to transfer */
-				/* keyword buffer(64kB) to AP */
-				VOWDRV_DEBUG("%s(), start tx keyword, 0x%x/0x%x\n",
-					__func__,
-					vowserv.kernel_voicedata_idx,
-					buf_length);
-				vowserv.tx_keyword_start = true;
-			}
-			mutex_lock(&vow_vmalloc_lock);
+
 			if (dual_ch_transfer == true) {
 				/* 2 Channels */
 				vowserv.kernel_voicedata_idx += buf_length;
@@ -1782,6 +1771,17 @@ static int vow_service_ReadVoiceData_Internal(void)
 				vowserv.kernel_voicedata_idx += (buf_length >> 1);
 			}
 			mutex_unlock(&vow_vmalloc_lock);
+
+			if (buf_length > VOW_VOICE_RECORD_BIG_THRESHOLD) {
+				/* means now is start to transfer */
+				/* keyword buffer(64kB) to AP */
+				VOWDRV_DEBUG("%s(), start tx keyword, 0x%x/0x%x\n",
+					__func__,
+					vowserv.kernel_voicedata_idx,
+					buf_length);
+				vowserv.tx_keyword_start = true;
+				break;
+			}
 		}
 	} // while(1)
 	if (vowserv.kernel_voicedata_idx >= (VOW_VOICE_RECORD_BIG_THRESHOLD >> 1))
@@ -1816,16 +1816,16 @@ static int vow_service_ReadVoiceData_Internal(void)
 			unsigned int idx;
 
 			tmp = (vowserv.kernel_voicedata_idx << 1)
-			      - vowserv.transfer_length;
-			idx = (vowserv.transfer_length >> 1);
-			vow_check_boundary(tmp + idx, vow_vbuf_length);
+			      - vowserv.transfer_length; // unit: byte
+			idx = (vowserv.transfer_length >> 1); //unit: short
+			vow_check_boundary(tmp + (idx << 1), vow_vbuf_length);
 			mutex_lock(&vow_vmalloc_lock);
 			memmove(&vowserv.voicedata_kernel_ptr[0],
 			       &vowserv.voicedata_kernel_ptr[idx],
 			       tmp);
 			mutex_unlock(&vow_vmalloc_lock);
 			mutex_lock(&vow_vmalloc_lock);
-			vowserv.kernel_voicedata_idx -= idx;
+			vowserv.kernel_voicedata_idx -= idx; // unit: short
 			mutex_unlock(&vow_vmalloc_lock);
 		} else {
 			mutex_lock(&vow_vmalloc_lock);
