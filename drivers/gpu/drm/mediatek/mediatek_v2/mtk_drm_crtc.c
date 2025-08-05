@@ -20348,9 +20348,16 @@ static void mtk_drm_crtc_atomic_flush(struct drm_crtc *crtc,
 				BACKUP_OVL_STATUS, NULL);
 	}
 
-	/* need to check mml is submit done */
-	if (mtk_crtc->is_mml || (mtk_crtc->is_mml_dl && mtk_crtc->is_mml_dl_submit))
-		mtk_drm_wait_mml_submit_done(&(mtk_crtc->mml_cb));
+	if (priv->data->mmsys_id == MMSYS_MT6899) {
+		/* need to check mml is submit done */
+		if ((mtk_crtc->is_mml || (mtk_crtc->is_mml_dl && mtk_crtc->is_mml_dl_submit))
+			&& (mtk_crtc->mml_link_state != MML_IR_IDLE))
+			mtk_drm_wait_mml_submit_done(&(mtk_crtc->mml_cb));
+	} else {
+		/* need to check mml is submit done */
+		if (mtk_crtc->is_mml || (mtk_crtc->is_mml_dl && mtk_crtc->is_mml_dl_submit))
+			mtk_drm_wait_mml_submit_done(&(mtk_crtc->mml_cb));
+	}
 
 	mtk_vidle_dvfs_trigger(__func__);
 

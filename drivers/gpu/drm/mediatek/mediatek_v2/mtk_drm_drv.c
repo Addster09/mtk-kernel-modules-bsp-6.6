@@ -1719,10 +1719,13 @@ static void mtk_atomic_mml(struct drm_device *dev,
 	for_each_old_plane_in_state(state, plane, old_plane_state, i) {
 		plane_state = plane->state;
 		if (plane_state && plane_state->crtc && drm_crtc_index(plane_state->crtc) == 0) {
-			need_update_plane = true;
+			if (priv->data->mmsys_id != MMSYS_MT6899)
+				need_update_plane = true;
 			mtk_plane_state = to_mtk_plane_state(plane_state);
 			mtk_plane_state->mml_mode = _mtk_atomic_mml_plane(dev, mtk_plane_state);
 			if (mtk_plane_state->mml_mode > MML_MODE_UNKNOWN) {
+				if (priv->data->mmsys_id == MMSYS_MT6899)
+					need_update_plane = true;
 				new_mode = mtk_plane_state->mml_mode;
 				mtk_plane_state->mml_cfg = mtk_crtc->mml_cfg_pq;
 			}
@@ -1733,7 +1736,10 @@ static void mtk_atomic_mml(struct drm_device *dev,
 	/* which imply mml_dl_lye does not change in this atomic_commit */
 	if (!need_update_plane && (mtk_crtc_state->lye_state.mml_ir_lye ||
 			mtk_crtc_state->lye_state.mml_dl_lye)) {
-		DDPINFO("no plane_update with mml lye, skip %s\n", __func__);
+		if (priv->data->mmsys_id == MMSYS_MT6899)
+			mtk_crtc->mml_link_state = MML_IR_IDLE;
+		DDPINFO("no plane_update with mml lye, skip %s, mml_link_state = %d\n",
+			__func__, mtk_crtc->mml_link_state);
 		CRTC_MMP_MARK(0, mml_job_status, 0xFFFF, 2);
 		return;
 	}
