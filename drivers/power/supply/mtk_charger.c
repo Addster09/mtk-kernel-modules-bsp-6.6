@@ -2878,7 +2878,7 @@ static int mtk_charger_plug_out(struct mtk_charger *info)
 	info->charger_thread_polling = false;
 	info->dpdmov_stat = false;
 	info->lst_dpdmov_stat = false;
-	info->power_path_en = true;
+	info->power_path_en = false;
 	info->en_power_path = true;
 
 	pdata1->usb_input_current_limit = -1;
@@ -2947,7 +2947,10 @@ static int mtk_charger_plug_in(struct mtk_charger *info,
 	info->sc.disable_in_this_plug = false;
 
 	charger_dev_plug_in(info->chg1_dev);
-	mtk_charger_force_disable_power_path(info, CHG1_SETTING, false);
+	if (!info->en_cts_mode) {
+		mtk_charger_force_disable_power_path(info, CHG1_SETTING, false);
+		info->power_path_en = true;
+	}
 
 	return 0;
 }
