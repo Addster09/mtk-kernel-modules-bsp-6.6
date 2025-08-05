@@ -8784,6 +8784,7 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 			clock-names = "engine", "digital", "hs";
 			phys = <&mipi_tx_config0>;
 			phy-names = "dphy";
+			cpu-num = <2>;
 		};
 
 		dsi1: dsi1@1420b000 {
