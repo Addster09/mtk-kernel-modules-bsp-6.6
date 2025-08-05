@@ -3415,9 +3415,17 @@ static void mtk_dsi_calc_vdo_timing(struct mtk_dsi *dsi)
 			horizontal_frontporch_byte =
 				ALIGN_TO((t_hfp * dsi_tmp_buf_bpp - 12), 4);
 		/* Check DPHY HFP minimum limitation */
-		if (dsi->driver_data->n_verion >= VER_N4 && t_hfp < dsi->hfp_minimum_dphy)
-			DDPPR_ERR("%s HFP:%u < DPHY HFP minimum limitation:%u\n",
+		if (dsi->driver_data->n_verion >= VER_N4 && t_hfp < dsi->hfp_minimum_dphy) {
+			static int print_err;
+
+			if (print_err == 0) {
+				DDPPR_ERR("%s error, HFP:%u < DPHY HFP minimum limitation:%u\n",
 					__func__, t_hfp, dsi->hfp_minimum_dphy);
+				print_err = 1;
+			} else
+				DDPINFO("%s error, HFP:%u < DPHY HFP minimum limitation:%u\n",
+					__func__, t_hfp, dsi->hfp_minimum_dphy);
+		}
 	}
 	dsi->vfp = t_vfp;
 	dsi->vbp = t_vbp;
