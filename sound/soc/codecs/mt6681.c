@@ -35319,25 +35319,27 @@ static int mt6681_parse_dt(struct mt6681_priv *priv)
 		// for liber to check ap or scp accdet
 		ret = of_property_read_u32(np, "accdet-efuse-check", &efuse_val);
 		if (!ret && efuse_val == 1) {
-			efuse_val = 0;
-			efuse_spare5 = nvmem_cell_get(dev, "efuse_spare5");
 			if (liber_get_chipid() == 0x1) {
 				priv->audio_r_miso1_enable = 1;
-			} else if (IS_ERR(efuse_spare5)) {
-				dev_info(priv->dev, "%s() failed to read efuse_spare5\n", __func__);
 			} else {
-				efuse_data = nvmem_cell_read(efuse_spare5, &efuse_len);
-				if (IS_ERR(efuse_data)) {
-					dev_info(priv->dev, "%s() get efuse data error = %d\n", __func__, ret);
+				efuse_val = 0;
+				efuse_spare5 = nvmem_cell_get(dev, "efuse_spare5");
+				if (IS_ERR(efuse_spare5)) {
+					dev_info(priv->dev, "%s() failed to read efuse_spare5\n", __func__);
 				} else {
-					memcpy(&efuse_val, efuse_data, sizeof(unsigned int));
-					kfree(efuse_data);
-					if (efuse_val >> 31 == 1)
-						priv->audio_r_miso1_enable = 1;
-					else
-						priv->audio_r_miso1_enable = 0;
+					efuse_data = nvmem_cell_read(efuse_spare5, &efuse_len);
+					if (IS_ERR(efuse_data)) {
+						dev_info(priv->dev, "%s() get efuse data error = %d\n", __func__, ret);
+					} else {
+						memcpy(&efuse_val, efuse_data, sizeof(unsigned int));
+						kfree(efuse_data);
+						if (efuse_val >> 31 == 1)
+							priv->audio_r_miso1_enable = 1;
+						else
+							priv->audio_r_miso1_enable = 0;
+					}
+					nvmem_cell_put(efuse_spare5);
 				}
-				nvmem_cell_put(efuse_spare5);
 			}
 			dev_info(priv->dev, "%s() efuse_val = 0x%x, ap accdet = %d, efuse_len = %zu, chip id = %d\n",
 				__func__, efuse_val, priv->audio_r_miso1_enable, efuse_len, liber_get_chipid());
