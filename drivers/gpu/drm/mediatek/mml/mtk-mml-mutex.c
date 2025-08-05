@@ -29,6 +29,7 @@
 #define MUTEX_SHADOW_CTRL(id)	(0x24 + (id) * 0x20)
 #define MUTEX_MOD(id, offset)	((offset) + (id) * 0x20)
 #define MUTEX_SOF(id, offset)	((offset) + (id) * 0x20)
+#define MUTEX_RST(mux_id, offset)	((offset) + (mux_id) * 0x20)
 
 int mml_mutex_dl_sof = 0x8;
 module_param(mml_mutex_dl_sof, int, 0644);
@@ -39,6 +40,7 @@ struct mutex_data {
 	/* Offsets and count of MUTEX_MOD registers per mutex */
 	u32 mod_offsets[MUTEX_MAX_MOD_REGS];
 	u32 sof_offset;
+	u32 rst_offset;
 	u32 mod_cnt;
 	bool sofgrp_assign;
 	u8 gpr[MML_PIPE_CNT];
@@ -149,14 +151,21 @@ static s32 mutex_disable(struct mml_mutex *mutex, struct cmdq_pkt *pkt,
 			 const struct mml_topology_path *path)
 {
 	const phys_addr_t base_pa = mutex->comp.base_pa;
+	const u32 rst_off = mutex->data->rst_offset;
 	s32 mutex_id = -1;
+	u32 offset;
 	u32 i;
 
-	for (i = 0; i < path->node_cnt; i++) {
-		struct mutex_module *mod = &mutex->modules[path->nodes[i].id];
+	if (mutex->data->sofgrp_assign) {
+		for (i = 0; i < path->node_cnt; i++) {
+			struct mutex_module *mod = &mutex->modules[path->nodes[i].id];
 
-		if (mod->select)
-			mutex_id = mod->mutex_id;
+			if (mod->select)
+				mutex_id = mod->mutex_id;
+		}
+	} else {
+		/* use mutex stream to trigger related sof group */
+		mutex_id = path->mux_group;
 	}
 
 	if (mutex_id < 0)
@@ -164,7 +173,16 @@ static s32 mutex_disable(struct mml_mutex *mutex, struct cmdq_pkt *pkt,
 
 	cmdq_pkt_write(pkt, NULL, base_pa + MUTEX_EN(mutex_id), 0x0, U32_MAX);
 
-	mml_mmp(mutex_dis, MMPROFILE_FLAG_PULSE, mutex_id, path->mux_group);
+	if (rst_off) {
+		offset = MUTEX_RST(mutex_id, rst_off);
+		cmdq_pkt_write(pkt, NULL, base_pa + offset, 1, U32_MAX);
+		cmdq_pkt_write(pkt, NULL, base_pa + offset, 0, U32_MAX);
+		mml_msg("%s comp %u mutex id %d src %#x path id %u",
+			__func__, mutex->comp.id,
+			offset, mutex_id, path->path_id);
+	}
+
+	mml_mmp(mutex_dis, MMPROFILE_FLAG_PULSE, mutex->comp.id, mutex_id);
 
 	return 0;
 }
@@ -836,6 +854,7 @@ static const struct mutex_data mt6991_mutex_data = {
 	.mutex_cnt = 16,
 	.mod_offsets = {0x34, 0x38},
 	.sof_offset = 0x30,
+	.rst_offset = 0x2c,
 	.mod_cnt = 2,
 	.get_mutex_sof = get_mutex_sof_mt6991,
 	.gpr = {CMDQ_GPR_R08, CMDQ_GPR_R10},
@@ -846,6 +865,7 @@ static const struct mutex_data mt6991_mmlt_mutex_data = {
 	.mutex_cnt = 16,
 	.mod_offsets = {0x34, 0x38},
 	.sof_offset = 0x30,
+	.rst_offset = 0x2c,
 	.mod_cnt = 2,
 	.get_mutex_sof = get_mutex_sof_mt6991,
 	.gpr = {CMDQ_GPR_R12, CMDQ_GPR_R14},
