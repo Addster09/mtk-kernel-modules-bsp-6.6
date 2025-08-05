@@ -6929,6 +6929,7 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 			wla-south-ddr-ack-addr = <0x1035e268>;
 			spm-gce-req = <0x1c001864>;
 			cmdq-predump-res-sw-mode = <1>;
+			irq-cpu = <2>;
 		};
 
 		gce_sec: gce-mbox-sec@1e980000 {
@@ -6979,6 +6980,7 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 			wla-north-ddr-ack-addr = <0x1035d268>;
 			wla-south-ddr-ack-addr = <0x1035e268>;
 			spm-gce-req = <0x1c001864>;
+			irq-cpu = <2>;
 		};
 
 		gce_m_sec: gce-mbox-m-sec@1e990000 {
