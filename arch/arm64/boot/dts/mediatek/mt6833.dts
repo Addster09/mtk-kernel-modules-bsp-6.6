@@ -3273,6 +3273,17 @@
 	md1_sim2_hot_plug_eint:MD1-SIM2-HOT-PLUG-EINT {
 	};
 
+	md_ccif4@1024d000 {
+		compatible = "mediatek,md_ccif4";
+		reg = <0 0x1024d000 0 0x1000>;
+	};
+
+	md_ccif5@1025d000 {
+		compatible = "mediatek,md_ccif5";
+		reg = <0 0x1025d000 0 0x1000>;
+	};
+
+
 	watchdog: watchdog@10007000 {
 		compatible = "mediatek,mt6833-wdt",
 				"mediatek,mt6589-wdt",
