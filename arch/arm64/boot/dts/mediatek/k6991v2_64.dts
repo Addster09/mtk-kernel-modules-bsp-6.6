@@ -798,6 +798,61 @@ bootargs_ext = "rcu_nocbs=0-7";
 	regulator-always-on;
 };
 
+&bp_thl {
+	max-throttle-level = <3>;
+	soc-throttle-level = <0 0 1 2 2 3>, //temperature stage 0
+				<0 0 1 2 2 3>, //temperature stage 1
+				<0 1 1 2 2 3>, //temperature stage 2
+				<1 1 1 2 3 3>; //temperature stage 3
+
+	soc-max-stage = <5>;
+	soc-limit-threshold = <80 20 15 7 5>;
+
+	temperature-max-stage = <3>;
+	temperature-stage-threshold = <25 10 0>;
+};
+
+&cpu_power_throttling {
+	soc-max-level = <3>;
+	soc-core-active-lv1 = < 1 1 1 1 1 1 1 1 >;
+	soc-core-active-lv2 = < 1 1 1 1 1 1 1 1 >;
+	soc-core-active-lv3 = < 1 1 1 1 1 1 0 0 >;
+	soc-limit-freq-lv1 = < 2147483647  2147483647 2147483647 >;
+	soc-limit-freq-lv2 = < 2147483647  2147483647 2147483647 >;
+	soc-limit-freq-lv3 = < 1800000 900000 670000>;
+};
+
+&gpu_power_throttling {
+	soc-max-level = <3>;
+	soc-limit-freq-lv1 = <2147483647>;
+	soc-limit-freq-lv2 = <2147483647>;
+	soc-limit-freq-lv3 = <338000>;
+};
+
+&flashlight_core {
+	battery-percent-level = <2>;
+};
+
+&peak_power_budget {
+	soc-max-level = <3>;
+	soc-hpt-ctrl-lv1 = <7>;
+	soc-hpt-ctrl-lv2 = <7>;
+	soc-hpt-ctrl-lv3 = <0>;
+
+	//hpt-volt = 0(2.4V), 1(2.6V) 2(2.8V) 3(3.0V) 4(3.2V)
+	soc-hpt-volt-lv0 = <2>; //lv0 is high battery level setting
+	soc-hpt-volt-lv1 = <2>;
+	soc-hpt-volt-lv2 = <2>;
+	soc-hpt-volt-lv3 = <2>;
+
+	//ppb-mode = 24(ppb off, hpt(HWPT) can switch scaling factor)
+	//           12(ppb on,  hpt(HWPT) can switch scaling factor)
+	soc-ppb-mode-lv0 = <24>; //lv0 is high battery level setting
+	soc-ppb-mode-lv1 = <12>;
+	soc-ppb-mode-lv2 = <12>;
+	soc-ppb-mode-lv3 = <12>;
+};
+
 #include <k6991v2_64/cust.dtsi>
 #include "mediatek/cust_k6991v2_connfem.dtsi"
 

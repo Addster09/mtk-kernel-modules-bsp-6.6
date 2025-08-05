@@ -16404,7 +16404,7 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 		reg = <0 0x00117700 0 0x100>;
 		reg-names = "ppb_sram";
 
-		ppb-version = <2>;
+		ppb-version = <1>;
 		soc-error = <2500>;
 		battery-circult-rdc = <40>;
 		battery0-path-rac-t0 = <65>;
