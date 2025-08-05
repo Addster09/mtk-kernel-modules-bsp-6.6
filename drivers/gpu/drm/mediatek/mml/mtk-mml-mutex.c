@@ -557,25 +557,31 @@ static void mutex_addon_config_dl(struct mtk_ddp_comp *ddp_comp,
 		return;
 	}
 
+	if (!cfg->dual && cfg->submit.info.dl_pos == MML_DL_POS_RIGHT)
+		pipe = 1;
+
+	path = mml_drm_query_dl_path(cfg->ctx, &cfg->submit, pipe);
+	if (!path) {
+		mml_err("%s mml_drm_query_dl_path fail", __func__);
+		return;
+	}
+
+	/* this path does not use current mml mutex */
+	if (path->mutex != &mutex->comp && path->mutex2 != &mutex->comp) {
+		mml_err("%s no mutex in path %u", __func__, path->path_id);
+		return;
+	}
+
 	if (cfg->config_type.type == ADDON_CONNECT) {
-		if (!cfg->dual && cfg->submit.info.dl_pos == MML_DL_POS_RIGHT)
-			pipe = 1;
-
-		path = mml_drm_query_dl_path(cfg->ctx, &cfg->submit, pipe);
-		if (!path) {
-			mml_err("%s mml_drm_query_dl_path fail", __func__);
-			return;
-		}
-
-		/* this path does not use current mml mutex */
-		if (path->mutex != &mutex->comp && path->mutex2 != &mutex->comp) {
-			mml_err("%s no mutex in path %u", __func__, path->path_id);
-			return;
-		}
-
+		atomic_set(&mutex->connect[cfg->pipe], 1);
 		sof = mutex->data->get_mutex_sof(&cfg->mutex);
 		mutex_enable(mutex, pkt, path, sof, MML_MODE_DIRECT_LINK, false, true);
 		mutex->connected_mode = MML_MODE_DIRECT_LINK;
+	} else if (cfg->config_type.type == ADDON_DISCONNECT) {
+		if (atomic_cmpxchg_acquire(&mutex->connect[cfg->pipe], 1, 0))
+			mutex_disable(mutex, pkt, path);
+		else
+			mml_err("%s disconnect without connect pipe %u", __func__, cfg->pipe);
 	}
 }
 

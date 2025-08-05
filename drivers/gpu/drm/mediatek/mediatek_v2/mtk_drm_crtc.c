@@ -4565,6 +4565,7 @@ static void mml_addon_module_disconnect(struct drm_crtc *crtc,
 	addon_config->config_type.type = ADDON_DISCONNECT;
 	addon_config->config_type.module = addon_module->module;
 	addon_config->addon_mml_config.ctx = mtk_drm_get_mml_drm_ctx(crtc->dev, crtc);
+	addon_config->addon_mml_config.submit.disp_vdo = !mtk_crtc_is_frame_trigger_mode(crtc);
 
 	output_comp = mtk_ddp_comp_request_output(mtk_crtc);
 	if (output_comp &&
