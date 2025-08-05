@@ -7146,6 +7146,7 @@ static const struct mtk_mmsys_driver_data mt6991_mmsys_driver_data = {
 	.bif_path_remove = mtk_ddp_remove_bif_racing_MT6991,
 	.bif_path_insert_for_all_scn = mtk_ddp_insert_bif_for_all_scn_MT6991,
 	.bif_path_remove_for_all_scn = mtk_ddp_remove_bif_for_all_scn_MT6991,
+	.bif_path_addon_for_all_scn = mtk_ddp_insert_addon_bif_for_all_scn_MT6991,
 };
 
 static const struct mtk_mmsys_driver_data mt6897_mmsys_driver_data = {

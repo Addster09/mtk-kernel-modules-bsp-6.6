@@ -114,6 +114,7 @@ struct mtk_mmsys_driver_data {
 	void (*bif_path_remove)(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *handle);
 	void (*bif_path_insert_for_all_scn)(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *handle);
 	void (*bif_path_remove_for_all_scn)(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *handle);
+	void (*bif_path_addon_for_all_scn)(struct mtk_drm_crtc *mtk_crtc, struct cmdq_pkt *handle, bool connect);
 	void (*update_channel_hrt)(struct mtk_drm_crtc *mtk_crtc,
 			unsigned int bw_base, unsigned int channel_bw[]);
 	void (*update_channel_hrt_write)(struct mtk_drm_crtc *mtk_crtc,

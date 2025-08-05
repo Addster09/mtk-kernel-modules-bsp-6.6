@@ -4753,6 +4753,7 @@ void _mtk_crtc_wb_addon_module_disconnect(
 	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
 	struct mtk_crtc_state *state = to_mtk_crtc_state(crtc->state);
 	enum addon_scenario scn;
+	struct mtk_drm_private *priv = crtc->dev->dev_private;
 
 	if (index != 0 || mtk_crtc_is_dc_mode(crtc))
 		return;
@@ -4806,6 +4807,10 @@ void _mtk_crtc_wb_addon_module_disconnect(
 				mtk_addon_disconnect_after(crtc, ddp_mode, addon_module,
 							  &addon_config, cmdq_handle);
 			} else {
+				if (bif_enabled(crtc)  == BIF_ALL_SCN && (scn == WDMA_WRITE_BACK)) {
+					if (priv->data->bif_path_addon_for_all_scn)
+						priv->data->bif_path_addon_for_all_scn(mtk_crtc, cmdq_handle, false);
+				}
 				mtk_addon_disconnect_after(crtc, ddp_mode, addon_module,
 								  &addon_config,
 								  cmdq_handle);
@@ -5362,6 +5367,10 @@ _mtk_crtc_wb_addon_module_connect(
 				mtk_addon_connect_after(crtc, ddp_mode, addon_module,
 							  &addon_config, cmdq_handle);
 			} else {
+				if (bif_enabled(crtc)  == BIF_ALL_SCN && (scn == WDMA_WRITE_BACK)) {
+					if (priv->data->bif_path_addon_for_all_scn)
+						priv->data->bif_path_addon_for_all_scn(mtk_crtc, cmdq_handle, true);
+				}
 				mtk_addon_connect_after(crtc, ddp_mode, addon_module,
 							  &addon_config, cmdq_handle);
 			}

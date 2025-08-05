@@ -31529,6 +31529,29 @@ void mtk_ddp_remove_dsc_prim_MT6989(struct mtk_drm_crtc *mtk_crtc,
 	cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
 		       mtk_crtc->side_config_regs_pa + addr, value, ~0);
 }
+void mtk_ddp_insert_addon_bif_for_all_scn_MT6991(struct mtk_drm_crtc *mtk_crtc,
+	struct cmdq_pkt *handle, bool connect)
+{
+	unsigned int addr = 0, value = 0;
+
+	if (connect)
+		value = MT6991_DISP_SPLITTER_IN_CB_TO_SPLITTER0 | MT6991_DISP_SPLITTER_IN_CB_TO_SPLITTER_OUT_CB9;
+	else
+		value = MT6991_DISP_SPLITTER_IN_CB_TO_SPLITTER0;
+	if (mtk_crtc->path_data->is_bypass_pc_path)
+		addr = MT6991_SPLITTER_IN_CB1_MOUT_EN;
+	else
+		addr = MT6991_SPLITTER_IN_CB0_MOUT_EN;
+
+	if (handle)
+		cmdq_pkt_write(handle, mtk_crtc->gce_obj.base,
+			mtk_crtc->side_config_regs_pa + addr, value, ~0);
+	else {
+		void __iomem *side_config_regs = mtk_crtc->side_config_regs;
+
+		writel_relaxed(value, side_config_regs + addr);
+	}
+}
 void mtk_ddp_insert_bif_for_all_scn_MT6991(struct mtk_drm_crtc *mtk_crtc,
 	struct cmdq_pkt *handle)
 {
