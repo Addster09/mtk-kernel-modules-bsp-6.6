@@ -36,16 +36,17 @@ enum{
 	POWERHAL_FORCE_PAUSE		= 4,
 	POWER_THROTTLE_FORCE_PAUSE	= 8,
 	THERMAL_FORCE_PAUSE		= 16,
-	MAX_FORCE_PAUSE_TYPE	= 32,
+	LOOM_FORCE_PAUSE		= 32,
+	MAX_FORCE_PAUSE_TYPE	= 64
 };
 
 enum {
-	SYSNODE = 0,
-	POWERHAL,
-	CAMERA,
-	UX,
-	GAME,
-	MAX_DEMAND_REQUESTER
+	CORE_CTL_SET_CORE_SYSNODE = 0,
+	CORE_CTL_SET_CORE_POWERHAL,
+	CORE_CTL_SET_CORE_CAMERA,
+	CORE_CTL_SET_CORE_UX,
+	CORE_CTL_SET_CORE_GAME,
+	CORE_CTL_SET_CORE_MAX_DEMAND_REQUESTER
 };
 
 enum {
@@ -78,5 +79,7 @@ extern int core_ctl_set_min_cpus(unsigned int cid, unsigned int min, int request
 extern int core_ctl_get_max_cpus(unsigned int cid);
 extern int core_ctl_set_max_cpus(unsigned int cid, unsigned int max, int requester, unsigned int have_demand);
 extern int pd_freq2opp(int cpu, int opp, int quant, int wl);
+extern int core_ctl_force_pause_request(unsigned int cpu, bool is_pause, unsigned int request_mask);
+extern unsigned int core_ctl_get_force_pause_mask(void);
 
 #endif /* _CORE_CTL_H */

@@ -21,6 +21,8 @@
 #define INVALID_TGID -1
 #define INVALID_VAL -1
 #define INVALID_LOADING -1
+#define LOOM_NO_AFFINITY -1
+#define LOOM_NO_TASK -1
 
 struct list_head;
 
@@ -69,6 +71,11 @@ struct cpu_time {
 
 struct cpu_info {
 	int *cpu_loading;
+};
+
+struct affinity_data_node {
+	pid_t pid;
+	int aff_cpu;
 };
 
 extern int (*task_turbo_enforce_ct_to_vip_fp)(int val, int caller_id);
