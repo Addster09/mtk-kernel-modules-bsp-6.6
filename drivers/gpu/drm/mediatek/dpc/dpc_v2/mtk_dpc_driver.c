@@ -1069,19 +1069,29 @@ void dpc_mtcmos_auto(const enum mtk_dpc_subsys subsys, const enum mtk_dpc_mtcmos
 	g_priv->set_mtcmos(subsys, mode);
 	spin_unlock_irqrestore(&g_priv->mtcmos_cfg_lock, flags);
 }
-static void dpc_apsrc_set(const bool en)
+static void dpc_apsrc_set(const bool en, struct cmdq_pkt *pkt)
 {
 	if (g_priv == NULL) {
 		DPCERR("g_priv null\n");
 		return;
 	}
 
-	if (en) {
-		writel(0x000D000D, dpc_base + DISP_REG_DPC_DISP_DDRSRC_EMIREQ_CFG);
-		writel(0x000D000D, dpc_base + DISP_REG_DPC_MML_DDRSRC_EMIREQ_CFG);
+	if (pkt) {
+		if (en) {
+			cmdq_pkt_write(pkt, NULL, g_priv->dpc_pa + DISP_REG_DPC_DISP_DDRSRC_EMIREQ_CFG, 0x000D000D, ~0);
+			cmdq_pkt_write(pkt, NULL, g_priv->dpc_pa + DISP_REG_DPC_MML_DDRSRC_EMIREQ_CFG, 0x000D000D, ~0);
+		} else {
+			cmdq_pkt_write(pkt, NULL, g_priv->dpc_pa + DISP_REG_DPC_DISP_DDRSRC_EMIREQ_CFG, 0x000D0005, ~0);
+			cmdq_pkt_write(pkt, NULL, g_priv->dpc_pa + DISP_REG_DPC_MML_DDRSRC_EMIREQ_CFG, 0x000D0005, ~0);
+		}
 	} else {
-		writel(0x000D0005, dpc_base + DISP_REG_DPC_DISP_DDRSRC_EMIREQ_CFG);
-		writel(0x000D0005, dpc_base + DISP_REG_DPC_MML_DDRSRC_EMIREQ_CFG);
+		if (en) {
+			writel(0x000D000D, dpc_base + DISP_REG_DPC_DISP_DDRSRC_EMIREQ_CFG);
+			writel(0x000D000D, dpc_base + DISP_REG_DPC_MML_DDRSRC_EMIREQ_CFG);
+		} else {
+			writel(0x000D0005, dpc_base + DISP_REG_DPC_DISP_DDRSRC_EMIREQ_CFG);
+			writel(0x000D0005, dpc_base + DISP_REG_DPC_MML_DDRSRC_EMIREQ_CFG);
+		}
 	}
 }
 static void dpc_dsi_pll_set(const u32 value)

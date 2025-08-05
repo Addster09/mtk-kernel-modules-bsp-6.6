@@ -620,7 +620,7 @@ void mtk_crtc_bif_keep_read_path(struct drm_crtc *crtc, struct cmdq_pkt *handle,
 		}
 	}
 }
-void mtk_crtc_bif_apsrc_ddren_control(struct mtk_drm_crtc *mtk_crtc, bool en)
+void mtk_crtc_bif_apsrc_ddren_control(struct mtk_drm_crtc *mtk_crtc, bool en, struct cmdq_pkt *handle)
 {
 	struct drm_crtc *crtc = &mtk_crtc->base;
 	struct mtk_drm_private *priv = crtc->dev->dev_private;
@@ -629,19 +629,19 @@ void mtk_crtc_bif_apsrc_ddren_control(struct mtk_drm_crtc *mtk_crtc, bool en)
 	int i = 0, j = 0, tgt_comp = 0;
 
 	for_each_comp_in_crtc_path_bound(comp, mtk_crtc, i, j, 1)
-		mtk_ddp_comp_ddren_config(comp, en, NULL);
+		mtk_ddp_comp_ddren_config(comp, en, handle);
 
 	if (priv->data->ovl_exdma_rule && mtk_crtc_state->lye_state.rpo_lye) {
 		mtk_addon_get_comp(crtc, mtk_crtc_state->lye_state.rpo_lye, &tgt_comp, NULL);
-		mtk_ddp_comp_ddren_config(priv->ddp_comp[tgt_comp], en, NULL);
+		mtk_ddp_comp_ddren_config(priv->ddp_comp[tgt_comp], en, handle);
 	}
 
 	if (priv->data->ovl_exdma_rule && mtk_crtc_state->lye_state.mml_dl_lye) {
 		mtk_addon_get_comp(crtc, mtk_crtc_state->lye_state.mml_dl_lye, &tgt_comp, NULL);
-		mtk_ddp_comp_ddren_config(priv->ddp_comp[tgt_comp], en, NULL);
+		mtk_ddp_comp_ddren_config(priv->ddp_comp[tgt_comp], en, handle);
 	}
 
-	mtk_vidle_apsrc_set(en);
+	mtk_vidle_apsrc_set(en, handle);
 
 	if (en)
 		drm_trace_tag_end("bif_src_ctrl");
@@ -3726,7 +3726,8 @@ void mtk_crtc_update_bif_roi(struct mtk_drm_crtc *mtk_crtc)
 		bif_info->wdma_offset = (w%align== 0)?0:(align - (w%align));
 
 	if ((w != mtk_crtc->scaling_ctx.lcm_width) || (h != mtk_crtc->scaling_ctx.lcm_height)
-		|| (bif_info->wdma_offset == 0)) {
+		|| (bif_info->wdma_offset == 0)
+		|| (bif_mode < 0)) {
 		bif_info->bif_enable = BIF_DISABLE;
 		return;
 	}

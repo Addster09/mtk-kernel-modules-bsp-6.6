@@ -974,6 +974,7 @@ static void mtk_drm_vdo_mode_enter_idle(struct drm_crtc *crtc)
 		cmdq_pkt_clear_event(handle, mtk_crtc->bif_info->wb_frame_done_event);
 		cmdq_pkt_wfe(handle, mtk_crtc->bif_info->wb_frame_done_event);
 		mtk_crtc_bif_keep_read_path(crtc, handle, true);
+		mtk_crtc_bif_apsrc_ddren_control(mtk_crtc, false, handle);
 	}
 	comp = mtk_ddp_comp_request_output(mtk_crtc);
 	if (comp) {
@@ -989,10 +990,7 @@ static void mtk_drm_vdo_mode_enter_idle(struct drm_crtc *crtc)
 	cmdq_pkt_flush(handle);
 	cmdq_pkt_destroy(handle);
 
-
 	if (bif_enabled(crtc) == BIF_HS_IDLE) {
-		mtk_crtc_bif_apsrc_ddren_control(mtk_crtc, false);
-
 		if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_MMQOS_SUPPORT))
 			mtk_disp_set_hrt_bw(mtk_crtc, 0);
 	}
@@ -1065,7 +1063,7 @@ static void mtk_drm_vdo_mode_leave_idle(struct drm_crtc *crtc)
 	}
 
 	if (bif_enabled(crtc) == BIF_HS_IDLE) {
-		mtk_crtc_bif_apsrc_ddren_control(mtk_crtc, true);
+		mtk_crtc_bif_apsrc_ddren_control(mtk_crtc, true, handle);
 		mtk_crtc_wait_frame_done(mtk_crtc, handle, DDP_FIRST_PATH, 0);
 
 		if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_MMQOS_SUPPORT))
