@@ -3511,6 +3511,7 @@ static int cmdq_probe(struct platform_device *pdev)
 #endif
 	u32 dram_pwr_pa, mminfra_ao_pa, iommu_mask_pa;
 	u32 wla_north_ddr_ack_pa, wla_south_ddr_ack_pa, spm_gce_req_pa;
+	u32 irq_cpu = 0;
 
 	plat_data = (struct gce_plat *)of_device_get_match_data(dev);
 	if (!plat_data) {
@@ -3589,6 +3590,13 @@ static int cmdq_probe(struct platform_device *pdev)
 #if IS_ENABLED(CONFIG_MTK_IRQ_MONITOR)
 	irq_mon_aee_callback_register(cmdq->irq, cmdq_burst_irq_callback);
 #endif
+
+	of_property_read_u32(dev->of_node, "irq-cpu", &irq_cpu);
+	if (irq_cpu) {
+		cmdq_msg("hwid:%u irq_handler_cpu:%u", hwid, irq_cpu);
+		irq_force_affinity(cmdq->irq, cpumask_of(irq_cpu));
+	}
+
 	err = devm_request_irq(dev, cmdq->irq, cmdq_irq_handler, IRQF_SHARED,
 			       "mtk_cmdq", cmdq);
 	if (err < 0) {
