@@ -37,7 +37,6 @@ struct lcm {
 	struct drm_panel panel;
 	struct backlight_device *backlight;
 	struct gpio_desc *reset_gpio;
-	struct gpio_desc *leden;
 
 	bool prepared;
 	bool enabled;
@@ -385,16 +384,6 @@ static int lcm_unprepare(struct drm_panel *panel)
 	ctx->prepared = false;
 #if IS_ENABLED(CONFIG_RT5081_PMU_DSV) || IS_ENABLED(CONFIG_DEVICE_MODULES_REGULATOR_MT6370)
 	lcm_panel_bias_disable(ctx);
-#else
-	ctx->leden = devm_gpiod_get_index(ctx->dev,
-		"leden", 0, GPIOD_OUT_HIGH);
-	if (IS_ERR(ctx->leden)) {
-		dev_info(ctx->dev, "%s: cannot get leden %ld\n",
-			__func__, PTR_ERR(ctx->leden));
-		return PTR_ERR(ctx->leden);
-	}
-	gpiod_set_value(ctx->leden, 0);
-	devm_gpiod_put(ctx->dev, ctx->leden);
 #endif
 
 	return 0;
@@ -411,16 +400,6 @@ static int lcm_prepare(struct drm_panel *panel)
 
 #if IS_ENABLED(CONFIG_RT5081_PMU_DSV) || IS_ENABLED(CONFIG_DEVICE_MODULES_REGULATOR_MT6370)
 	lcm_panel_bias_enable(ctx);
-#else
-	ctx->leden = devm_gpiod_get_index(ctx->dev,
-		"leden", 0, GPIOD_OUT_HIGH);
-	if (IS_ERR(ctx->leden)) {
-		dev_info(ctx->dev, "%s: cannot get leden %ld\n",
-			__func__, PTR_ERR(ctx->leden));
-		return PTR_ERR(ctx->leden);
-	}
-	gpiod_set_value(ctx->leden, 1);
-	devm_gpiod_put(ctx->dev, ctx->leden);
 #endif
 
 	lcm_panel_init(ctx);
