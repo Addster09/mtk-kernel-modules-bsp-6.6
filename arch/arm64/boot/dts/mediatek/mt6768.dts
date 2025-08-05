@@ -5701,3 +5701,4 @@ transparent_hugepage=never";
 	md-vmodem = <750000 750000>;
 };
 
+/delete-node/ &mt_pmic_vpa_buck_reg;

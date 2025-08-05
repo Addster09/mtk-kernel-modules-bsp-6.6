@@ -4311,3 +4311,4 @@ firmware_class.path=/vendor/firmware kvm-arm.mode=none";
 	interrupts = <11 IRQ_TYPE_LEVEL_LOW 11 0>; /*mt6370-irq gpio is gpio 11 for mt6761*/
 };
 
+/delete-node/ &mt_pmic_vpa_buck_reg;
