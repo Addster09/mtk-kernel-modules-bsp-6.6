@@ -179,17 +179,12 @@ static struct reg_oc_debug_t mt6366_reg_oc_debug[] = {
 
 static int md_reg_oc_notify(struct reg_oc_debug_t *reg_oc_dbg)
 {
-#if IS_ENABLED(CONFIG_MTK_CCCI_DEVICES)
-	int ret;
-#endif
-	int data_int32 = 0;
-
-	if (reg_oc_dbg->is_md_reg)
-		data_int32 = 1 << reg_oc_dbg->md_reg_idx;
-	else
+	if (!reg_oc_dbg->is_md_reg)
 		return 0;
+
 #if IS_ENABLED(CONFIG_MTK_CCCI_DEVICES)
-	ret = exec_ccci_kern_func(ID_PMIC_INTR,(char *)&data_int32, 4);
+	int data_int32 = 1 << reg_oc_dbg->md_reg_idx;
+	int ret = exec_ccci_kern_func(ID_PMIC_INTR, (char *)&data_int32, 4);
 	if (ret)
 		pr_notice("[%s]-exec_ccci fail:%d\n", __func__, ret);
 #endif
