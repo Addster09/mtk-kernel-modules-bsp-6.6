@@ -2607,6 +2607,14 @@ static int dpmaif_start(unsigned char hif_id)
 	mod_timer(&dpmaif_ctl->traffic_monitor, jiffies + DPMAIF_TRAFFIC_MONITOR_INTERVAL * HZ);
 #endif
 
+	if (g_plat_inf == 6899)
+		CCCI_NORMAL_LOG(0, TAG, "%s end, ulq(0x%x, 0x%x, 0x%x, 0x%x)\n",
+			__func__,
+			DPMA_READ_AO_UL_SRAM(0x10),
+			DPMA_READ_AO_UL_SRAM(0x20),
+			DPMA_READ_AO_UL_SRAM(0x30),
+			DPMA_READ_AO_UL_SRAM(0x40));
+
 	return 0;
 }
 

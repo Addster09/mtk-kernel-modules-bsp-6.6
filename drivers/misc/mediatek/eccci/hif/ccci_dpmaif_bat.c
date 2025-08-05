@@ -1166,6 +1166,9 @@ int ccci_dpmaif_bat_start(void)
 
 	atomic_set(&dpmaif_ctl->bat_paused_alloc, BAT_ALLOC_NO_PAUSED);
 	dpmaif_bat_start_thread();
+
+	CCCI_NORMAL_LOG(0, TAG, "[%s] success\n", __func__);
+
 	return 0;
 
 start_err:
