@@ -1281,7 +1281,7 @@ void mml_drm_set_panel_pixel(struct mml_drm_ctx *dctx, u32 panel_width, u32 pane
 }
 EXPORT_SYMBOL_GPL(mml_drm_set_panel_pixel);
 
-s32 mml_drm_racing_config_sync(struct mml_drm_ctx *dctx, struct cmdq_pkt *pkt)
+s32 mml_drm_racing_config_sync(struct mml_drm_ctx *dctx, struct cmdq_pkt *pkt, bool first_frame)
 {
 	struct mml_ctx *ctx = &dctx->ctx;
 	struct cmdq_operand lhs, rhs;
@@ -1293,7 +1293,7 @@ s32 mml_drm_racing_config_sync(struct mml_drm_ctx *dctx, struct cmdq_pkt *pkt)
 	cmdq_pkt_assign_command(pkt, CMDQ_THR_SPR_IDX3,
 		atomic_read(&ctx->job_serial) << 16);
 
-	if (ctx->disp_vdo && event_target) {
+	if (ctx->disp_vdo && event_target && !first_frame) {
 		/* non-racing to racing case, force clear target line
 		 * to make sure next racing begin from target line to sof
 		 */

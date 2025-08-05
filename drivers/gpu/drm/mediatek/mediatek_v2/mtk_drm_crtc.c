@@ -16234,7 +16234,7 @@ void mml_cmdq_pkt_init(struct drm_crtc *crtc, struct cmdq_pkt *cmdq_handle)
 						mtk_crtc->gce_obj.event[EVENT_DPC_DISP1_PRETE]);
 			}
 		}
-		mml_drm_racing_config_sync(mml_ctx, cmdq_handle);
+		mml_drm_racing_config_sync(mml_ctx, cmdq_handle, false);
 		break;
 	case MML_DC_ENTERING:
 		break;
@@ -24722,7 +24722,7 @@ void mtk_crtc_mml_racing_resubmit(struct drm_crtc *crtc, struct cmdq_pkt *_cmdq_
 		mtk_disp_mutex_add_comp_with_cmdq(mtk_crtc, id[i], false, cmdq_handle, 0);
 	}
 	/* prepare racing packet */
-	mml_drm_racing_config_sync(mml_ctx, cmdq_handle);
+	mml_drm_racing_config_sync(mml_ctx, cmdq_handle, true);
 
 	/* blocking wait until mml submit is flushed */
 	mtk_drm_wait_mml_submit_done(&(mtk_crtc->mml_cb));
