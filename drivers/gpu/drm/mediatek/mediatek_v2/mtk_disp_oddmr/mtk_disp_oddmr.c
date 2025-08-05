@@ -774,6 +774,7 @@ static DEFINE_SPINLOCK(g_oddmr_clock_lock);
 static DEFINE_SPINLOCK(g_oddmr_timing_lock);
 static DEFINE_MUTEX(g_dbi_data_lock);
 static DEFINE_MUTEX(g_dmr_data_lock);
+static DEFINE_MUTEX(g_od_load_param_lock);
 
 typedef phys_addr_t (*scp_get_reserve_mem_phys_by_id)(enum scp_reserve_mem_id_t id);
 typedef phys_addr_t (*scp_get_reserve_mem_virt_by_id)(enum scp_reserve_mem_id_t id);
@@ -9876,7 +9877,9 @@ int mtk_drm_ioctl_oddmr_load_param(struct drm_device *dev, void *data,
 	 * If any section is loaded, set all to loading,
 	 * set loading done in init to support partial loading.
 	 */
+	mutex_lock(&g_od_load_param_lock);
 	ret = mtk_oddmr_load_param(g_oddmr_priv, data);
+	mutex_unlock(&g_od_load_param_lock);
 	return ret;
 }
 
