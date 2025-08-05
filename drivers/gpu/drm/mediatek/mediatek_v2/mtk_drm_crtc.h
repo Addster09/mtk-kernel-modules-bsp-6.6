@@ -1672,6 +1672,9 @@ bool msync_is_on(struct mtk_drm_private *priv, struct mtk_panel_params *params,
 
 int bif_enabled(struct drm_crtc *crtc);
 
+void mtk_crtc_mml_addon_config(struct drm_crtc *crtc, enum addon_type config_type,
+	struct cmdq_pkt *pkt);
+
 /* ********************* Legacy DISP API *************************** */
 unsigned int DISP_GetScreenWidth(void);
 unsigned int DISP_GetScreenHeight(void);

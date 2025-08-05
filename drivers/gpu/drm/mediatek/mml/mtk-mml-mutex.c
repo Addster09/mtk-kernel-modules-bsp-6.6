@@ -266,7 +266,23 @@ static s32 mutex_wait_sof(struct mml_comp *comp, struct mml_task *task,
 				cmdq_pkt_backup_stamp(pkt, &task->perf_sof);
 		}
 
-		if (!cfg->disp_vdo && !mutex_dl_disp_sof)
+		if (!cfg->disp_vdo)
+			mutex_disable(mutex, pkt, path);
+	}
+
+	return 0;
+}
+
+static s32 mutex_post(struct mml_comp *comp, struct mml_task *task,
+	struct mml_comp_config *ccfg)
+{
+	struct mml_mutex *mutex = comp_to_mutex(comp);
+	const struct mml_frame_config *cfg = task->config;
+	const struct mml_topology_path *path = cfg->path[ccfg->pipe];
+	struct cmdq_pkt *pkt = task->pkts[ccfg->pipe];
+
+	if (cfg->info.mode == MML_MODE_DIRECT_LINK) {
+		if (cfg->disp_vdo && !mutex_dl_disp_sof)
 			mutex_disable(mutex, pkt, path);
 	}
 
@@ -291,6 +307,7 @@ static s32 mutex_reconfig_frame(struct mml_comp *comp, struct mml_task *task,
 static const struct mml_comp_config_ops mutex_config_ops = {
 	.mutex = mutex_trigger,
 	.wait_sof = mutex_wait_sof,
+	.post = mutex_post,
 	.reframe = mutex_reconfig_frame,
 };
 
@@ -578,9 +595,7 @@ static void mutex_addon_config_dl(struct mtk_ddp_comp *ddp_comp,
 		mutex_enable(mutex, pkt, path, sof, MML_MODE_DIRECT_LINK, false, true);
 		mutex->connected_mode = MML_MODE_DIRECT_LINK;
 	} else if (cfg->config_type.type == ADDON_DISCONNECT) {
-		if (atomic_cmpxchg_acquire(&mutex->connect[cfg->pipe], 1, 0))
-			mutex_disable(mutex, pkt, path);
-		else
+		if (!atomic_cmpxchg_acquire(&mutex->connect[cfg->pipe], 1, 0))
 			mml_err("%s disconnect without connect pipe %u", __func__, cfg->pipe);
 	}
 }
@@ -625,12 +640,11 @@ static void mutex_addon_config(struct mtk_ddp_comp *ddp_comp,
 	struct mtk_addon_mml_config *cfg = &addon_config->addon_mml_config;
 	enum mml_mode mode = cfg->submit.info.mode;
 	bool disp_vdo = cfg->submit.disp_vdo;
+	struct mml_mutex *mutex = ddp_comp_to_mutex(ddp_comp);
 
-	mml_mmp(addon_addon_cfg_mutex, MMPROFILE_FLAG_PULSE, cfg->config_type.type, 0);
+	mml_mmp(addon_addon_cfg_mutex, MMPROFILE_FLAG_PULSE, cfg->config_type.type, mode);
 
 	if (mode == MML_MODE_UNKNOWN) {
-		struct mml_mutex *mutex = ddp_comp_to_mutex(ddp_comp);
-
 		if (mutex->connected_mode == MML_MODE_UNKNOWN ||
 			!atomic_read(&mutex->connect[cfg->pipe])) {
 			/* no current connected mode, stop */
