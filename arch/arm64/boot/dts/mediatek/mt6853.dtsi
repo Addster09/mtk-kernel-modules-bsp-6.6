@@ -1766,6 +1766,11 @@
 			reg = <0 0x1024d000 0 0x1000>;
 		};
 
+		md_ccif5@1025d000 {
+			compatible = "mediatek,md_ccif5";
+			reg = <0 0x1025d000 0 0x1000>;
+		};
+
 		device_mpu_acp@1030d000 {
 			compatible = "mediatek,device_mpu_acp";
 			reg = <0 0x1030d000 0 0x1000>;
