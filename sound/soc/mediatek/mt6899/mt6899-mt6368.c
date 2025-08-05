@@ -21,6 +21,9 @@
 #include "../../codecs/mt6368-accdet.h"
 #endif
 #include "../common/mtk-sp-spk-amp.h"
+#if IS_ENABLED(CONFIG_MTK_BATTERY_PERCENT_THROTTLING)
+#include "mtk_bp_thl.h"
+#endif
 
 /*
  * if need additional control for the ext spk amp that is connected
@@ -54,6 +57,83 @@ static const struct soc_enum mt6899_spk_type_enum[] = {
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(mt6899_spk_i2s_type_str),
 			    mt6899_spk_i2s_type_str),
 };
+
+#if IS_ENABLED(CONFIG_MTK_BATTERY_PERCENT_THROTTLING)
+static unsigned int volume_throttle[BATTERY_PERCENT_LEVEL_NUM];
+static unsigned int last_level;
+
+static void update_volume_throttle(const char *volume_name_l,
+				   const char *volume_name_r,
+				   int old_level, int new_level)
+{
+	struct snd_soc_card *card = &mt6899_mt6368_soc_card;
+	struct snd_kcontrol *kcontrol;
+	struct snd_soc_component *component;
+	struct snd_ctl_elem_value ucontrol;
+	int ret;
+	int diff = volume_throttle[new_level] - volume_throttle[old_level];
+
+	// Left amp
+	kcontrol = snd_soc_card_get_kcontrol(card, volume_name_l);
+	if (!kcontrol) {
+		dev_info(card->dev, "Cannot find kcontrol %s\n", volume_name_l);
+		return;
+	}
+	component = snd_soc_kcontrol_component(kcontrol);
+	if (!component) {
+		dev_info(card->dev, "Cannot find component for kcontrol %s\n", volume_name_l);
+		return;
+	}
+	memset(&ucontrol, 0, sizeof(ucontrol));
+
+	ret = kcontrol->get(kcontrol, &ucontrol);
+	dev_info(component->dev, "Current volume: %ld, throttle level: %d->%d, diff=%d\n",
+					ucontrol.value.integer.value[0], old_level, new_level, diff);
+	if (diff) {
+		ucontrol.value.integer.value[0] += volume_throttle[old_level];
+		ret = kcontrol->put(kcontrol, &ucontrol);
+		dev_info(component->dev, "New volume: %ld, ret=%d\n", ucontrol.value.integer.value[0], ret);
+	}
+
+	// Right amp
+	kcontrol = snd_soc_card_get_kcontrol(card, volume_name_r);
+	if (!kcontrol) {
+		dev_info(card->dev, "Cannot find kcontrol %s\n", volume_name_r);
+		return;
+	}
+	component = snd_soc_kcontrol_component(kcontrol);
+	if (!component) {
+		dev_info(card->dev, "Cannot find component for kcontrol %s\n", volume_name_r);
+		return;
+	}
+	memset(&ucontrol, 0, sizeof(ucontrol));
+
+	ret = kcontrol->get(kcontrol, &ucontrol);
+	dev_info(component->dev, "Current volume: %ld, throttle level: %d->%d, diff=%d\n",
+					ucontrol.value.integer.value[0], old_level, new_level, diff);
+	if (diff) {
+		ucontrol.value.integer.value[0] += volume_throttle[old_level];
+		ret = kcontrol->put(kcontrol, &ucontrol);
+		dev_info(component->dev, "New volume: %ld, ret=%d\n", ucontrol.value.integer.value[0], ret);
+	}
+}
+
+static void audio_pt_battery_percent_cb(enum BATTERY_PERCENT_LEVEL_TAG level)
+{
+	if (level >= BATTERY_PERCENT_LEVEL_NUM) {
+		// invalid
+		return;
+	}
+
+	// throttle by level
+	mtk_spk_set_reduceDb(volume_throttle[level]);
+
+#if IS_ENABLED(CONFIG_SND_SOC_RT5512)
+	update_volume_throttle("Left Volume_Ctrl", "Right Volume_Ctrl", last_level , level);
+#endif
+	last_level = level;
+}
+#endif
 
 static int mt6899_spk_type_get(struct snd_kcontrol *kcontrol,
 			       struct snd_ctl_elem_value *ucontrol)
@@ -2226,6 +2306,9 @@ static int mt6899_mt6368_dev_probe(struct platform_device *pdev)
 	struct device_node *platform_node, *spk_node;
 	int ret, i;
 	struct snd_soc_dai_link *dai_link;
+#if IS_ENABLED(CONFIG_MTK_BATTERY_PERCENT_THROTTLING)
+	int is_register_bt_pt;
+#endif
 
 	dev_info(&pdev->dev, "%s() successfully start\n", __func__);
 
@@ -2282,6 +2365,25 @@ static int mt6899_mt6368_dev_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "%s Bypass codec driver\n", __func__);
 		mt6899_mt6368_bypass_primary_codec(pdev);
 	}
+
+#if IS_ENABLED(CONFIG_MTK_BATTERY_PERCENT_THROTTLING)
+	/* get low battery power throttling is supported */
+	ret = of_property_read_u32(pdev->dev.of_node, "register-battery-percent-pt", &is_register_bt_pt);
+	if (ret) {
+		dev_info(&pdev->dev, "%s(), get register_bt_pt fail, use defalut 0\n", __func__);
+		is_register_bt_pt = 0;
+	}
+	if (is_register_bt_pt) {
+		last_level = 0;
+		for (i = 0; i < BATTERY_PERCENT_LEVEL_NUM; i++)
+			volume_throttle[i] = 0;
+
+		ret = of_property_read_u32_array(pdev->dev.of_node, "volume-throttle",
+					(unsigned int *)&volume_throttle, BATTERY_PERCENT_LEVEL_NUM);
+
+		register_bp_thl_notify(&audio_pt_battery_percent_cb, BATTERY_PERCENT_PRIO_AUDIO);
+	}
+#endif
 
 	card->dev = &pdev->dev;
 
