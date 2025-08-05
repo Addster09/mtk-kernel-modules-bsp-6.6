@@ -32,6 +32,10 @@ void game_systrace_c(int type, pid_t pid, unsigned long long bufID,
 	int value, const char *name, ...);
 void game_systrace_b(int type, pid_t pid, const char *name, ...);
 void game_systrace_e(int type);
+void game_main_trace(const char *fmt, ...);
+void loom_main_trace(const char *fmt, ...);
+unsigned long long game_get_time(void);
+
 
 extern void (*fpsgo2game_noitfy_queue_end)(int);
 

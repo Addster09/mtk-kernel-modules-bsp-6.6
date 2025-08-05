@@ -26,6 +26,10 @@ enum GET_FPSGO_FRAME_INFO {
 	GET_FPSGO_Q2Q_TIME = 13,
 	GET_SBE_CTRL = 14,
 	GET_FPSGO_JERK_BOOST = 15,
+	GET_FPSGO_QUEUE_START = 16,
+	GET_FPSGO_QUEUE_END = 17,
+	GET_FPSGO_DEQUEUE_START = 18,
+	GET_FPSGO_DEQUEUE_END = 19,
 	FPSGO_FRAME_INFO_MAX_NUM
 };
 
@@ -70,5 +74,6 @@ int fpsgo_ctrl2base_get_render_frame_info(int max_num, unsigned long mask,
 
 extern int (*magt2fpsgo_get_fpsgo_frame_info)(int max_num, unsigned long mask,
 	struct render_frame_info *frame_info_arr);
+extern int fbt_set_magt_workaround_passive_mode(int value);
 
 #endif

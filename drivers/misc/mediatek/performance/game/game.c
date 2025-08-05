@@ -14,7 +14,9 @@
 #include <linux/sched/task.h>
 #include <uapi/linux/sched/types.h>
 #include "game.h"
+#include "game_sysfs.h"
 #include "engine_cooler/game_ec.h"
+#include "loom.h"
 
 
 static struct task_struct *kGame_task;
@@ -191,6 +193,8 @@ static void __exit game_exit(void)
 {
 	if (kGame_task)
 		kthread_stop(kGame_task);
+	loom_exit();
+	game_sysfs_exit();
 }
 
 static int __init game_init(void)
@@ -204,6 +208,8 @@ static int __init game_init(void)
 		goto end;
 	}
 	wake_up_process(kGame_task);
+	game_sysfs_init();
+	loom_init();
 end:
 	return ret;
 }

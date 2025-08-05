@@ -147,6 +147,9 @@ int cap_ready;
 void (*fpsgo2game_noitfy_queue_end)(int);
 EXPORT_SYMBOL_GPL(fpsgo2game_noitfy_queue_end);
 
+void (*fpsgo2game_noitfy_loom_queue_end_fp)(int rpid, int tgid, unsigned long long buf_id);
+EXPORT_SYMBOL_GPL(fpsgo2game_noitfy_loom_queue_end_fp);
+
 /* TODO: event register & dispatch */
 int fpsgo_is_enable(void)
 {
@@ -265,6 +268,8 @@ static void fpsgo_notifier_wq_cb_qudeq(int qudeq,
 		unsigned long long curr_ts, unsigned long long id,
 		unsigned long long sf_buf_id)
 {
+	int tgid = 0;
+
 	FPSGO_LOGI("[FPSGO_CB] qudeq: %d-%d, pid %d, ts %llu, id %llu\n",
 		qudeq, startend, cur_pid, curr_ts, id);
 
@@ -281,8 +286,13 @@ static void fpsgo_notifier_wq_cb_qudeq(int qudeq,
 		} else {
 			FPSGO_LOGI("[FPSGO_CB] QUEUE End: pid %d\n",
 					cur_pid);
+
 			fpsgo_ctrl2comp_enqueue_end(cur_pid, curr_ts,
 					id, sf_buf_id);
+			if (fpsgo2game_noitfy_loom_queue_end_fp) {
+				tgid = fpsgo_get_tgid(cur_pid);
+				fpsgo2game_noitfy_loom_queue_end_fp(cur_pid, tgid, id);
+			}
 			if (fpsgo2game_noitfy_queue_end)
 				fpsgo2game_noitfy_queue_end(cur_pid);
 		}
