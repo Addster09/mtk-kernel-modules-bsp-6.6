@@ -16,7 +16,6 @@
 
 #define DEFAULT_LOOM_UPDATE_LIST_PERIOD NSEC_PER_SEC
 
-static int fi_cb_is_registerd;
 static int loom_select_is_set;
 static int loom_flt_is_set;
 static int update_active_list_period;
@@ -152,6 +151,26 @@ static void list_a_except_b(struct hlist_head *list_a,
 	}
 }
 
+/*
+ * helper functionuse and only use for active list update operation.
+ * joint all the element in list a to list b.
+ * list_b must be empty (HLIST_INIT state)
+ */
+static void loom_joint_list_a_to_b(struct hlist_head *list_a, struct hlist_head *list_b)
+{
+	if (!hlist_empty(list_b)) {
+		pr_debug("list_b is not empty.\n");
+		return;
+	}
+
+	list_b->first = list_a->first;
+
+	if (list_b->first)
+		list_b->first->pprev = &list_b->first;
+
+	INIT_HLIST_HEAD(list_a);
+}
+
 static void loom_find_new_active_list(struct hlist_head *head, int tgid)
 {
 	struct task_struct *gtsk, *sib, *task_samename;
@@ -265,9 +284,9 @@ static int loom_update_active_list(struct loom_render_info *info)
 	loom_clear_loom_attr(&remove_list);
 
 	// apply new active list to info->active_list and remove the old active lsit
-	remove_list.first = info->active_list.first;
-	info->active_list.first = new_active_list.first;
+	loom_joint_list_a_to_b(&info->active_list, &remove_list);
 	loom_clear_loom_attr(&remove_list);
+	loom_joint_list_a_to_b(&new_active_list, &info->active_list);
 
 	info->last_update_ts = ts;
 	return ret;
@@ -385,22 +404,16 @@ out:
 	loom_render_unlock();
 }
 
-static int loom_register_frame_info_cb(int set, fpsgo2_game_loom_cb cb)
+static int loom_register_frame_info_cb(int set, fpsgo_loom_callback cb)
 {
 	int ret = 0;
 
-	if (set && !fi_cb_is_registerd) {
-		fpsgo2game_noitfy_loom_queue_end_fp = cb;
-		if (ret >= 0) {
-			fi_cb_is_registerd = 1;
-			loom_main_trace("[loom][%s] fpsgo frame info callback, register=%d", __func__, 1);
-		}
-	} else if (!set && fi_cb_is_registerd) {
-		fpsgo2game_noitfy_loom_queue_end_fp = NULL;
-		if (ret >= 0) {
-			fi_cb_is_registerd = 0;
-			loom_main_trace("[loom][%s] fpsgo frame info callback, register=%d", __func__, 0);
-		}
+	if (set) {
+		register_fpsgo_loom_cb(1, cb);
+		loom_main_trace("[loom][%s] fpsgo frame info callback, register=%d", __func__, 1);
+	} else {
+		register_fpsgo_loom_cb(0, cb);
+		loom_main_trace("[loom][%s] fpsgo frame info callback, register=%d", __func__, 0);
 	}
 	return ret;
 }

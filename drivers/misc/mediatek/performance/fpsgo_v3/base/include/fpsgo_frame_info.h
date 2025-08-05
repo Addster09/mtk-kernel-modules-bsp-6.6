@@ -62,6 +62,7 @@ struct render_frame_info {
 };
 
 typedef void (*fpsgo_frame_info_callback)(unsigned long cmd, struct render_frame_info *iter);
+typedef void (*fpsgo_loom_callback)(int rpid, int tgid, unsigned long long buf_id);
 
 struct render_frame_info_cb {
 	unsigned long mask;
@@ -74,6 +75,7 @@ int fpsgo_ctrl2base_get_render_frame_info(int max_num, unsigned long mask,
 
 extern int (*magt2fpsgo_get_fpsgo_frame_info)(int max_num, unsigned long mask,
 	struct render_frame_info *frame_info_arr);
+extern void register_fpsgo_loom_cb(int set, fpsgo_loom_callback cb);
 extern int fbt_set_magt_workaround_passive_mode(int value);
 
 #endif
