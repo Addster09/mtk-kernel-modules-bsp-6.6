@@ -854,7 +854,7 @@ static void core_comp_dump(struct mml_task *task, u32 pipe, int cnt)
 
 	mml_clock_lock(cfg->mml);
 	call_hw_op(path->mmlsys, mminfra_pw_enable);
-	mml_dpc_exc_keep_task(task, path);
+	mml_dpc_exc_keep_path(cfg->mml, path);
 	call_hw_op(path->mmlsys, pw_enable, cfg->info.mode);
 	if (path->mmlsys2)
 		call_hw_op(path->mmlsys2, pw_enable, cfg->info.mode);
@@ -872,7 +872,7 @@ static void core_comp_dump(struct mml_task *task, u32 pipe, int cnt)
 	if (path->mmlsys2)
 		call_hw_op(path->mmlsys2, pw_disable, cfg->info.mode);
 	call_hw_op(path->mmlsys, pw_disable, cfg->info.mode);
-	mml_dpc_exc_release_task(task, path);
+	mml_dpc_exc_release_path(cfg->mml, path);
 	call_hw_op(path->mmlsys, mminfra_pw_disable);
 	mml_clock_unlock(cfg->mml);
 }
@@ -1818,7 +1818,7 @@ static void core_taskdone(struct work_struct *work)
 	/* dl mode fast on/off during hw run, so enable mminfra and except flow back */
 	if (!mml_isdc(cfg->info.mode)) {
 		mml_core_mminfra_enable(cfg->mml, 0, path->mmlsys);
-		mml_dpc_exc_keep_task(task, path);
+		mml_dpc_exc_keep_path(cfg->mml, path);
 	}
 
 	/* remove task in qos list and setup next */
@@ -1865,7 +1865,7 @@ static void core_taskdone(struct work_struct *work)
 	if (cfg->dpc && cfg->info.mode != MML_MODE_DDP_ADDON)
 		mml_dpc_task_cnt_dec(task);
 
-	mml_dpc_exc_release_task(task, path);
+	mml_dpc_exc_release_path(cfg->mml, path);
 	mml_core_mminfra_disable(cfg->mml, 0, cfg->path[0]->mmlsys);
 
 	if (unlikely(cfg->task_ops->frame_err && !task->pkts[0] &&
@@ -2325,9 +2325,6 @@ static void core_config_pipe(struct mml_task *task, u32 pipe)
 	mml_msg("%s task %p job %u pipe %u pkt %p done",
 		__func__, task, task->job.jobid, pipe, task->pkts[pipe]);
 exit:
-	if (cfg->dpc && cfg->info.mode != MML_MODE_DDP_ADDON && err < 0)
-		mml_dpc_task_cnt_dec(task);
-
 	mml_trace_ex_end();
 }
 
@@ -2401,7 +2398,7 @@ static void core_config_task(struct mml_task *task)
 
 	/* enable mminfra and except flow during config */
 	mml_core_mminfra_enable(cfg->mml, 0, cfg->path[0]->mmlsys);
-	mml_dpc_exc_keep_task(task, cfg->path[0]);
+	mml_dpc_exc_keep_path(cfg->mml, cfg->path[0]);
 	if (cfg->dpc && cfg->info.mode != MML_MODE_DDP_ADDON)
 		mml_dpc_task_cnt_inc(task);
 
@@ -2437,7 +2434,7 @@ static void core_config_task(struct mml_task *task)
 	 * And addon mode has no taskdone flow, thus release mminfra here to avoid power leak.
 	 */
 	if (!mml_isdc(mode)) {
-		mml_dpc_exc_release_task(task, cfg->path[0]);
+		mml_dpc_exc_release_path(cfg->mml, cfg->path[0]);
 		mml_core_mminfra_disable(cfg->mml, 0, cfg->path[0]->mmlsys);
 	}
 
