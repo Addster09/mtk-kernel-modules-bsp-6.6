@@ -949,13 +949,6 @@ static void mtk_drm_vdo_mode_enter_idle(struct drm_crtc *crtc)
 		}
 	}
 
-	if (mtk_drm_helper_get_opt(priv->helper_opt,
-				   MTK_DRM_OPT_IDLEMGR_DISABLE_ROUTINE_IRQ)) {
-		mtk_disp_mutex_inten_disable_cmdq(mtk_crtc->mutex[0], handle);
-		for_each_comp_in_cur_crtc_path(comp, mtk_crtc, i, j)
-			mtk_ddp_comp_io_cmd(comp, handle, IRQ_LEVEL_IDLE, NULL);
-	}
-
 	if (bif_enabled(crtc)== BIF_HS_IDLE) {
 		mtk_crtc_bif_backup_path_mutex(mtk_crtc);
 
@@ -988,6 +981,14 @@ static void mtk_drm_vdo_mode_enter_idle(struct drm_crtc *crtc)
 		mtk_crtc_bif_keep_read_path(crtc, handle, true);
 		mtk_crtc_bif_apsrc_ddren_control(mtk_crtc, false, handle);
 	}
+
+	if (mtk_drm_helper_get_opt(priv->helper_opt,
+				   MTK_DRM_OPT_IDLEMGR_DISABLE_ROUTINE_IRQ)) {
+		mtk_disp_mutex_inten_disable_cmdq(mtk_crtc->mutex[0], handle);
+		for_each_comp_in_cur_crtc_path(comp, mtk_crtc, i, j)
+			mtk_ddp_comp_io_cmd(comp, handle, IRQ_LEVEL_IDLE, NULL);
+	}
+
 	comp = mtk_ddp_comp_request_output(mtk_crtc);
 	if (comp) {
 		int en = 0;
@@ -1002,10 +1003,10 @@ static void mtk_drm_vdo_mode_enter_idle(struct drm_crtc *crtc)
 	cmdq_pkt_flush(handle);
 	cmdq_pkt_destroy(handle);
 
-	if (state->lye_state.mml_dl_lye)
-		CRTC_MMP_MARK(0, mml_dbg, (u32)handle, BIT(31) | DISP_MML_IR_CLEAR);
-
 	if (bif_enabled(crtc) == BIF_HS_IDLE) {
+		if (state->lye_state.mml_dl_lye)
+			CRTC_MMP_MARK(0, mml_dbg, (u32)handle, BIT(31) | DISP_MML_IR_CLEAR);
+
 		if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_MMQOS_SUPPORT))
 			mtk_disp_set_hrt_bw(mtk_crtc, 0);
 	}
