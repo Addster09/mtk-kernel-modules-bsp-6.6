@@ -813,13 +813,13 @@ bootargs_ext = "rcu_nocbs=0-7";
 
 &bp_thl {
 	max-throttle-level = <3>;
-	soc-throttle-level = <0 0 1 2 2 3>, //temperature stage 0
-				<0 0 1 2 2 3>, //temperature stage 1
-				<0 1 1 2 2 3>, //temperature stage 2
-				<1 1 1 2 3 3>; //temperature stage 3
+	soc-throttle-level = <0 0 0 2 2 3>, //temperature stage 0
+				<0 0 0 2 2 3>, //temperature stage 1
+				<0 0 1 2 2 3>, //temperature stage 2
+				<0 1 1 2 3 3>; //temperature stage 3
 
 	soc-max-stage = <5>;
-	soc-limit-threshold = <80 20 15 7 5>;
+	soc-limit-threshold = <50 40 10 7 5>;
 
 	temperature-max-stage = <3>;
 	temperature-stage-threshold = <25 10 0>;
