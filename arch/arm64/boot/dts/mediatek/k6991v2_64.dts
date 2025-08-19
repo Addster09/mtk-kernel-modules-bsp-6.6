@@ -131,7 +131,7 @@ bootargs_ext = "rcu_nocbs=0-7";
 	pinctrl-names = "mode_te_te", "mode_te_te1";
 	pinctrl-0 = <&mtkfb_pins_lcm_dsi_te>;
 	pinctrl-1 = <&mtkfb_pins_lcm_dsi1_te>;
-	bif-enable = <1>;
+
 	status = "okay";
 //	enable-discrete-path = <1>;
 	bypass-pc-path = <1>;
