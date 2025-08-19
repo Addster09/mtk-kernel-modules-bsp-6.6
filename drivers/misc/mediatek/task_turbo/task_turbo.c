@@ -17,6 +17,7 @@
 #include <linux/plist.h>
 #include <linux/percpu-defs.h>
 #include <linux/input.h>
+#include <linux/cpumask.h>
 #include <linux/sched/signal.h>
 #include <linux/of.h>
 
@@ -178,6 +179,7 @@ static inline unsigned long task_util(struct task_struct *p);
 static inline unsigned long _task_util_est(struct task_struct *p);
 static int avg_cpu_loading;
 static int cpu_loading_thres = 95;
+static int vip_util_thres = 80;
 static int tt_vip_enable = 1;
 static int binder_vip_inheritance_enable = 1;
 static int binder_nonvip_inheritance_enable;
@@ -807,6 +809,78 @@ static void update_cpu_loading(void)
 	mutex_unlock(&cpu_loading_lock);
 }
 
+unsigned long cpu_cap_ceiling(int cpu)
+{
+	unsigned long cap_ceiling;
+
+	cap_ceiling = min_t(unsigned long, arch_scale_cpu_capacity(cpu),
+		get_cpu_gear_uclamp_max_capacity(cpu));
+	return clamp_t(unsigned long, cap_ceiling,
+		READ_ONCE(per_cpu(min_freq_scale, cpu)), READ_ONCE(per_cpu(max_freq_scale, cpu)));
+}
+
+unsigned long get_tgid_util(int tgid)
+{
+	struct task_struct *p, *t;
+	unsigned long vip_total_util = 0;
+	int i = 0;
+
+	rcu_read_lock();
+	p = find_task_by_vpid(tgid);
+	if (!p) {
+		rcu_read_unlock();
+		return 0;
+	}
+
+	get_task_struct(p);
+	for_each_thread(p, t) {
+		i++;
+		if (i > MAX_NR_THREAD)
+			break;
+		get_task_struct(t);
+		if (READ_ONCE(t->__state) == TASK_RUNNING)
+			vip_total_util += task_util(t);
+		put_task_struct(t);
+	}
+	put_task_struct(p);
+	rcu_read_unlock();
+
+	return vip_total_util;
+}
+EXPORT_SYMBOL(get_tgid_util);
+
+bool is_util_overhigh(unsigned long util)
+{
+	int cpu;
+	unsigned long total_capacity = 0;
+
+	for_each_online_cpu(cpu) {
+		total_capacity += min(cpu_cap_ceiling(cpu), cpu_rq(cpu)->cpu_capacity);
+	}
+	if (util*100 > vip_util_thres*total_capacity)
+		return true;
+
+	return false;
+}
+EXPORT_SYMBOL(is_util_overhigh);
+
+static inline void cpumask_complement(struct cpumask *dstp,
+				      const struct cpumask *srcp)
+{
+	bitmap_complement(cpumask_bits(dstp), cpumask_bits(srcp),
+					      nr_cpumask_bits);
+}
+
+int tt_cpu_count_check(void)
+{
+	cpumask_t count_mask = CPU_MASK_NONE;
+
+	cpumask_complement(&count_mask, cpu_pause_mask);
+	cpumask_and(&count_mask, &count_mask, cpu_online_mask);
+
+	return cpumask_weight(&count_mask);
+}
+
 int (*tt_vip_algo_hook)(int ct_vip_qualified, int ssid_tgid, int sui_tgid, int f_tgid, bool touching) = NULL;
 EXPORT_SYMBOL(tt_vip_algo_hook);
 
@@ -840,12 +914,16 @@ static void tt_vip(void)
 
 	mutex_lock(&wi_lock);
 
+	if (tt_cpu_count_check() <= MIN_CPUS)
+		ct_vip_qualified = false;
+
 	if (tt_vip_algo_hook)
 		tt_vip_algo_hook(ct_vip_qualified, ssid_tgid, sui_tgid, f_tgid, touching);
 
 	mutex_unlock(&wi_lock);
 }
 module_param(cpu_loading_thres, int, 0644);
+module_param(vip_util_thres, int, 0644);
 
 /**
  * tt_vip_event_handler - Event-triggered work handler for VIP management

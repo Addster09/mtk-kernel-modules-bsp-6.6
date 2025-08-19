@@ -8,7 +8,7 @@
 #include <linux/list.h>
 #include <linux/smp.h>
 #include <linux/list_sort.h>
-#include <common.h>
+#include "common.h"
 
 #define get_task_turbo_t(p)	\
 	(&((struct mtk_task *)&(p)->android_vendor_data1)->turbo_data)
@@ -23,6 +23,11 @@
 #define INVALID_LOADING -1
 #define LOOM_NO_AFFINITY -1
 #define LOOM_NO_TASK -1
+#define MAX_NR_THREAD 200
+#define MIN_CPUS 4
+
+DECLARE_PER_CPU(unsigned long, max_freq_scale);
+DECLARE_PER_CPU(unsigned long, min_freq_scale);
 
 struct list_head;
 
@@ -94,6 +99,7 @@ extern inline int get_vip_task_prio(struct task_struct *p);
 extern void flt_set_mode(u32 mode);
 extern u32 flt_get_mode(void);
 #endif
+extern int get_cpu_gear_uclamp_max_capacity(unsigned int cpu);
 extern void (*vip_loom_select_task_rq_fair_hook)(struct task_struct *p, int *target_cpu, int *flag);
 
 /*
