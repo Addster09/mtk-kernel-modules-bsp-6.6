@@ -161,6 +161,7 @@ void game_main_trace(const char *fmt, ...)
 	va_end(args);
 	trace_game_main_trace(log);
 }
+EXPORT_SYMBOL(game_main_trace);
 
 void loom_main_trace(const char *fmt, ...)
 {
@@ -179,6 +180,7 @@ void loom_main_trace(const char *fmt, ...)
 	va_end(args);
 	trace_loom_main_trace(log);
 }
+EXPORT_SYMBOL(loom_main_trace);
 
 void loom_systrace_c(pid_t pid, unsigned long long bufID,
 	int val, const char *fmt, ...)
@@ -214,6 +216,7 @@ void loom_systrace_c(pid_t pid, unsigned long long bufID,
 
 	trace_loom_systrace(buf2);
 }
+EXPORT_SYMBOL(loom_systrace_c);
 
 unsigned long long game_get_time(void)
 {

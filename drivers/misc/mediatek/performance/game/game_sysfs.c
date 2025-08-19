@@ -17,6 +17,7 @@ int game_get_sysfs_dir(struct kobject **ppsKobj)
 	} else
 		return 1;
 }
+EXPORT_SYMBOL(game_get_sysfs_dir);
 // --------------------------------------------------
 void game_sysfs_create_file(struct kobject *parent,
 		struct kobj_attribute *kobj_attr)
@@ -34,6 +35,7 @@ void game_sysfs_create_file(struct kobject *parent,
 	}
 
 }
+EXPORT_SYMBOL(game_sysfs_create_file);
 // --------------------------------------------------
 void game_sysfs_remove_file(struct kobject *parent,
 		struct kobj_attribute *kobj_attr)
@@ -43,6 +45,7 @@ void game_sysfs_remove_file(struct kobject *parent,
 	parent = (parent != NULL) ? parent : game_kobj;
 	sysfs_remove_file(parent, &(kobj_attr->attr));
 }
+EXPORT_SYMBOL(game_sysfs_remove_file);
 // --------------------------------------------------
 void game_sysfs_init(void)
 {
