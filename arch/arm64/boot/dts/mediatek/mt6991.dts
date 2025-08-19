@@ -8344,6 +8344,8 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				<0 0x48600000 0 0x200000>, /* MFG_SMMU */
 				<0 0x48800000 0 0x1000>,   /* MFG_VGPU_BUS_DBG_TRACKER */
 				<0 0x4b190000 0 0x20000>,  /* MFG_GPUEB_BUS_DBG_TRACKER */
+				<0 0x4b410300 0 0x100>,    /* MFG_ACP_BUS_GALS */
+				<0 0x4b420300 0 0x100>,    /* MFG_ACP_GALS_TOP */
 				<0 0x4b800000 0 0x10000>,  /* MFG_RPC */
 				<0 0x4b810000 0 0x400>,    /* MFG_PLL */
 				<0 0x4b810400 0 0x400>,    /* MFG_PLL_SC0 */
@@ -8376,6 +8378,8 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				"mfg_smmu",
 				"mfg_vgpu_bus_trk",
 				"mfg_gpueb_bus_trk",
+				"mfg_acp_bus_gals",
+				"mfg_acp_gals_top",
 				"mfg_rpc",
 				"mfg_pll",
 				"mfg_pll_sc0",
