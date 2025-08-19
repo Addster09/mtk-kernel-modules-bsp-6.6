@@ -952,34 +952,34 @@ static void mtk_drm_vdo_mode_enter_idle(struct drm_crtc *crtc)
 	if (bif_enabled(crtc)== BIF_HS_IDLE) {
 		mtk_crtc_bif_backup_path_mutex(mtk_crtc);
 
-		if (!mtk_crtc_bif_slbc_request(mtk_crtc, true)) {
+		if (!mtk_crtc->bif_info->sram_en)
+			mtk_crtc_bif_slbc_request(mtk_crtc, true);
+
+		if (mtk_crtc->bif_info->sram_en) {
+			mtk_crtc_wait_frame_done(mtk_crtc, handle, DDP_FIRST_PATH, 0);
+			mtk_crtc_bif_enable_racing(mtk_crtc, handle);
+
+			cmdq_pkt_clear_event(handle, mtk_crtc->bif_info->wb_frame_done_event);
+
+			/* stop mml dl to make mml stop during hs idle */
+			if (state->lye_state.mml_dl_lye) {
+				struct mml_drm_ctx *mml_ctx = mtk_drm_get_mml_drm_ctx(crtc->dev, crtc);
+
+				CRTC_MMP_MARK(0, mml_dbg, (u32)handle, BIT(30) | DISP_MML_IR_CLEAR);
+
+				mml_drm_racing_stop_sync(mml_ctx, handle);
+				mtk_crtc_mml_addon_config(crtc, ADDON_DISCONNECT, handle);
+				DDPINFO("%s stop sync pkt %#lx\n", __func__, (unsigned long)handle);
+			}
+
+			cmdq_pkt_wfe(handle, mtk_crtc->bif_info->wb_frame_done_event);
+			mtk_crtc_wait_frame_done(mtk_crtc, handle, DDP_FIRST_PATH, 0);
+			mtk_crtc_bif_keep_read_path(crtc, handle, true);
+			mtk_crtc_bif_apsrc_ddren_control(mtk_crtc, false, handle);
+		} else {
 			mtk_crtc->bif_info->bif_enable = BIF_DISABLE;
-			return;
+			CRTC_MMP_MARK(0, bif_src_ctrl, 0xFFFFFFFF, 0xFFFFFFFF);
 		}
-		if (mtk_crtc->bif_info->sram_en == 0) {
-			DDPPR_ERR("%s, error, sram_en disable\n", __func__);
-			return;
-		}
-
-		mtk_crtc_wait_frame_done(mtk_crtc, handle, DDP_FIRST_PATH, 0);
-		mtk_crtc_bif_enable_racing(mtk_crtc, handle);
-
-		cmdq_pkt_clear_event(handle, mtk_crtc->bif_info->wb_frame_done_event);
-
-		/* stop mml dl to make mml stop during hs idle */
-		if (state->lye_state.mml_dl_lye) {
-			struct mml_drm_ctx *mml_ctx = mtk_drm_get_mml_drm_ctx(crtc->dev, crtc);
-
-			CRTC_MMP_MARK(0, mml_dbg, (u32)handle, BIT(30) | DISP_MML_IR_CLEAR);
-
-			mml_drm_racing_stop_sync(mml_ctx, handle);
-			mtk_crtc_mml_addon_config(crtc, ADDON_DISCONNECT, handle);
-			DDPINFO("%s stop sync pkt %#lx\n", __func__, (unsigned long)handle);
-		}
-
-		cmdq_pkt_wfe(handle, mtk_crtc->bif_info->wb_frame_done_event);
-		mtk_crtc_bif_keep_read_path(crtc, handle, true);
-		mtk_crtc_bif_apsrc_ddren_control(mtk_crtc, false, handle);
 	}
 
 	if (mtk_drm_helper_get_opt(priv->helper_opt,
@@ -1052,6 +1052,11 @@ static void mtk_drm_vdo_mode_leave_idle(struct drm_crtc *crtc)
 	if (perf)
 		start_time = local_clock();
 
+	if (bif_enabled(crtc) == BIF_HS_IDLE) {
+		if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_MMQOS_SUPPORT))
+			mtk_disp_set_hrt_bw(mtk_crtc, mtk_crtc->qos_ctx->last_hrt_req);
+	}
+
 	mtk_crtc_pkt_create(&handle, crtc, client);
 
 	if (mtk_drm_helper_get_opt(priv->helper_opt,
@@ -1096,13 +1101,9 @@ static void mtk_drm_vdo_mode_leave_idle(struct drm_crtc *crtc)
 			mml_drm_racing_config_sync(mml_ctx, handle, false);
 		}
 
-		if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_MMQOS_SUPPORT))
-			mtk_disp_set_hrt_bw(mtk_crtc, mtk_crtc->qos_ctx->last_hrt_req);
-
 		if (priv->data->bif_path_remove)
 			priv->data->bif_path_remove(mtk_crtc, handle);
 
-		mtk_crtc_bif_slbc_request(mtk_crtc, false);
 		mtk_crtc_bif_restore_path_mutex(mtk_crtc, handle);
 	}
 
@@ -1115,6 +1116,9 @@ static void mtk_drm_vdo_mode_leave_idle(struct drm_crtc *crtc)
 
 		mtk_drm_idlemgr_perf_update(crtc, false, cost);
 	}
+
+	if ((bif_enabled(crtc) == BIF_HS_IDLE) && mtk_crtc->bif_info->sram_en)
+		mtk_crtc_bif_slbc_request(mtk_crtc, false);
 }
 
 static void mtk_drm_cmd_mode_leave_idle(struct drm_crtc *crtc)

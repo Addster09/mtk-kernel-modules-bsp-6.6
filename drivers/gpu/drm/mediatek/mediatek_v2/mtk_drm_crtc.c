@@ -3683,15 +3683,17 @@ bool mtk_crtc_bif_slbc_request(struct mtk_drm_crtc *mtk_crtc, bool en)
 			//DDPINFO("%s,sram addr:0x%llx,sz:0x%llx\n", __func__, bif_info->sram_pa, bif_info->sram_size);
 		}
 	} else {
+		bif_info->sram_en = 0;
 		ret = slbc_release(&bif_info->sram_data);
 		if (ret < 0) {
 			DDPPR_ERR("%s, slbc_release fail\n", __func__);
 			return false;
 		}
-		bif_info->sram_en = 0;
 	}
 
 	DDPINFO("%s,en:%d,sram_en:%d\n", __func__, en, bif_info->sram_en);
+	CRTC_MMP_MARK(0, bif_src_ctrl, 0xF0000000, en);
+
 	return true;
 }
 void mtk_crtc_bif_info_init(struct mtk_drm_crtc *mtk_crtc)
@@ -13935,11 +13937,6 @@ void mtk_crtc_config_default_path(struct mtk_drm_crtc *mtk_crtc)
 	} else {
 		cmdq_pkt_flush(cmdq_handle);
 		cmdq_pkt_destroy(cmdq_handle);
-
-		if (mtk_crtc->bif_info && (bif_enabled(crtc) == BIF_HS_IDLE)) {
-			if (!mtk_crtc_bif_slbc_request(mtk_crtc, false))
-				mtk_crtc->bif_info->bif_enable = BIF_DISABLE;
-		}
 	}
 }
 
@@ -14651,8 +14648,10 @@ void mtk_drm_crtc_enable(struct drm_crtc *crtc, bool need_report_bw)
 		mtk_crtc_update_bif_roi(mtk_crtc);
 
 		if (bif_enabled(crtc)) {
-			if (!mtk_crtc_bif_slbc_request(mtk_crtc, true))
-				mtk_crtc->bif_info->bif_enable = BIF_DISABLE;
+			if (!mtk_crtc->bif_info->sram_en) {
+				if (!mtk_crtc_bif_slbc_request(mtk_crtc, true))
+					mtk_crtc->bif_info->bif_enable = BIF_DISABLE;
+			}
 
 			DDPMSG("%s,bif_enable:%d,\n", __func__, mtk_crtc->bif_info->bif_enable);
 		}

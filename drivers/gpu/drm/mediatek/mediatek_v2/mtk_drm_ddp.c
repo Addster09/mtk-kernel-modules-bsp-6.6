@@ -27454,7 +27454,7 @@ void mtk_disp_bif_racing_config_MT6991(struct cmdq_pkt *handle, struct mtk_drm_c
 						priv->side_config_regs + MT6991_DISP1_BIF_OFFSET_ADDR);
 				}
 			}
-			DDPINFO("%s,sram_en:%d,racing:%d,sram_addr:0x%llx,sz:%llx,BIF_CON:0x%x\n", __func__,
+			DDPDBG("%s,sram_en:%d,racing:%d,sram_addr:0x%llx,sz:%llx,BIF_CON:0x%x\n", __func__,
 				bif_info->sram_en, racing, bif_info->sram_pa, bif_info->sram_size, bif_con);
 
 			return;
@@ -27473,7 +27473,7 @@ none_racing_config:
 
 		}
 	}
-	DDPINFO("%s,sram_en:%d,racing:%d\n", __func__, bif_info->sram_en, racing);
+	DDPDBG("%s,sram_en:%d,racing:%d\n", __func__, bif_info->sram_en, racing);
 }
 
 void mtk_gce_event_config_MT6991(struct drm_device *drm)
