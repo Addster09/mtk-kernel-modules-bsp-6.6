@@ -368,29 +368,30 @@ int apu_ipi_send(struct mtk_apu *apu, u32 id, void *data, u32 len,
 			ipi_attrs[id].direction == IPI_HOST_INITIATE);
 #endif
 
-	apu_mbox_write_inbox(apu, &hdr);
-
+	/* set ack to false first before write inbox */
 	apu->ipi_id = id;
 	apu->ipi_id_ack[id] = false;
 
+	apu_mbox_write_inbox(apu, &hdr);
+
+	/* ipi send so update counter right away*/
+	ipi_usage_cnt_update(apu, id, 1);
+
 	/* poll ack from remote processor if wait_ms specified */
 	if (wait_ms) {
-		timeout = jiffies + msecs_to_jiffies(wait_ms);
+		timeout = msecs_to_jiffies(wait_ms);
 		ret = wait_event_timeout(apu->ack_wq,
-					 &apu->ipi_id_ack[id],
+					 apu->ipi_id_ack[id],
 					 timeout);
 
-		apu->ipi_id_ack[id] = false;
-
-		if (WARN(!ret, "apu ipi %d ack timeout!", id)) {
-			ret = -EIO;
-			goto unlock_mutex;
+		if (!apu->ipi_id_ack[id] &&
+			WARN(!ret, "apu ipi %d ack timeout!", id)) {
+			ret = -ETIME;
 		} else {
 			ret = 0;
 		}
+		apu->ipi_id_ack[id] = false;
 	}
-
-	ipi_usage_cnt_update(apu, id, 1);
 
 unlock_mutex:
 	if (hw_ops->ipi_send_post)
