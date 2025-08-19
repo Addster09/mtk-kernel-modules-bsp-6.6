@@ -244,6 +244,7 @@ bootargs_ext = "rcu_nocbs=0-7";
 	status = "okay";
 	#address-cells = <1>;
 	#size-cells = <0>;
+	cpu-num = <2>;
 	panel1@0 {
 		compatible = "jdi,nt36672e,vdo,120hz";
 		reg = <0>;
