@@ -671,6 +671,7 @@ bootargs_ext = "rcu_nocbs=0-7";
 
 &mmlsys1_config {
 	dl-enable;
+	dl-vdo;
 };
 
 #if 0
