@@ -816,17 +816,38 @@ bootargs_ext = "rcu_nocbs=0-7";
 	temperature-stage-threshold = <25 10 0>;
 };
 
+&low_battery_throttling {
+	throttle-level = <0 1 2 3>,
+					<0 1 2 3>,
+					<0 1 4 5>,
+					<0 1 4 5>;
+};
+
 &cpu_power_throttling {
+	lbat-max-level = <5>;
+	lbat-limit-freq-lv1 = < 2100000  2100000 2100000>;
+	lbat-limit-freq-lv2 = < 2000000  2000000 2000000>;
+	lbat-limit-freq-lv3 = < 1800000  1800000 1800000>;
+	lbat-limit-freq-lv4 = < 1200000  622000  798000>;
+	lbat-limit-freq-lv5 = <  339000  662000  798000>;
+
 	soc-max-level = <3>;
 	soc-core-active-lv1 = < 1 1 1 1 1 1 1 1 >;
 	soc-core-active-lv2 = < 1 1 1 1 1 1 1 1 >;
-	soc-core-active-lv3 = < 1 1 1 1 1 1 0 0 >;
+	soc-core-active-lv3 = < 1 1 1 1 1 1 1 0 >;
 	soc-limit-freq-lv1 = < 2147483647  2147483647 2147483647 >;
 	soc-limit-freq-lv2 = < 2147483647  2147483647 2147483647 >;
-	soc-limit-freq-lv3 = < 1800000 900000 670000>;
+	soc-limit-freq-lv3 = < 1800000 1800000 1800000>;
 };
 
 &gpu_power_throttling {
+	lbat-max-level = <5>;
+	lbat-limit-freq-lv1 = <700000>;
+	lbat-limit-freq-lv2 = <550000>;
+	lbat-limit-freq-lv3 = <550000>;
+	lbat-limit-freq-lv4 = <338000>;
+	lbat-limit-freq-lv5 = <338000>;
+
 	soc-max-level = <3>;
 	soc-limit-freq-lv1 = <2147483647>;
 	soc-limit-freq-lv2 = <2147483647>;
@@ -835,6 +856,15 @@ bootargs_ext = "rcu_nocbs=0-7";
 
 &flashlight_core {
 	battery-percent-level = <2>;
+};
+
+&md_power_throttling {
+	lbat-max-level = <5>;
+	lbat-reduce-tx-lv1 = <0>;
+	lbat-reduce-tx-lv2 = <6>;
+	lbat-reduce-tx-lv3 = <6>;
+	lbat-reduce-tx-lv4 = <6>;
+	lbat-reduce-tx-lv5 = <6>;
 };
 
 &peak_power_budget {
