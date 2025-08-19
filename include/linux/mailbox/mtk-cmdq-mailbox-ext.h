@@ -276,6 +276,7 @@ struct cmdq_thread {
 #endif
 	bool			aux_wtd_en;
 	bool			aux_wtd_monitor_en;
+	bool			mmp_exec;
 };
 
 struct cmdq_mpu_table {
