@@ -133,6 +133,9 @@ static inline int md_sys1_sw_init(struct ccci_modem *md)
 	CCCI_BOOTUP_LOG(0, TAG,
 		"%s, MD_WDT IRQ(%d)\n", __func__, md->md_wdt_irq_id);
 
+	irq_set_irqchip_state(md->md_wdt_irq_id,
+			IRQCHIP_STATE_PENDING, false);
+
 	ret = request_irq(md->md_wdt_irq_id, md_cd_wdt_isr,
 			md->md_wdt_irq_flags, "MD_WDT", md);
 	if (ret) {
