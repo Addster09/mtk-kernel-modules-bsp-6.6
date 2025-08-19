@@ -6799,7 +6799,8 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 					/bits/ 16 <CMDQ_SYNC_TOKEN_PREBUILT_MML_LOCK>,
 					/bits/ 16 <CMDQ_SYNC_TOKEN_PREBUILT_VFMT_LOCK>,
 					/bits/ 16 <CMDQ_SYNC_TOKEN_PREBUILT_DISP_LOCK>,
-					/bits/ 16 <CMDQ_SYNC_TOKEN_MML_MML_STOP>;
+					/bits/ 16 <CMDQ_SYNC_TOKEN_MML_MML_STOP>,
+					/bits/ 16 <CMDQ_SYNC_TOKEN_MML_STREAM_CONFIG>;
 			mboxes = <&gce 13 0 CMDQ_THR_PRIO_HIGHEST>;
 			mediatek,smi = <&smi_disp_common &mmsram_smi_2x1_sub_comm4>;
 			mtk,smmu-shared = <&mm_smmu_gce_d>;
@@ -7545,6 +7546,8 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 			event-ir-mml-ready = /bits/ 16 <CMDQ_SYNC_TOKEN_MML_IR_MML_READY>;
 			event-ir-disp-ready = /bits/ 16 <CMDQ_SYNC_TOKEN_MML_IR_DISP_READY>;
 			event-ir-mml-stop = /bits/ 16 <CMDQ_SYNC_TOKEN_MML_MML_STOP>;
+			event-ir-eof = /bits/ 16 <CMDQ_SYNC_TOKEN_MML_DISP_DONE_EVENT>;
+			event-mml-config = /bits/ 16 <CMDQ_SYNC_TOKEN_MML_STREAM_CONFIG>;
 			event-racing-pipe0 = /bits/ 16 <CMDQ_SYNC_TOKEN_MML_PIPE0>;
 			event-racing-pipe1 = /bits/ 16 <CMDQ_SYNC_TOKEN_MML_PIPE1>;
 			event-racing-pipe1-next = /bits/ 16 <CMDQ_SYNC_TOKEN_MML_PIPE1_NEXT>;
@@ -8751,7 +8754,8 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				"disp_mutex0_sof0",
 				"disp_ovlsys_ovl_exdma3_sof0",
 				"disp_wdma4_eof0",
-				"disp_ovlsys0_exdma0_eof0";
+				"disp_ovlsys0_exdma0_eof0",
+				"mml_stream_config";
 
 			gce-events =
 				<&gce CMDQ_EVENT_DISP1_STREAM_DONE_ENG_EVENT0>,
@@ -8811,7 +8815,8 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				<&gce CMDQ_EVENT_DISP1_STREAM_SOF0>,
 				<&gce CMDQ_EVENT_OVL0_STREAM_SOF0>,
 				<&gce CMDQ_EVENT_DISP1_FRAME_DONE_SEL7>,
-				<&gce CMDQ_EVENT_OVL0_FRAME_DONE_SEL2>;
+				<&gce CMDQ_EVENT_OVL0_FRAME_DONE_SEL2>,
+				<&gce CMDQ_SYNC_TOKEN_MML_STREAM_CONFIG>;
 
 			helper-name = "MTK_DRM_OPT_STAGE",
 				"MTK_DRM_OPT_USE_CMDQ",
