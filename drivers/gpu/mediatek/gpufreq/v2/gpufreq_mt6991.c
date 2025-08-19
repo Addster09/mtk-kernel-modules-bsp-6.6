@@ -90,6 +90,8 @@ static void __iomem *g_mfg_vcore_ao_cfg_base;
 static void __iomem *g_mfg_vcore_devapc_base;
 static void __iomem *g_mfg_vcore_bus_trk_base;
 static void __iomem *g_mfg_eb_bus_trk_base;
+static void __iomem *g_mfg_acp_bus_gals_base;
+static void __iomem *g_mfg_acp_gals_top_base;
 static void __iomem *g_mfg_vgpu_bus_trk_base;
 static void __iomem *g_nemi_mi32_smi;
 static void __iomem *g_nemi_mi33_smi;
@@ -248,6 +250,8 @@ unsigned int __gpufreq_get_core_num(void)
 
 void __gpufreq_dump_infra_status(char *log_buf, int *log_len, int log_size)
 {
+	unsigned int val1 = 0, val2 = 0, val3 = 0, val4 = 0;
+
 	if (!g_gpufreq_ready)
 		return;
 
@@ -268,13 +272,33 @@ void __gpufreq_dump_infra_status(char *log_buf, int *log_len, int log_size)
 		"MFG_RPC_SLV_WAY_EN_SET", DRV_Reg32(MFG_RPC_SLV_WAY_EN_SET),
 		"MFG_RPC_SLV_WAY_EN_CLR", DRV_Reg32(MFG_RPC_SLV_WAY_EN_CLR),
 		"MFG_RPC_SLV_CTRL_UPDATE", DRV_Reg32(MFG_RPC_SLV_CTRL_UPDATE));
+
+	/* MFG_DEBUG_SEL 0x48500170 [23:16] MFG_DEBUG_ASYNC_SEL = 2'h08 */
+	DRV_WriteReg32(MFG_DEBUG_SEL, (DRV_Reg32(MFG_DEBUG_SEL) & ~GENMASK(23, 16)) | BIT(19));
+	val1 = DRV_Reg32(MFG_DEBUG_ASYNC);
+	/* MFG_DEBUG_SEL 0x48500170 [23:16] MFG_DEBUG_ASYNC_SEL = 2'h0E */
+	DRV_WriteReg32(MFG_DEBUG_SEL, (DRV_Reg32(MFG_DEBUG_SEL) & ~GENMASK(23, 16)) | GENMASK(19, 17));
+	val2 = DRV_Reg32(MFG_DEBUG_ASYNC);
+	/* MFG_DEBUG_SEL 0x48500170 [23:16] MFG_DEBUG_ASYNC_SEL = 2'h09 */
+	DRV_WriteReg32(MFG_DEBUG_SEL, (DRV_Reg32(MFG_DEBUG_SEL) & ~GENMASK(23, 16)) | BIT(19) | BIT(16));
+	val3 = DRV_Reg32(MFG_DEBUG_ASYNC);
+	/* MFG_DEBUG_SEL 0x48500170 [23:16] MFG_DEBUG_ASYNC_SEL = 2'h0F */
+	DRV_WriteReg32(MFG_DEBUG_SEL, (DRV_Reg32(MFG_DEBUG_SEL) & ~GENMASK(23, 16)) | GENMASK(19, 16));
+	val4 = DRV_Reg32(MFG_DEBUG_ASYNC);
+	GPUFREQ_LOGB(log_buf, log_len, log_size,
+		"%-11s %s=0x%08x, %s=0x%08x, %s=0x%08x, %s=0x%08x",
+		"[MFG_GALS]",
+		"NEMI_M0_TX", val1,
+		"NEMI_M1_TX", val2,
+		"SEMI_M0_TX", val3,
+		"SEMI_M1_TX", val4);
 	GPUFREQ_LOGB(log_buf, log_len, log_size,
 		"%-11s %s=0x%08x, %s=0x%08x, %s=0x%08x, %s=0x%08x",
 		"[EMI_GALS]",
-		"NTH_MFG_EMI1_GALS_SLV", DRV_Reg32(EMI_IFR_NTH_MFG_EMI1_GALS_SLV_DBG),
-		"NTH_MFG_EMI0_GALS_SLV", DRV_Reg32(EMI_IFR_NTH_MFG_EMI0_GALS_SLV_DBG),
-		"STH_MFG_EMI1_GALS_SLV", DRV_Reg32(EMI_IFR_STH_MFG_EMI1_GALS_SLV_DBG),
-		"STH_MFG_EMI0_GALS_SLV", DRV_Reg32(EMI_IFR_STH_MFG_EMI0_GALS_SLV_DBG));
+		"NEMI_M0_RX", DRV_Reg32(EMI_IFR_NTH_MFG_EMI0_GALS_SLV_DBG),
+		"NEMI_M1_RX", DRV_Reg32(EMI_IFR_NTH_MFG_EMI1_GALS_SLV_DBG),
+		"SEMI_M0_RX", DRV_Reg32(EMI_IFR_STH_MFG_EMI0_GALS_SLV_DBG),
+		"SEMI_M1_RX", DRV_Reg32(EMI_IFR_STH_MFG_EMI1_GALS_SLV_DBG));
 	GPUFREQ_LOGB(log_buf, log_len, log_size,
 		"%-11s %s=0x%08x, %s=0x%08x",
 		"[EMI_GALS]",
@@ -348,9 +372,57 @@ void __gpufreq_dump_infra_status(char *log_buf, int *log_len, int log_size)
 		"STH_EMI_BUS_DBG_CTRL", DRV_Reg32(STH_EMI_AO_BUS_U_DEBUG_CTRL0));
 	GPUFREQ_LOGB(log_buf, log_len, log_size,
 		"%-11s %s=0x%08x, %s=0x%08x",
-		"[MFG_ACP]",
+		"[EMI_ACP]",
 		"DVM_GALS_MST", DRV_Reg32(EMI_IFR_MFG_ACP_DVM_GALS_MST_DBG),
 		"GALS_SLV", DRV_Reg32(EMI_IFR_MFG_ACP_GALS_MST_DBG));
+
+	GPUFREQ_LOGB(log_buf, log_len, log_size,
+		"%-11s %s=0x%x, %s=0x%x, %s=0x%x, %s=0x%x",
+		"[MFG_ACP0]",
+		"TBU_M0_AR", (unsigned int)(DRV_Reg32(MFG_AXI_0_ACP_AR_CNT_VAL) & GENMASK(9, 0)),
+		"TBU_M1_AR", (unsigned int)(DRV_Reg32(MFG_AXI_1_ACP_AR_CNT_VAL) & GENMASK(9, 0)),
+		"TBU_M2_AR", (unsigned int)(DRV_Reg32(MFG_AXI_2_ACP_AR_CNT_VAL) & GENMASK(9, 0)),
+		"TBU_M3_AR", (unsigned int)(DRV_Reg32(MFG_AXI_3_ACP_AR_CNT_VAL) & GENMASK(9, 0)));
+	GPUFREQ_LOGB(log_buf, log_len, log_size,
+		"%-11s %s=0x%x, %s=0x%x, %s=0x%x, %s=0x%x",
+		"[MFG_ACP0]",
+		"TBU_M0_AW", (unsigned int)(DRV_Reg32(MFG_AXI_0_ACP_AW_CNT_VAL) & GENMASK(9, 0)),
+		"TBU_M1_AW", (unsigned int)(DRV_Reg32(MFG_AXI_1_ACP_AW_CNT_VAL) & GENMASK(9, 0)),
+		"TBU_M2_AW", (unsigned int)(DRV_Reg32(MFG_AXI_2_ACP_AW_CNT_VAL) & GENMASK(9, 0)),
+		"TBU_M3_AW", (unsigned int)(DRV_Reg32(MFG_AXI_3_ACP_AW_CNT_VAL) & GENMASK(9, 0)));
+	val1 = DRV_Reg32(MFG_AXI_SLPPROT_FREQ_BRIDGE);
+	GPUFREQ_LOGB(log_buf, log_len, log_size,
+		"%-11s %s=0x%x, %s=0x%x, %s=0x%x, %s=0x%x",
+		"[MFG_ACP0]",
+		"MFG1_ACP0_IDLE", (unsigned int)((val1 & BIT(30)) >> 30),
+		"MFG0_ACP0_IDLE", (unsigned int)((val1 & BIT(31)) >> 31),
+		"AFIFO_TX_EMPTY", (unsigned int)(DRV_Reg32(MFG_ACP_BUS_GALS0_SLV_TX_STA0) & GENMASK(2, 0)),
+		"AFIFO_RX_EMPTY", (unsigned int)(DRV_Reg32(MFG_ACP_BUS_GALS0_SLV_RX_STA0) & GENMASK(3, 0)));
+
+	GPUFREQ_LOGB(log_buf, log_len, log_size,
+		"%-11s %s=0x%x, %s=0x%x, %s=0x%x, %s=0x%x",
+		"[MFG_TBU]",
+		"MFG1_NEMI_M0_IDLE", (unsigned int)((val1 & BIT(8)) >> 8),
+		"MFG1_NEMI_M1_IDLE", (unsigned int)((val1 & BIT(10)) >> 10),
+		"MFG1_SEMI_M0_IDLE", (unsigned int)((val1 & BIT(12)) >> 12),
+		"MFG1_SEMI_M1_IDLE", (unsigned int)((val1 & BIT(14)) >> 14));
+	GPUFREQ_LOGB(log_buf, log_len, log_size,
+		"%-11s %s=0x%x, %s=0x%x, %s=0x%x, %s=0x%x",
+		"[MFG_TBU]",
+		"MFG0_NEMI_M0_IDLE", (unsigned int)((val1 & BIT(16)) >> 16),
+		"MFG0_NEMI_M1_IDLE", (unsigned int)((val1 & BIT(18)) >> 18),
+		"MFG0_SEMI_M0_IDLE", (unsigned int)((val1 & BIT(20)) >> 20),
+		"MFG0_SEMI_M1_IDLE", (unsigned int)((val1 & BIT(22)) >> 22));
+
+	val1 = DRV_Reg32(MFG_ACP_SLPPROT_FREQ_BRIDGE);
+	GPUFREQ_LOGB(log_buf, log_len, log_size,
+		"%-11s %s=0x%x, %s=0x%x, %s=0x%x, %s=0x%x",
+		"[MFG_ACP1]",
+		"MFG1_ACP1_IDLE", (unsigned int)((val1 & BIT(2)) >> 2),
+		"MFG0_ACP1_IDLE", (unsigned int)((val1 & BIT(4)) >> 4),
+		"AFIFO_TX_EMPTY", (unsigned int)(DRV_Reg32(MFG_ACP_GALS0_SLV_TX_STA0) & GENMASK(2, 0)),
+		"AFIFO_RX_EMPTY", (unsigned int)(DRV_Reg32(MFG_ACP_GALS0_SLV_RX_STA0) & GENMASK(3, 0)));
+
 	GPUFREQ_LOGB(log_buf, log_len, log_size,
 		"%-11s %s=0x%08x, %s=0x%08x, %s=0x%08lx",
 		"[MISC]",
@@ -1270,6 +1342,30 @@ static int __gpufreq_init_platform_info(struct platform_device *pdev)
 	g_mfg_eb_bus_trk_base = devm_ioremap(gpufreq_dev, res->start, resource_size(res));
 	if (!g_mfg_eb_bus_trk_base) {
 		GPUFREQ_LOGE("fail to ioremap MFG_GPUEB_BUS_TRACKER: 0x%llx", res->start);
+		goto done;
+	}
+
+	/* 0x4B410000 */
+	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "mfg_acp_bus_gals");
+	if (!res) {
+		GPUFREQ_LOGE("fail to get resource MFG_ACP_BUS_GALS");
+		goto done;
+	}
+	g_mfg_acp_bus_gals_base = devm_ioremap(gpufreq_dev, res->start, resource_size(res));
+	if (!g_mfg_acp_bus_gals_base) {
+		GPUFREQ_LOGE("fail to ioremap MFG_ACP_BUS_GALS: 0x%llx", res->start);
+		goto done;
+	}
+
+	/* 0x4B420000 */
+	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "mfg_acp_gals_top");
+	if (!res) {
+		GPUFREQ_LOGE("fail to get resource MFG_ACP_GALS_TOP");
+		goto done;
+	}
+	g_mfg_acp_gals_top_base = devm_ioremap(gpufreq_dev, res->start, resource_size(res));
+	if (!g_mfg_acp_gals_top_base) {
+		GPUFREQ_LOGE("fail to ioremap MFG_ACP_GALS_TOP: 0x%llx", res->start);
 		goto done;
 	}
 

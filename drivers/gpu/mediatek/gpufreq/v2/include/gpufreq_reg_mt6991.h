@@ -30,13 +30,24 @@
 #define MFG_QCHANNEL_CON                       (g_mfg_top_base + 0x00B4)           /* 0x485000B4 */
 #define MFG_DEBUG_SEL                          (g_mfg_top_base + 0x0170)           /* 0x48500170 */
 #define MFG_DEBUG_TOP                          (g_mfg_top_base + 0x0178)           /* 0x48500178 */
+#define MFG_DEBUG_ASYNC                        (g_mfg_top_base + 0x017C)           /* 0x4850017C */
 #define MFG_BRISKET_ST0_AO_CFG_0               (g_mfg_top_base + 0x0370)           /* 0x48500370 */
 #define MFG_BRISKET_ST1_AO_CFG_0               (g_mfg_top_base + 0x0374)           /* 0x48500374 */
 #define MFG_BRISKET_ST2_AO_CFG_0               (g_mfg_top_base + 0x0378)           /* 0x48500378 */
 #define MFG_BRISKET_ST5_AO_CFG_0               (g_mfg_top_base + 0x03A4)           /* 0x485003A4 */
 #define MFG_BRISKET_ST6_AO_CFG_0               (g_mfg_top_base + 0x03A8)           /* 0x485003A8 */
 #define MFG_BRISKET_ST7_AO_CFG_0               (g_mfg_top_base + 0x03AC)           /* 0x485003AC */
+#define MFG_AXI_SLPPROT_FREQ_BRIDGE            (g_mfg_top_base + 0x082C)           /* 0x4850082C */
+#define MFG_ACP_SLPPROT_FREQ_BRIDGE            (g_mfg_top_base + 0x0834)           /* 0x48500834 */
 #define MFG_EARLY_DCM_CON                      (g_mfg_top_base + 0x0B24)           /* 0x48500B24 */
+#define MFG_AXI_0_ACP_AR_CNT_VAL               (g_mfg_top_base + 0x0BD4)           /* 0x48500BD4 */
+#define MFG_AXI_1_ACP_AR_CNT_VAL               (g_mfg_top_base + 0x0BD8)           /* 0x48500BD8 */
+#define MFG_AXI_2_ACP_AR_CNT_VAL               (g_mfg_top_base + 0x0BDC)           /* 0x48500BDC */
+#define MFG_AXI_3_ACP_AR_CNT_VAL               (g_mfg_top_base + 0x0BE0)           /* 0x48500BE0 */
+#define MFG_AXI_0_ACP_AW_CNT_VAL               (g_mfg_top_base + 0x0BE8)           /* 0x48500BE8 */
+#define MFG_AXI_1_ACP_AW_CNT_VAL               (g_mfg_top_base + 0x0BEC)           /* 0x48500BEC */
+#define MFG_AXI_2_ACP_AW_CNT_VAL               (g_mfg_top_base + 0x0BF0)           /* 0x48500BF0 */
+#define MFG_AXI_3_ACP_AW_CNT_VAL               (g_mfg_top_base + 0x0BF4)           /* 0x48500BF4 */
 #define MFG_DEFAULT_DELSEL_00                  (g_mfg_top_base + 0x0C80)           /* 0x48500C80 */
 #define MFG_POWER_TRACKER_SETTING              (g_mfg_top_base + 0x0FE0)           /* 0x48500FE0 */
 #define MFG_POWER_TRACKER_PDC_STATUS0          (g_mfg_top_base + 0x0FE4)           /* 0x48500FE4 */
@@ -95,6 +106,14 @@
 #define MFG_GPUEB_BUS_AW_TRACKER_LOG           (g_mfg_eb_bus_trk_base + 0x10800)   /* 0x4B1A0800 */
 #define MFG_GPUEB_BUS_AW_TRACKER_ID            (g_mfg_eb_bus_trk_base + 0x10900)   /* 0x4B1A0900 */
 #define MFG_GPUEB_BUS_AW_TRACKER_L             (g_mfg_eb_bus_trk_base + 0x10A00)   /* 0x4B1A0A00 */
+
+#define MFG_ACP_BUS_GALS_BASE                  (0x4B410300)
+#define MFG_ACP_BUS_GALS0_SLV_RX_STA0          (g_mfg_acp_bus_gals_base + 0x20)    /* 0x4B410320 */
+#define MFG_ACP_BUS_GALS0_SLV_TX_STA0          (g_mfg_acp_bus_gals_base + 0x64)    /* 0x4B410364 */
+
+#define MFG_ACP_GALS_TOP_BASE                  (0x4B420300)
+#define MFG_ACP_GALS0_SLV_RX_STA0              (g_mfg_acp_gals_top_base + 0x20)    /* 0x4B420320 */
+#define MFG_ACP_GALS0_SLV_TX_STA0              (g_mfg_acp_gals_top_base + 0x64)    /* 0x4B420364 */
 
 #define MFG_RPC_BASE                           (0x4B800000)
 #define MFG_RPC_SLV_WAY_EN_SET                 (g_mfg_rpc_base + 0x0060)           /* 0x4B800060 */
