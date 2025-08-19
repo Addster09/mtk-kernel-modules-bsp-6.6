@@ -86,7 +86,9 @@ struct efuse_reg {
 
 static const struct efuse_reg reg_v0 = {
 	.ck_pdn = EFUSE_V0_TOP_CKPDN_CON0,
+	.ck_pdn_mask = RG_EFUSE_CK_PDN_MASK,
 	.ck_pdn_hwen = EFUSE_V0_TOP_CKHWEN_CON0,
+	.ck_pdn_hwen_mask = RG_EFUSE_CK_PDN_HWEN_MASK,
 	.otp_pa = EFUSE_V0_OTP_CON0,
 	.otp_rd_trig = EFUSE_V0_OTP_CON8,
 	.otp_rd_sw = EFUSE_V0_OTP_CON11,
