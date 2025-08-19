@@ -3698,6 +3698,8 @@ bool mtk_crtc_bif_slbc_request(struct mtk_drm_crtc *mtk_crtc, bool en)
 }
 void mtk_crtc_bif_info_init(struct mtk_drm_crtc *mtk_crtc)
 {
+	struct drm_crtc *crtc = &mtk_crtc->base;
+
 	if (!mtk_crtc->bif_info) {
 		mtk_crtc->bif_info = kzalloc(sizeof(struct mtk_bif_info), GFP_KERNEL);
 		DDPINFO("%s: need allocate memory\n", __func__);
@@ -3707,6 +3709,10 @@ void mtk_crtc_bif_info_init(struct mtk_drm_crtc *mtk_crtc)
 		DDPPR_ERR("%s: bif_info allocate memory fail\n", __func__);
 		return;
 	}
+	mtk_drm_crtc_get_panel_original_size(crtc,
+		&mtk_crtc->bif_info->lcm_width, &mtk_crtc->bif_info->lcm_height);
+
+	DDPINFO("%s,lcm:%dx%d\n", __func__, mtk_crtc->bif_info->lcm_width, mtk_crtc->bif_info->lcm_height);
 }
 void mtk_crtc_update_bif_roi(struct mtk_drm_crtc *mtk_crtc)
 {
@@ -3714,20 +3720,22 @@ void mtk_crtc_update_bif_roi(struct mtk_drm_crtc *mtk_crtc)
 	struct mtk_drm_private *priv = mtk_crtc->base.dev->dev_private;
 	struct mtk_bif_info *bif_info;
 	unsigned int align = priv->data->bif_wdma_limit;
-	unsigned int w, h;
+	unsigned int w = 0, w_dsc = 0, h = 0;
 
 	if (!mtk_crtc->bif_info) {
 		DDPPR_ERR("%s: bif_info_null fail\n", __func__);
 		return;
 	}
 	bif_info = mtk_crtc->bif_info;
-	w = crtc->state->adjusted_mode.hdisplay;
-	h = crtc->state->adjusted_mode.vdisplay;
+	w = (crtc->state->adjusted_mode.hdisplay == 0)?bif_info->lcm_width:crtc->state->adjusted_mode.hdisplay;
+	h = (crtc->state->adjusted_mode.vdisplay == 0)?bif_info->lcm_height:crtc->state->adjusted_mode.vdisplay;
+	w_dsc = (w + 3 - 1)/3;// width_floor after dsc
 
 	if (align)
-		bif_info->wdma_offset = (w%align== 0)?0:(align - (w%align));
+		bif_info->wdma_offset = (align - (w_dsc%align)) % align;
 
-	if ((w != mtk_crtc->scaling_ctx.lcm_width) || (h != mtk_crtc->scaling_ctx.lcm_height)
+	DDPDBG("%s,wxh:%dx%d,w_dsc:%d,offset:%d\n", __func__, w, h, w_dsc, bif_info->wdma_offset);
+	if ((w != bif_info->lcm_width) || (h != bif_info->lcm_height)
 		|| (bif_info->wdma_offset == 0)
 		|| (bif_mode < 0)) {
 		bif_info->bif_enable = BIF_DISABLE;
@@ -3735,8 +3743,9 @@ void mtk_crtc_update_bif_roi(struct mtk_drm_crtc *mtk_crtc)
 	}
 
 	/* w/ dsc, 3:dsc_compress_rate */
-	bif_info->src_roi.width = w/3 + bif_info->wdma_offset;
+	bif_info->src_roi.width = w_dsc + bif_info->wdma_offset;
 	bif_info->src_roi.height = h;
+	DDPDBG("%s,bif_roi:%dx%d\n", __func__, bif_info->src_roi.width, bif_info->src_roi.height);
 
 	if (unlikely(bif_mode)) {
 		bif_info->bif_enable = bif_mode;

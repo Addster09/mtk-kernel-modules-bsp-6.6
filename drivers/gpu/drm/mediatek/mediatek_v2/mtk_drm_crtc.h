@@ -940,6 +940,8 @@ enum BIF_EN_MODE {
 struct mtk_bif_info {
 	int bif_enable;
 	bool racing_en;
+	int lcm_width;
+	int lcm_height;
 	struct mtk_ddp_comp *wb_comp;
 	struct mtk_ddp_comp *read_comp;
 	int wb_frame_done_event;
