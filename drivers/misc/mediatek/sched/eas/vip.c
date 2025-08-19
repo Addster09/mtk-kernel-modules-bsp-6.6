@@ -1301,7 +1301,7 @@ DEFINE_PER_CPU(struct task_struct *, runnable_vip);
 void vip_push_runnable(struct rq *src_rq)
 {
 	int this_cpu = cpu_of(src_rq);
-	int new_cpu = -1;
+	int new_cpu = INT_MAX;
 	struct task_struct *task_to_pushed = per_cpu(runnable_vip, src_rq->cpu);
 	struct vip_task_struct *vts;
 	struct rq *dst_rq;
@@ -1316,10 +1316,7 @@ void vip_push_runnable(struct rq *src_rq)
 	vts->faster_compute_eng = true;
 	mtk_find_energy_efficient_cpu(NULL, task_to_pushed, this_cpu, 0, &new_cpu);
 
-	if (new_cpu < 0)
-		goto put_task;
-
-	if (new_cpu == this_cpu)
+	if (new_cpu == INT_MAX || new_cpu < 0 || new_cpu == this_cpu)
 		goto put_task;
 
 	dst_rq = cpu_rq(new_cpu);
