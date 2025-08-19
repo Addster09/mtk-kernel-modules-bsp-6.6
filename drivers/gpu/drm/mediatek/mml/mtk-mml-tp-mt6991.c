@@ -30,6 +30,10 @@
 #define MML_DL_RROT_S_PX	(1920 * 1088)
 #define MML_MIN_SIZE		480
 #define MML_DC_MAX_DURATION_US	8300
+#define MML_DL_FHD_W		1920
+#define MML_DL_FHD_H		1088
+#define MML_DL_720P_W		1280
+#define MML_DL_720P_H		720
 
 /* use OPP index 0(229Mhz) 1(273Mhz) 2(458Mhz) */
 #define MML_IR_MAX_OPP		2
@@ -1435,6 +1439,28 @@ static enum mml_mode tp_query_mode_dl(struct mml_dev *mml, struct mml_frame_info
 	if (dest->data.width < MML_OUT_MIN_W) {
 		*reason = mml_query_outwidth;
 		goto decouple;
+	}
+
+	if (mml_dl_vdo(mml)) {
+		if (info->src.width > MML_DL_FHD_W ||
+			info->src.width < MML_DL_720P_W) {
+			*reason = mml_query_inwidth;
+			goto decouple;
+		}
+
+		if (info->src.height > MML_DL_FHD_H ||
+			info->src.height < MML_DL_720P_H) {
+			*reason = mml_query_inheight;
+			goto decouple;
+		}
+
+		if ((info->src.width > MML_DL_720P_W ||
+			info->src.height > MML_DL_720P_H) &&
+			(info->dest[0].rotate == MML_ROT_0 ||
+			info->dest[0].rotate == MML_ROT_180)) {
+			*reason = mml_query_rszratio;
+			goto decouple;
+		}
 	}
 
 	/* get mid opp frequency */

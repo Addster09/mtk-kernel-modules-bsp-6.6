@@ -160,6 +160,7 @@ struct mml_dev {
 	struct mutex clock_mutex;
 
 	bool dl_en;
+	bool dl_vdo;
 	bool racing_en;
 	bool dpc_disable;
 	bool v4l2_en;
@@ -1660,6 +1661,12 @@ bool mml_dl_enable(struct mml_dev *mml)
 }
 EXPORT_SYMBOL_GPL(mml_dl_enable);
 
+bool mml_dl_vdo(struct mml_dev *mml)
+{
+	return mml->dl_vdo;
+}
+EXPORT_SYMBOL_GPL(mml_dl_vdo);
+
 bool mml_dpc_disable(struct mml_dev *mml)
 {
 	return mml->dpc_disable;
@@ -2414,6 +2421,10 @@ static int mml_probe(struct platform_device *pdev)
 	mml->dl_en = of_property_read_bool(dev->of_node, "dl-enable");
 	if (mml->dl_en)
 		mml_log("direct link mode enable");
+
+	mml->dl_vdo = of_property_read_bool(dev->of_node, "dl-vdo");
+	if (mml->dl_vdo)
+		mml_log("direct link mode vdo enable");
 #endif
 	mml->dpc_disable = of_property_read_bool(dev->of_node, "dpc-disable");
 	if (mml->dpc_disable)
