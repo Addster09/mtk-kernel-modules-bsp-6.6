@@ -491,7 +491,7 @@ static void mdw_mem_invoke_release(struct kref *ref)
 
 	mdw_mem_show(m_invoke->m);
 	if (m->unbind)
-		m->unbind(m_invoke->invoker, m_invoke->m);
+		m->unbind(m_invoke->invoker->id, m_invoke->m);
 	list_del(&m_invoke->u_node);
 	kfree(m_invoke);
 	map->put(map);
@@ -551,7 +551,7 @@ static int mdw_mem_invoke_create(struct mdw_fpriv *mpriv, struct mdw_mem *m)
 	kref_init(&m_invoke->ref);
 	list_add_tail(&m_invoke->u_node, &mpriv->invokes);
 	if (m->bind) {
-		ret = m->bind(mpriv, m);
+		ret = m->bind(mpriv->id, m);
 		if (ret) {
 			mdw_drv_err("m(0x%llx) bind usr(0x%llx) fail\n",
 				m->id, mpriv->id);

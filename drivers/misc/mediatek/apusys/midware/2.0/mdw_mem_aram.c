@@ -65,7 +65,7 @@ static int mdw_mem_aram_attach(struct dma_buf *dbuf,
 			m->mpriv->id);
 		am->dma_addr = am->addr;
 	} else {
-		ret = mdw_apu_mem_map((uint64_t)m->mpriv, am->sid, &am->dma_addr);
+		ret = mdw_apu_mem_map(m->mpriv->id, am->sid, &am->dma_addr);
 		if (ret) {
 			mdw_drv_err("apumem(0x%llx/%u) map fail\n",
 				m->mpriv->id, am->sid);
@@ -115,7 +115,7 @@ static void mdw_mem_aram_detach(struct dma_buf *dbuf,
 		mdw_mem_debug("s(0x%llx) bypass vlm unmap\n",
 			m->mpriv->id);
 	} else {
-		ret = mdw_apu_mem_unmap((uint64_t)m->mpriv, am->sid);
+		ret = mdw_apu_mem_unmap(m->mpriv->id, am->sid);
 		if (ret) {
 			mdw_drv_warn("s(0x%llx) unmap sid(%u) fail\n",
 				m->mpriv->id, am->sid);
@@ -216,13 +216,13 @@ static int mdw_mem_aram_prepare(struct mdw_fpriv *mpriv,
 	return ret;
 }
 
-static int mdw_mem_aram_bind(void *session, struct mdw_mem *m)
+static int mdw_mem_aram_bind(uint64_t session_id, struct mdw_mem *m)
 {
 	struct mdw_mem_aram *am = (struct mdw_mem_aram *)m->priv;
 
 	mdw_mem_debug("s(0x%llx) m(0x%llx/%u/%u)\n",
 		m->mpriv->id, m->id, m->type, am->sid);
-	if (m->mpriv == session) {
+	if (m->mpriv->id == session_id) {
 		mdw_mem_debug("s(0x%llx) don't need bind\n", m->mpriv->id);
 		return 0;
 	}
@@ -233,16 +233,16 @@ static int mdw_mem_aram_bind(void *session, struct mdw_mem *m)
 		return 0;
 	}
 
-	return mdw_apu_mem_import((uint64_t)session, am->sid);
+	return mdw_apu_mem_import(session_id, am->sid);
 }
 
-static void mdw_mem_aram_unbind(void *session, struct mdw_mem *m)
+static void mdw_mem_aram_unbind(uint64_t session_id, struct mdw_mem *m)
 {
 	struct mdw_mem_aram *am = (struct mdw_mem_aram *)m->priv;
 
 	mdw_mem_debug("s(0x%llx) m(0x%llx/%u/%u)\n",
 		m->mpriv->id, m->id, m->type, am->sid);
-	if (m->mpriv == session) {
+	if (m->mpriv->id == session_id) {
 		mdw_mem_debug("s(0x%llx) don't need unbind\n", m->mpriv->id);
 		return;
 	}
@@ -253,7 +253,7 @@ static void mdw_mem_aram_unbind(void *session, struct mdw_mem *m)
 		return;
 	}
 
-	mdw_apu_mem_unimport((uint64_t)session, am->sid);
+	mdw_apu_mem_unimport(session_id, am->sid);
 }
 
 int mdw_mem_aram_alloc(struct mdw_mem *m)

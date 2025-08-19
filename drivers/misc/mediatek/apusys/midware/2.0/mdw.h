@@ -128,8 +128,8 @@ struct mdw_mem {
 	struct device *mdev;
 	struct dma_buf *dbuf;
 	void *priv;
-	int (*bind)(void *session, struct mdw_mem *m);
-	void (*unbind)(void *session, struct mdw_mem *m);
+	int (*bind)(uint64_t session_id, struct mdw_mem *m);
+	void (*unbind)(uint64_t session_id, struct mdw_mem *m);
 
 	/* map */
 	uint64_t device_va;

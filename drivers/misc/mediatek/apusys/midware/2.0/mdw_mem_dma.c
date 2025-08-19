@@ -339,12 +339,12 @@ static int mdw_dmabuf_mmap(struct dma_buf *dbuf,
 	return ret;
 }
 
-static int mdw_mem_dma_bind(void *session, struct mdw_mem *m)
+static int mdw_mem_dma_bind(uint64_t session_id, struct mdw_mem *m)
 {
 	return 0;
 }
 
-static void mdw_mem_dma_unbind(void *session, struct mdw_mem *m)
+static void mdw_mem_dma_unbind(uint64_t session_id, struct mdw_mem *m)
 {
 }
 

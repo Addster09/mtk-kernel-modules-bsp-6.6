@@ -447,7 +447,7 @@ void mdw_cmd_mpriv_release(struct mdw_fpriv *mpriv)
 		mutex_unlock(&mpriv->mdev->mctl_mtx);
 		mdw_flw_debug("s(0x%llx) release apummu table\n", mpriv->id);
 		mdw_trace_begin("apummu:table_free|s:0x%llx", mpriv->id);
-		apu_mem_table_free((uint64_t)mpriv);
+		apu_mem_table_free(mpriv->id);
 		mdw_trace_end();
 		mdw_flw_debug("s(0x%llx) release history tbl\n", mpriv->id);
 		mdw_cmd_history_tbl_delete(mpriv);
