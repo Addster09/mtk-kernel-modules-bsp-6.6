@@ -1441,28 +1441,6 @@ static enum mml_mode tp_query_mode_dl(struct mml_dev *mml, struct mml_frame_info
 		goto decouple;
 	}
 
-	if (mml_dl_vdo(mml)) {
-		if (info->src.width > MML_DL_FHD_W ||
-			info->src.width < MML_DL_720P_W) {
-			*reason = mml_query_inwidth;
-			goto decouple;
-		}
-
-		if (info->src.height > MML_DL_FHD_H ||
-			info->src.height < MML_DL_720P_H) {
-			*reason = mml_query_inheight;
-			goto decouple;
-		}
-
-		if ((info->src.width > MML_DL_720P_W ||
-			info->src.height > MML_DL_720P_H) &&
-			(info->dest[0].rotate == MML_ROT_0 ||
-			info->dest[0].rotate == MML_ROT_180)) {
-			*reason = mml_query_rszratio;
-			goto decouple;
-		}
-	}
-
 	/* get mid opp frequency */
 	if (tp && tp->qos[mml_sys_frame].opp_cnt) {
 		if (!tp_check_tput_dl(info, tp, panel_width, panel_height, &dual, info_cache)) {

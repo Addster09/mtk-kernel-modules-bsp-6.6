@@ -264,6 +264,15 @@ u16 mml_ir_get_mml_stop_event(struct mml_dev *mml);
 u16 mml_ir_get_target_event(struct mml_dev *mml);
 
 /*
+ * mml_ir_get_config_event - get target line event
+ *
+ * @mml:	The mml driver instance
+ *
+ * Return:	The event id of mml config
+ */
+u16 mml_ir_get_config_event(struct mml_dev *mml);
+
+/*
  * mml_ir_get_cmdq_clt - get cmdq clt
  *
  * @mml:	The mml driver instance

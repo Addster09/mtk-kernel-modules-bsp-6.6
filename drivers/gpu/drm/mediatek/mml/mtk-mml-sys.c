@@ -1478,16 +1478,16 @@ static void mml_sys_taskdone(struct mml_comp *comp, struct mml_task *task,
 		u32 ovldli_status1 = cmdq_pkt_backup_get(pkt, &task->ovl_dli[2]);
 
 		if ((status1 & 0x0fff0000) != (task->dlo_size & 0x0fff0000)) {
-			mml_err("task job %u dlo size %#010x(%u) status %#010x not match ovl %#010x %#010x %#010x",
-				task->job.jobid, task->dlo_size, validx, status1,
+			mml_msg("task job %u dlo size %#010x status %#010x(%u) not match ovl %#010x %#010x %#010x",
+				task->job.jobid, task->dlo_size, status1, validx,
 				ovldli_sz, ovldli_status0, ovldli_status1);
 		} else if (mml_dlo_dbg & BIT(2))
-			mml_log("task job %u dlo size %#010x(%u) status %#010x ovl %#010x %#010x %#010x",
-				task->job.jobid, task->dlo_size, validx, status1,
+			mml_msg("task job %u dlo size %#010x status %#010x(%u) ovl %#010x %#010x %#010x",
+				task->job.jobid, task->dlo_size, status1, validx,
 				ovldli_sz, ovldli_status0, ovldli_status1);
 		else if (mml_dlo_dbg & BIT(1))
-			mml_msg("task job %u dlo size %#010x(%u) status %#010x ovl %#010x %#010x %#010x",
-				task->job.jobid, task->dlo_size, validx, status1,
+			mml_msg("task job %u dlo size %#010x status %#010x(%u) ovl %#010x %#010x %#010x",
+				task->job.jobid, task->dlo_size, status1, validx,
 				ovldli_sz, ovldli_status0, ovldli_status1);
 
 		mml_mmp(dlo, MMPROFILE_FLAG_PULSE, task->dlo_size, status1);

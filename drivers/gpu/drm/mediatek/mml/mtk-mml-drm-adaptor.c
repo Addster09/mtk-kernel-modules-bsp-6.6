@@ -873,7 +873,9 @@ s32 mml_drm_submit(struct mml_drm_ctx *dctx, struct mml_submit *submit,
 		if (mml_dev_couple_inc(ctx->mml, cfg->info.mode) == 1)
 			dctx->racing_begin = true;
 	} else if (cfg->info.mode == MML_MODE_DIRECT_LINK)
-		mml_dev_couple_inc(ctx->mml, cfg->info.mode);
+		/* also mark begin so that disp clear target line event */
+		if (mml_dev_couple_inc(ctx->mml, cfg->info.mode) == 1 && submit->disp_vdo)
+			dctx->racing_begin = true;
 
 	/* make sure id unique and cached last */
 	task->job.jobid = atomic_inc_return(&ctx->job_serial);

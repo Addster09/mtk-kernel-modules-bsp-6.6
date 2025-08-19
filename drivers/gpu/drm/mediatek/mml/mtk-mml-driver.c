@@ -178,6 +178,7 @@ struct mml_dev {
 	u16 event_disp_ready;
 	u16 event_mml_stop;
 	u16 event_mml_target;
+	u16 event_mml_config;
 
 	/* wack lock to prevent system off */
 	struct wakeup_source *wake_lock;
@@ -1716,6 +1717,11 @@ u16 mml_ir_get_target_event(struct mml_dev *mml)
 	return mml->event_mml_target;
 }
 
+u16 mml_ir_get_config_event(struct mml_dev *mml)
+{
+	return mml->event_mml_config;
+}
+
 struct cmdq_client *mml_get_cmdq_clt(struct mml_dev *mml, u32 id)
 {
 	return mml->cmdq_clts[id];
@@ -2457,6 +2463,8 @@ static int mml_probe(struct platform_device *pdev)
 		mml_log("racing event_mml_stop %u", mml->event_mml_stop);
 	if (!of_property_read_u16(dev->of_node, "event-ir-eof", &mml->event_mml_target))
 		mml_log("racing event_mml_target %u", mml->event_mml_target);
+	if (!of_property_read_u16(dev->of_node, "event-mml-config", &mml->event_mml_config))
+		mml_log("racing event_mml_config %u", mml->event_mml_config);
 
 	thread_cnt = of_count_phandle_with_args(
 		dev->of_node, "mboxes", "#mbox-cells");

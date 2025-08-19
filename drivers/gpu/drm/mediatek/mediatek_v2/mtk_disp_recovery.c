@@ -385,6 +385,14 @@ int _mtk_esd_check_read(struct drm_crtc *crtc)
 			mtk_crtc_wait_frame_done(mtk_crtc, cmdq_handle, DDP_SECOND_PATH, 1);
 		else
 			mtk_crtc_wait_frame_done(mtk_crtc, cmdq_handle, DDP_FIRST_PATH, 1);
+
+		if (mtk_crtc->gce_obj.event[EVENT_MML_DISP_DONE_EVENT])
+			cmdq_pkt_set_event(cmdq_handle,
+				mtk_crtc->gce_obj.event[EVENT_MML_DISP_DONE_EVENT]);
+		if (mtk_crtc->gce_obj.event[EVENT_MML_STREAM_CONFIG])
+			cmdq_pkt_wait_no_clear(cmdq_handle,
+				mtk_crtc->gce_obj.event[EVENT_MML_STREAM_CONFIG]);
+
 		cmdq_pkt_wfe(cmdq_handle,
 				mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
 

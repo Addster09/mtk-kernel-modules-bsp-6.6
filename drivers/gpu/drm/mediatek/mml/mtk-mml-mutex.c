@@ -31,7 +31,7 @@
 #define MUTEX_SOF(id, offset)	((offset) + (id) * 0x20)
 #define MUTEX_RST(mux_id, offset)	((offset) + (mux_id) * 0x20)
 
-int mml_mutex_dl_sof = 0x8;
+int mml_mutex_dl_sof;
 module_param(mml_mutex_dl_sof, int, 0644);
 
 struct mutex_data {
@@ -195,6 +195,7 @@ static s32 mutex_trigger(struct mml_comp *comp, struct mml_task *task,
 	const struct mml_topology_path *path = cfg->path[ccfg->pipe];
 	struct cmdq_pkt *pkt = task->pkts[ccfg->pipe];
 	bool sof_en = true;
+	u32 sof = 0;
 	s32 ret;
 
 	/* DL mode and dpc off case, mutex sof control by dsi src */
@@ -207,6 +208,21 @@ static s32 mutex_trigger(struct mml_comp *comp, struct mml_task *task,
 
 			if (mutex_dl_perf_en && ccfg->pipe == 0 && comp == path->mutex)
 				cmdq_pkt_backup_stamp(pkt, &task->perf_prete);
+
+			if (!mutex_dl_disp_sof_vdo && comp->sysid == path->mmlsys->sysid) {
+				u16 event_target = mml_ir_get_target_event(cfg->mml);
+				u16 event_config = mml_ir_get_config_event(cfg->mml);
+				struct mml_mutex_ctl ctl = {
+					.eof_src = DDP_COMPONENT_DSI0,
+				};
+
+				if (event_target && event_config) {
+					cmdq_pkt_clear_event(pkt, event_config);
+					cmdq_pkt_wfe(pkt, event_target);
+				}
+
+				sof = mutex->data->get_mutex_sof(&ctl);
+			}
 		} else {
 			if (mutex_dl_disp_sof) {
 				/* mutex en in disp pkt */
@@ -223,7 +239,7 @@ static s32 mutex_trigger(struct mml_comp *comp, struct mml_task *task,
 	}
 
 	/* DL mode config sof only, other modes enable to trigger directly */
-	ret = mutex_enable(mutex, pkt, path, 0x0, cfg->info.mode, true, sof_en);
+	ret = mutex_enable(mutex, pkt, path, sof, cfg->info.mode, true, sof_en);
 
 	/* asume path->mmlsys2, which is mmlsys0 always put after mmlsys1,
 	 * do disp/mml event sync after both mutex called mutex_enable
@@ -253,6 +269,13 @@ static s32 mutex_trigger(struct mml_comp *comp, struct mml_task *task,
 
 				/* make sure mml wait disp frame done in current te */
 				cmdq_pkt_clear_event(pkt, cfg->info.disp_done_event);
+			}
+
+			if (cfg->disp_vdo) {
+				u16 event_config = mml_ir_get_config_event(cfg->mml);
+
+				if (event_config)
+					cmdq_pkt_set_event(pkt, event_config);
 			}
 
 			/* Note insert disp ready stamp after disp ready event in last mutex,
@@ -670,7 +693,7 @@ static void mutex_addon_config(struct mtk_ddp_comp *ddp_comp,
 		}
 
 		mode = mutex->connected_mode;
-		mml_log("%s change mode %d", __func__, mode);
+		mml_msg("%s change mode %d", __func__, mode);
 	}
 
 	if (mode == MML_MODE_DIRECT_LINK) {
