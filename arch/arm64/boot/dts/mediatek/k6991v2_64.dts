@@ -583,6 +583,16 @@ bootargs_ext = "rcu_nocbs=0-7";
 
 };
 
+/* WF GPIO start */
+&wf_rst_pta_uart_off {
+	pins-cmd1-dat {
+		pinmux = <PINMUX_GPIO246__FUNC_GPIO246>;
+		output-low;
+		bias-pull-down;
+	};
+};
+/* WF GPIO end */
+
 &mt6379_typec {
 	port {
 		tcpc_typec_usb: endpoint {
