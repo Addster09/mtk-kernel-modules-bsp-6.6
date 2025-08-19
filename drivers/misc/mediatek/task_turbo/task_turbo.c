@@ -809,6 +809,7 @@ static void update_cpu_loading(void)
 	mutex_unlock(&cpu_loading_lock);
 }
 
+#if IS_ENABLED(CONFIG_ARM64)
 unsigned long cpu_cap_ceiling(int cpu)
 {
 	unsigned long cap_ceiling;
@@ -818,6 +819,7 @@ unsigned long cpu_cap_ceiling(int cpu)
 	return clamp_t(unsigned long, cap_ceiling,
 		READ_ONCE(per_cpu(min_freq_scale, cpu)), READ_ONCE(per_cpu(max_freq_scale, cpu)));
 }
+#endif
 
 unsigned long get_tgid_util(int tgid)
 {
