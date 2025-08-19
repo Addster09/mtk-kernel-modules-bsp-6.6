@@ -1154,6 +1154,9 @@
 /*VFP period token for Msync*/
 #define CMDQ_SYNC_TOKEN_VFP_PERIOD			645
 #define CMDQ_SYNC_TOKEN_VDO_MODE_CABC_EOF		646
+
+#define CMDQ_SYNC_TOKEN_MML_STREAM_CONFIG		647
+
 /* SW sync token for dual display */
 #define CMDQ_SYNC_TOKEN_CONFIG_DIRTY_1			694
 #define CMDQ_SYNC_TOKEN_STREAM_EOF_1			695
