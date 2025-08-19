@@ -17995,6 +17995,15 @@ void mtk_drm_crtc_plane_disable(struct drm_crtc *crtc, struct drm_plane *plane,
 			if (config_regs_pa > 0)
 				cmdq_pkt_write(cmdq_handle, mtk_crtc->gce_obj.base,
 					config_regs_pa + exdma_addr, 0, ~0);
+
+			if (comp_state->comp_id == DDP_COMPONENT_OVL_EXDMA0) {
+				if ((mtk_crtc->mml_link_state == MML_IR_ENTERING) &&
+					(mtk_crtc->mml_link_state == MML_DIRECT_LINKING)) {
+					mtk_crtc_mml_racing_stop_sync(crtc, cmdq_handle, false);
+					DDPINFO("%s, stop mml sync\n",  __func__, __LINE__,
+						comp_state->comp_id, mtk_crtc->mml_link_state);
+				}
+			}
 		}
 	}
 #ifndef DRM_CMDQ_DISABLE
