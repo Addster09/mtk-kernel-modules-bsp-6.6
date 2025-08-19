@@ -52,6 +52,7 @@ obj-m += ffa_v11.o
 ffa_v11-y += ffa_v11/bus.o
 ffa_v11-y += ffa_v11/driver.o
 ffa_v11-y += ffa_v11/smccc.o
+ccflags-y += -DMTK_ADAPTED_WA=1
 endif # CONFIG_ARM_FFA_TRANSPORT
 
 ifeq ($(TCORE_PROFILING_SUPPORT),y)

@@ -116,6 +116,7 @@ struct ffa_drv_info {
 };
 
 static struct ffa_drv_info *drv_info;
+static void ffa_partitions_cleanup(void);
 
 /*
  * The driver must be able to support all the versions from the earliest
@@ -1193,21 +1194,22 @@ void ffa_device_match_uuid(struct ffa_device *ffa_dev, const uuid_t *uuid)
 	kfree(pbuf);
 }
 
-static void ffa_setup_partitions(void)
+static int ffa_setup_partitions(void)
 {
-	int count, idx;
+	int count = 0, idx = 0, ret = 0;
 	uuid_t uuid;
-	struct ffa_device *ffa_dev;
-	struct ffa_dev_part_info *info;
-	struct ffa_partition_info *pbuf, *tpbuf;
+	struct ffa_device *ffa_dev = NULL;
+	struct ffa_dev_part_info *info = NULL;
+	struct ffa_partition_info *pbuf = NULL, *tpbuf = NULL;
 
 	count = ffa_partition_probe(&uuid_null, &pbuf);
 	if (count <= 0) {
 		pr_info("%s: No partitions found, error %d\n", __func__, count);
-		return;
+		return -EINVAL;
 	}
 
 	xa_init(&drv_info->partition_info);
+	drv_info->partition_count = 0;
 	for (idx = 0, tpbuf = pbuf; idx < count; idx++, tpbuf++) {
 		import_uuid(&uuid, (u8 *)tpbuf->uuid);
 
@@ -1233,18 +1235,51 @@ static void ffa_setup_partitions(void)
 			ffa_device_unregister(ffa_dev);
 			continue;
 		}
-		xa_store(&drv_info->partition_info, tpbuf->id, info, GFP_KERNEL);
+		rwlock_init(&info->rw_lock);
+		ret = xa_insert(&drv_info->partition_info, tpbuf->id,
+				info, GFP_KERNEL);
+		if (ret) {
+			pr_err("%s: failed to save partition ID 0x%x - ret:%d\n",
+			       __func__, tpbuf->id, ret);
+			ffa_device_unregister(ffa_dev);
+			kfree(info);
+		} else {
+			drv_info->partition_count++;
+		}
 	}
-	drv_info->partition_count = count;
 
 	kfree(pbuf);
 
 	/* Allocate for the host */
 	info = kzalloc(sizeof(*info), GFP_KERNEL);
-	if (!info)
-		return;
-	xa_store(&drv_info->partition_info, drv_info->vm_id, info, GFP_KERNEL);
-	drv_info->partition_count++;
+	if (!info) {
+		/* Already registered devices are freed on bus_exit */
+		ffa_partitions_cleanup();
+		return -ENOMEM;
+	}
+
+	rwlock_init(&info->rw_lock);
+	ret = xa_insert(&drv_info->partition_info, drv_info->vm_id,
+			info, GFP_KERNEL);
+	if (ret) {
+#if defined(MTK_ADAPTED_WA) && MTK_ADAPTED_WA
+		pr_warn("%s: failed to save Host partition ID 0x%x - ret:%d. Continuing with it ....\n",
+		       __func__, drv_info->vm_id, ret);
+		ret = 0;
+#else
+		pr_err("%s: failed to save Host partition ID 0x%x - ret:%d. Abort.\n",
+		       __func__, drv_info->vm_id, ret);
+#endif /* defined(MTK_ADAPTED_WA) && MTK_ADAPTED_WA */
+		kfree(info);
+#if !defined(MTK_ADAPTED_WA) || !MTK_ADAPTED_WA
+		/* Already registered devices are freed on bus_exit */
+		ffa_partitions_cleanup();
+#endif /* !defined(MTK_ADAPTED_WA) || !MTK_ADAPTED_WA */
+	} else {
+		drv_info->partition_count++;
+	}
+
+	return ret;
 }
 
 static void ffa_partitions_cleanup(void)
@@ -1562,7 +1597,11 @@ static int __init ffa_init(void)
 	mutex_init(&drv_info->rx_lock);
 	mutex_init(&drv_info->tx_lock);
 
-	ffa_setup_partitions();
+	ret = ffa_setup_partitions();
+	if (ret) {
+		pr_err("failed to setup partitions\n");
+		goto partitions_cleanup;
+	}
 
 	ffa_set_up_mem_ops_native_flag();
 
