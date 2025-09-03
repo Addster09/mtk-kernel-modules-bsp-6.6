@@ -12130,11 +12130,7 @@ skip_prete:
 					GCE_DO(wfe, EVENT_OVLSYS0_MUTEX0_SOF);
 					GCE_DO(clear_event, EVENT_MML_DISP_DONE_EVENT);
 				}
-
-				GCE_DO(wait_no_clear, EVENT_CMD_EOF);
-				GCE_DO(wfe, EVENT_VDO_CABC_EOF);
-				GCE_DO(clear_event, EVENT_CMD_EOF);
-				GCE_DO(set_event, EVENT_VDO_CABC_EOF);
+				GCE_DO(wfe, EVENT_CMD_EOF);
 			}
 
 		} else if (crtc_id == 1) {
