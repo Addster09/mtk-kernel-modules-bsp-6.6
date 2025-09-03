@@ -729,6 +729,7 @@ static inline void cmdq_mmp_init(void)
 {
 #if IS_ENABLED(CONFIG_CMDQ_MMPROFILE_SUPPORT)
 	u32 bit;
+	unsigned long thread_exec = cmdq_mmp_thread_exec;
 
 	mmprofile_enable(1);
 	if (cmdq_mmp.cmdq) {
@@ -748,7 +749,7 @@ static inline void cmdq_mmp_init(void)
 	cmdq_mmp.pkt_size = mmprofile_register_event(cmdq_mmp.cmdq, "pkt_size");
 	cmdq_mmp.wait = mmprofile_register_event(cmdq_mmp.cmdq, "wait");
 
-	for_each_set_bit(bit, (unsigned long *)&cmdq_mmp_thread_exec,
+	for_each_set_bit(bit, &thread_exec,
 		min_t(u32, 32, (u32)ARRAY_SIZE(cmdq_mmp.thread_exec))) {
 		char name[10];
 		u32 len;
@@ -3795,11 +3796,7 @@ static int cmdq_probe(struct platform_device *pdev)
 		mutex_init(&cmdq->thread[i].pkt_id_mutex);
 		INIT_WORK(&cmdq->thread[i].timeout_work,
 			cmdq_thread_handle_timeout_work);
-
-		if (i < ARRAY_SIZE(cmdq_mmp.thread_exec))
-			cmdq->thread[i].mmp_exec = true;
 	}
-
 
 	err = mbox_controller_register(&cmdq->mbox);
 	if (err < 0) {
@@ -3822,6 +3819,11 @@ static int cmdq_probe(struct platform_device *pdev)
 	spin_lock_init(&cmdq->irq_idx_lock);
 
 	cmdq_mmp_init();
+
+	for (i = 0; i < ARRAY_SIZE(cmdq->thread); i++) {
+		if (i < ARRAY_SIZE(cmdq_mmp.thread_exec) && cmdq_mmp.thread_exec[i])
+			cmdq->thread[i].mmp_exec = true;
+	}
 
 	if (cmdq->gce_vm && hw_trace_vm) {
 		cmdq->irq_vm6 = platform_get_irq(pdev, 1);
