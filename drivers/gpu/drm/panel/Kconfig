@@ -878,3 +878,14 @@ config DRM_PANEL_TD4160_HKC_HDP_VDO
 	  td4160 hkc hdp vdo panel. The panel has a 720x1600
 	  resolution and uses 24-bits RGB per pixel. It provides a
 	  MIPI DSI interface to host.
+
+config DRM_PANEL_VTDR6126A_VDO
+	tristate "vtdr6126a vdo panel"
+	depends on OF
+	depends on DRM_MIPI_DSI
+	depends on BACKLIGHT_CLASS_DEVICE
+	help
+	  Say Y here if you want to enable support for vtdr6126a vdo panel.
+	  The panel has a 1260x2800 resolution
+	  and uses 24-bits RGB per pixel. It provides a MIPI DSI
+	  interface to host. It support vdo mode.

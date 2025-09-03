@@ -242,6 +242,7 @@ mgk_64_device_modules = [
     "drivers/gpu/drm/panel/panel-nt51021h-wuxga-vdo-boe.ko",
     "drivers/gpu/drm/panel/panel-n11a-42-02-0a-dsc-vdo.ko",
     "drivers/gpu/drm/panel/k6991v1_64_alpha/panel-nt37706a-boe-fhdplus-vdo.ko",
+    "drivers/gpu/drm/panel/panel-vtdr6126a-vdo.ko",
     "drivers/gpu/mediatek/ged/ged.ko",
     "drivers/gpu/mediatek/gpu_bm/mtk_gpu_qos.ko",
     "drivers/gpu/mediatek/gpueb/mtk_gpueb.ko",

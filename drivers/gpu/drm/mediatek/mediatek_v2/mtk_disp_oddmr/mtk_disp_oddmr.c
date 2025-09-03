@@ -8125,20 +8125,20 @@ static int mtk_oddmr_dbi_init(struct mtk_drm_dbi_cfg_info *cfg_info)
 		return -1;
 	}
 	if (!is_oddmr_dbi_support) {
-		ODDMRFLOW_LOG("dmr is not support\n");
+		ODDMRFLOW_LOG("dbi is not support\n");
 		return -1;
 	}
 	if (g_oddmr_priv->dbi_state != ODDMR_INVALID) {
-		ODDMRFLOW_LOG("dmr can not init, state %d\n", g_oddmr_priv->dmr_state);
+		ODDMRFLOW_LOG("dbi can not init, state %d\n", g_oddmr_priv->dbi_state);
 		return -1;
 	}
 	if (g_oddmr_priv->dbi_enable > 0) {
-		ODDMRFLOW_LOG("dmr can not init when running\n");
+		ODDMRFLOW_LOG("dbi can not init when running\n");
 		return -1;
 	}
 
 	if(!cfg_info){
-		ODDMRFLOW_LOG("dmr config info is NULL\n");
+		ODDMRFLOW_LOG("dbi config info is NULL\n");
 		return -1;
 	}
 
