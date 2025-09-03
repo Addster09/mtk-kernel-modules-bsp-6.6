@@ -1329,9 +1329,9 @@ int (*eara_pre_change_single_fp)(int pid, unsigned long long bufID,
 EXPORT_SYMBOL(eara_pre_change_single_fp);
 
 static void fstb_change_tfps(struct FSTB_FRAME_INFO *iter, int target_fps,
-		int notify_eara)
+		int target_fps_old, int notify_eara)
 {
-	int ret = -1;
+	int ret = -1, tmp_target_fps_diff = 0;
 
 	if (notify_eara && eara_pre_change_single_fp)
 		ret = eara_pre_change_single_fp(iter->pid, iter->bufid, target_fps);
@@ -1349,6 +1349,12 @@ static void fstb_change_tfps(struct FSTB_FRAME_INFO *iter, int target_fps,
 					iter->target_fps_v2, "fstb_target_fps1");
 	} else {
 		iter->target_fps_notifying = target_fps;
+
+		if (iter->target_fps_diff) {
+			tmp_target_fps_diff = target_fps_old * 1000 + iter->target_fps_diff
+				- (target_fps * 1000);
+			iter->target_fps_diff = tmp_target_fps_diff;
+		}
 		fpsgo_systrace_c_fstb_man(iter->pid, iter->bufid,
 			iter->target_fps_notifying, "fstb_notifying");
 	}
@@ -1533,14 +1539,14 @@ static void fstb_calculate_target_fps(int tgid, int pid, unsigned long long bufI
 		goto out;
 
 	if (local_tfps <= 0) {
-		fstb_change_tfps(iter, iter->target_fps, 1);
+		fstb_change_tfps(iter, iter->target_fps, iter->target_fps, 1);
 		fpsgo_main_trace("[fstb][%d][0x%llx] | back to v1 (%d)",
 			iter->pid, iter->bufid, iter->target_fps);
 	} else {
 		target_fps_old = iter->target_fps_v2;
 		target_fps_new = fstb_arbitrate_target_fps(local_tfps, &margin, iter);
 		if (target_fps_old != target_fps_new)
-			fstb_change_tfps(iter, target_fps_new, 1);
+			fstb_change_tfps(iter, target_fps_new, target_fps_old, 1);
 	}
 	iter->target_fps_margin_v2 = margin;
 
@@ -2254,7 +2260,7 @@ static void fstb_fps_stats(struct work_struct *work)
 					&iter->target_fps_margin, iter);
 			if (!iter->self_ctrl_fps_enable) {
 				if (iter->target_fps != local_tfps)
-					fstb_change_tfps(iter, local_tfps, 1);
+					fstb_change_tfps(iter, local_tfps, iter->target_fps, 1);
 			} else
 				iter->target_fps = local_tfps;
 
