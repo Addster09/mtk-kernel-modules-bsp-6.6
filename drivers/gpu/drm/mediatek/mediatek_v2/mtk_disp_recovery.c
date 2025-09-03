@@ -685,7 +685,10 @@ static int mtk_drm_esd_recover(struct drm_crtc *crtc)
 
 	mtk_crtc_hw_block_ready(crtc);
 
-	skip_refresh = mtk_crtc->is_mml || mtk_crtc->is_mml_dl || mtk_crtc->skip_check_trigger;
+	if (priv->data->mmsys_id == MMSYS_MT6899)
+		skip_refresh = mtk_crtc->is_mml_dl || mtk_crtc->skip_check_trigger;
+	else
+		skip_refresh = mtk_crtc->is_mml || mtk_crtc->is_mml_dl || mtk_crtc->skip_check_trigger;
 	if (mtk_crtc_is_frame_trigger_mode(crtc) && !skip_refresh) {
 		struct cmdq_pkt *cmdq_handle;
 
