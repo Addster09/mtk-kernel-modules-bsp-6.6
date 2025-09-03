@@ -412,7 +412,7 @@ static void sys_sync_disp(struct mml_comp *comp, struct mml_task *task,
 	if (cfg->disp_vdo)
 		cmdq_pkt_set_event(pkt, mml_ir_get_mml_ready_event(mml));
 	cmdq_pkt_wfe(pkt, mml_ir_get_disp_ready_event(mml));
-	if (cfg->disp_vdo) {
+	if (cfg->disp_vdo && cfg->info.mode == MML_MODE_RACING) {
 		u16 disp_ready = mml_ir_get_target_event(mml);
 
 		if (disp_ready)
@@ -1235,12 +1235,15 @@ static void sys_reset(struct mml_comp *comp, struct mml_frame_config *cfg, u32 p
 		cfg->info.mode == MML_MODE_APUDC) {
 		struct mml_sys *sys = comp_to_sys(comp);
 		u16 event_ir_eof = mml_ir_get_target_event(cfg->mml);
+		u16 event_disp_done = mml_ir_get_disp_done_event(cfg->mml);
 
 		cmdq_clear_event(path->clt->chan, sys->event_racing_pipe0);
 		cmdq_clear_event(path->clt->chan, sys->event_racing_pipe1);
 		cmdq_clear_event(path->clt->chan, sys->event_racing_pipe1_next);
 		if (event_ir_eof)
 			cmdq_clear_event(path->clt->chan, event_ir_eof);
+		if (event_disp_done)
+			cmdq_clear_event(path->clt->chan, event_disp_done);
 	}
 }
 
@@ -1265,12 +1268,15 @@ static void sys_reset_current(struct mml_comp *comp, struct mml_frame_config *cf
 		cfg->info.mode == MML_MODE_DIRECT_LINK ||
 		cfg->info.mode == MML_MODE_APUDC) {
 		u16 event_ir_eof = mml_ir_get_target_event(cfg->mml);
+		u16 event_disp_done = mml_ir_get_disp_done_event(cfg->mml);
 
 		cmdq_clear_event(path->clt->chan, sys->event_racing_pipe0);
 		cmdq_clear_event(path->clt->chan, sys->event_racing_pipe1);
 		cmdq_clear_event(path->clt->chan, sys->event_racing_pipe1_next);
 		if (event_ir_eof)
 			cmdq_clear_event(path->clt->chan, event_ir_eof);
+		if (event_disp_done)
+			cmdq_clear_event(path->clt->chan, event_disp_done);
 	}
 }
 

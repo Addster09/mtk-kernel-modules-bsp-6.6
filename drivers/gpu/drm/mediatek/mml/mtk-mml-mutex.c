@@ -215,12 +215,12 @@ static s32 mutex_trigger(struct mml_comp *comp, struct mml_task *task,
 				};
 
 				if (comp->sysid == path->mmlsys->sysid) {
-					u16 event_target = mml_ir_get_target_event(cfg->mml);
+					u16 event_disp_done = mml_ir_get_disp_done_event(cfg->mml);
 					u16 event_config = mml_ir_get_config_event(cfg->mml);
 
-					if (event_target && event_config) {
+					if (event_disp_done && event_config) {
 						cmdq_pkt_clear_event(pkt, event_config);
-						cmdq_pkt_wfe(pkt, event_target);
+						cmdq_pkt_wfe(pkt, event_disp_done);
 					}
 				}
 

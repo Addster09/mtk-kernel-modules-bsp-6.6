@@ -264,6 +264,15 @@ u16 mml_ir_get_mml_stop_event(struct mml_dev *mml);
 u16 mml_ir_get_target_event(struct mml_dev *mml);
 
 /*
+ * mml_ir_get_disp_done_event - get disp done event mark by trig loop
+ *
+ * @mml:	The mml driver instance
+ *
+ * Return:	The event id of disp done
+ */
+u16 mml_ir_get_disp_done_event(struct mml_dev *mml);
+
+/*
  * mml_ir_get_config_event - get target line event
  *
  * @mml:	The mml driver instance

@@ -2030,6 +2030,7 @@ static s32 rrot_wait(struct mml_comp *comp, struct mml_task *task,
 {
 	/* wait rdma frame done */
 	cmdq_pkt_wfe(task->pkts[ccfg->pipe], comp_to_rrot(comp)->event_eof);
+
 	return 0;
 }
 

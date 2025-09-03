@@ -12125,6 +12125,12 @@ skip_prete:
 				/*for dynamic Msync on/off,set vfp period token*/
 				GCE_DO(set_event, EVENT_SYNC_TOKEN_VFP_PERIOD);
 			} else {
+				if (mtk_crtc->gce_obj.event[EVENT_OVLSYS0_MUTEX0_SOF]) {
+					GCE_DO(clear_event, EVENT_OVLSYS0_MUTEX0_SOF);
+					GCE_DO(wfe, EVENT_OVLSYS0_MUTEX0_SOF);
+					GCE_DO(clear_event, EVENT_MML_DISP_DONE_EVENT);
+				}
+
 				GCE_DO(wait_no_clear, EVENT_CMD_EOF);
 				GCE_DO(wfe, EVENT_VDO_CABC_EOF);
 				GCE_DO(clear_event, EVENT_CMD_EOF);
@@ -20932,6 +20938,9 @@ static void mtk_crtc_get_event_name(struct mtk_drm_crtc *mtk_crtc, char *buf,
 		break;
 	case EVENT_MML_STREAM_CONFIG:
 		len = snprintf(buf, buf_len, "mml_stream_config");
+		break;
+	case EVENT_OVLSYS0_MUTEX0_SOF:
+		len = snprintf(buf, buf_len, "ovlsys0_mutex0_sof");
 		break;
 	default:
 		DDPPR_ERR("%s invalid event_id:%d\n", __func__, event_id);
