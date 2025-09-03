@@ -137,6 +137,16 @@ static const int disp_mid_wdma_dual_path[] = {
 	DDP_COMPONENT_WDMA2,
 };
 
+static const int disp_mid_wdma_path_v2[] = {
+	DDP_COMPONENT_PANEL0_COMP_OUT_CB2,
+	DDP_COMPONENT_DLO_ASYNC1,
+	DDP_COMPONENT_DLI_ASYNC9,
+	DDP_COMPONENT_COMP0_IN_CB7,
+	DDP_COMPONENT_COMP0_OUT_CB7,
+	DDP_COMPONENT_MERGE0_OUT_CB3,
+	DDP_COMPONENT_WDMA1,
+};
+
 static const int disp_wdma1_path[] = {
 	DDP_COMPONENT_WDMA1,
 };
@@ -399,6 +409,10 @@ static const struct mtk_addon_path_data addon_module_path[ADDON_MODULE_NUM] = {
 		[DISP_WDMA_MID_DUAL] = {
 				.path = disp_mid_wdma_dual_path,
 				.path_len = ARRAY_SIZE(disp_mid_wdma_dual_path),
+			},
+		[DISP_WDMA_MID_v2] = {
+				.path = disp_mid_wdma_path_v2,
+				.path_len = ARRAY_SIZE(disp_mid_wdma_path_v2),
 			},
 		[DISP_WDMA1] = {
 				.path = disp_wdma1_path,

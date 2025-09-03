@@ -4212,6 +4212,10 @@ static const struct mtk_addon_module_data mt6991_addon_mid_dual_wdma_data[] = {
 	{DISP_WDMA_MID_DUAL, ADDON_AFTER, DDP_COMPONENT_PQ0_OUT_CB1},
 };
 
+static const struct mtk_addon_module_data mt6899_addon_mid_wdma_data[] = {
+	{DISP_WDMA_MID_v2, ADDON_AFTER, DDP_COMPONENT_PQ0_OUT_CB0},
+};
+
 static const struct mtk_addon_module_data mt6989_addon_ovl_ufbc_wdma0_data[] = {
 	/* Leroy IWB */
 	{DISP_OVLSYS_UFBC_WDMA0, ADDON_AFTER, DDP_COMPONENT_OVL2_2L},
@@ -4597,6 +4601,62 @@ static const struct mtk_addon_scenario_data mt6989_addon_main[ADDON_SCN_NR] = {
 	[WDMA_WRITE_BACK] = {
 		.module_num = ARRAY_SIZE(mt6989_addon_wdma0_data),
 		.module_data = mt6989_addon_wdma0_data,
+		.hrt_type = HRT_TB_TYPE_GENERAL1,
+	},
+	[WDMA_WRITE_BACK_OVL] = {
+		.module_num = ARRAY_SIZE(mt6989_addon_ovlsys_wdma0_data),
+		.module_data = mt6989_addon_ovlsys_wdma0_data,
+		.hrt_type = HRT_TB_TYPE_GENERAL1,
+	},
+	[TRIPLE_DISP] = {
+		.module_num = 0,
+		.hrt_type = HRT_TB_TYPE_GENERAL1,
+	},
+	[ONE_SCALING] = {
+		.module_num = ARRAY_SIZE(addon_ovl_rsz_data),
+		.module_data = addon_ovl_rsz_data,
+		.hrt_type = HRT_TB_TYPE_GENERAL1,
+	},
+	[MML_RSZ] = {
+		.module_num = ARRAY_SIZE(mt6985_addon_mml_rsz_data),
+		.module_data = mt6985_addon_mml_rsz_data,
+		.hrt_type = HRT_TB_TYPE_GENERAL1,
+	},
+	[MML_SRAM_ONLY] = {
+		.module_num = ARRAY_SIZE(addon_mml_sram_only_data),
+		.module_data = addon_mml_sram_only_data,
+		.hrt_type = HRT_TB_TYPE_RPO_L0,
+	},
+	[MML_DL] = {
+		.module_num = ARRAY_SIZE(mt6985_addon_mml_dl_data),
+		.module_data = mt6985_addon_mml_dl_data,
+		.hrt_type = HRT_TB_TYPE_GENERAL1,
+	},
+	[DSC_COMP] = {
+		.module_num = ARRAY_SIZE(addon_dsc0_data),
+		.module_data = addon_dsc0_data,
+		.hrt_type = HRT_TB_TYPE_GENERAL1,
+	},
+	[IDLE_WDMA_WRITE_BACK] = {
+		.module_num = ARRAY_SIZE(mt6989_addon_ovl_ufbc_wdma0_data),
+		.module_data = mt6989_addon_ovl_ufbc_wdma0_data,
+		.hrt_type = HRT_TB_TYPE_GENERAL1,
+	},
+};
+
+static const struct mtk_addon_scenario_data mt6899_addon_main[ADDON_SCN_NR] = {
+	[NONE] = {
+		.module_num = 0,
+		.hrt_type = HRT_TB_TYPE_GENERAL1,
+	},
+	[WDMA_WRITE_BACK] = {
+		.module_num = ARRAY_SIZE(mt6989_addon_wdma0_data),
+		.module_data = mt6989_addon_wdma0_data,
+		.hrt_type = HRT_TB_TYPE_GENERAL1,
+	},
+	[WDMA_WRITE_BACK_MID] = {
+		.module_num = ARRAY_SIZE(mt6899_addon_mid_wdma_data),
+		.module_data = mt6899_addon_mid_wdma_data,
 		.hrt_type = HRT_TB_TYPE_GENERAL1,
 	},
 	[WDMA_WRITE_BACK_OVL] = {
@@ -5864,7 +5924,7 @@ static const struct mtk_crtc_path_data mt6899_mtk_main_path_data = {
 //	.dual_path_len[0] = ARRAY_SIZE(mt6989_mtk_ddp_dual_main_bringup),
 //	.wb_path[DDP_MAJOR] = mt6983_mtk_ddp_main_wb_path,
 //	.wb_path_len[DDP_MAJOR] = ARRAY_SIZE(mt6983_mtk_ddp_main_wb_path),
-	.addon_data = mt6989_addon_main,
+	.addon_data = mt6899_addon_main,
 //	.addon_data_dual = mt6989_addon_main_dual,
 	.scaling_data = mt6989_scaling_main,
 //	.scaling_data_dual = mt6989_scaling_main_dual,
@@ -5886,7 +5946,7 @@ static const struct mtk_crtc_path_data mt6899_mtk_main_bypass_pc_path_data = {
 //	.dual_path_len[0] = ARRAY_SIZE(mt6989_mtk_ddp_dual_main_bringup),
 //	.wb_path[DDP_MAJOR] = mt6983_mtk_ddp_main_wb_path,
 //	.wb_path_len[DDP_MAJOR] = ARRAY_SIZE(mt6983_mtk_ddp_main_wb_path),
-	.addon_data = mt6989_addon_main,
+	.addon_data = mt6899_addon_main,
 //	.addon_data_dual = mt6989_addon_main_dual,
 	.scaling_data = mt6989_scaling_main,
 //	.scaling_data_dual = mt6989_scaling_main_dual,

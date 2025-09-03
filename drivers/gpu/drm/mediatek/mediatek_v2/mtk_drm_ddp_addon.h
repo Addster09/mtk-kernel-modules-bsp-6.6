@@ -88,6 +88,7 @@ enum addon_module {
 	DSC_1,
 	DISP_WDMA_MID,
 	DISP_WDMA_MID_DUAL,
+	DISP_WDMA_MID_v2,
 	ADDON_MODULE_NUM,
 };
 
