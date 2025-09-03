@@ -15964,6 +15964,21 @@ connsys_emi_config_hyp: connsys-emi-config-hyp {
 		status = "disabled";
 	};
 
+	videogo {
+		compatible =  "mediatek,videogo";
+		/* Create Instance*/
+		cgroup-colocate = <1>;          /* 0:disable, 1:enable */
+		runnable-boost-enable = <0>;    /* 0:disable, 1:enable */
+		/* VP Low Power */
+		cpu-pf-ctrl = <1>;              /* 0:disable, 1:enable */
+		margin-control = <0 0 0>;       /* <0 0 0>:disable     */
+		rt-non-idle-preempt = <0>;      /* 0:disable, 1:enable */
+		runnable-boost-disable = <1>;   /* 0:disable, 1:enable */
+		slc-wce-ctrl = <0>;             /* 0:disable, 1:enable */
+		util-est-boost-disable = <0>;   /* 0:disable, 1:enable */
+	};
+
+
 	slbc: slbc@117800 {
 		compatible = "mediatek,mtk-slbc";
 		reg = <0 0x00117800 0 0x400>;
