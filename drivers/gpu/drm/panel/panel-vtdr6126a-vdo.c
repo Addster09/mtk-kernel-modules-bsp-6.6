@@ -30,7 +30,7 @@
 #include "../../../misc/mediatek/gate_ic/gate_i2c.h"
 
 #ifdef CONFIG_MTK_ROUND_CORNER_SUPPORT
-#include "../mediatek/mediatek_v2/mtk_corner_pattern/mtk_data_hw_roundedpattern.h"
+#include "../mediatek/mediatek_v2/mtk_corner_pattern/panel-vtdr6126a-vdo_rc.h"
 #endif
 
 #define REGFLAG_DELAY               0xFFFC
@@ -712,6 +712,7 @@ static struct mtk_panel_params ext_params_144hz = {
 	.corner_pattern_height_bot = ROUND_CORNER_H_BOT,
 	.corner_pattern_tp_size = sizeof(top_rc_pattern),
 	.corner_pattern_lt_addr = (void *)top_rc_pattern,
+	.corner_pattern_size_per_line = (void *)top_rc_pattern_size_per_line,
 #endif
 };
 
@@ -794,6 +795,7 @@ static struct mtk_panel_params ext_params_120hz = {
 	.corner_pattern_height_bot = ROUND_CORNER_H_BOT,
 	.corner_pattern_tp_size = sizeof(top_rc_pattern),
 	.corner_pattern_lt_addr = (void *)top_rc_pattern,
+	.corner_pattern_size_per_line = (void *)top_rc_pattern_size_per_line,
 #endif
 };
 
@@ -876,6 +878,7 @@ static struct mtk_panel_params ext_params_90hz = {
 	.corner_pattern_height_bot = ROUND_CORNER_H_BOT,
 	.corner_pattern_tp_size = sizeof(top_rc_pattern),
 	.corner_pattern_lt_addr = (void *)top_rc_pattern,
+	.corner_pattern_size_per_line = (void *)top_rc_pattern_size_per_line,
 #endif
 };
 
@@ -958,6 +961,7 @@ static struct mtk_panel_params ext_params_60hz = {
 	.corner_pattern_height_bot = ROUND_CORNER_H_BOT,
 	.corner_pattern_tp_size = sizeof(top_rc_pattern),
 	.corner_pattern_lt_addr = (void *)top_rc_pattern,
+	.corner_pattern_size_per_line = (void *)top_rc_pattern_size_per_line,
 #endif
 };
 
