@@ -2208,7 +2208,13 @@ int mtk_mmqos_probe(struct platform_device *pdev)
 		io_width = 4;
 	else
 		io_width = 2;
-
+#if IS_ENABLED(CONFIG_CAMEREA_PROJECT_TB8766P1) || IS_ENABLED(CONFIG_CAMEREA_PROJECT_TB8766P1_64)
+	if (ddr_type == TYPE_LPDDR3) {
+		hrt->hrt_bw[0] = 1850;
+		hrt->md_speech_bw[0] = 1850;
+		hrt->md_speech_bw[1] = 1850;
+	}
+#endif
 #if IS_ENABLED(CONFIG_MTK_DRAMC) && IS_ENABLED(CONFIG_MTK_EMI)
 	max_freq = mtk_dramc_get_steps_freq(0);
 	chn_cnt = mtk_emicen_get_ch_cnt();
