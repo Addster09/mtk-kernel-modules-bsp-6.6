@@ -35,6 +35,7 @@ struct mtk_disp_vidle_para {
 #define VIDLE_MTCMOS_DEBOUNCE 3
 #define VIDLE_MODE_SWITCH_DEBOUNCE 3
 #define VIDLE_DOZE_DEBOUNCE 3
+#define VIDLE_DT_DEBOUNCE 2
 
 enum mtk_vidle_hint_type {
 	VIDLE_HINT_GET,
@@ -102,5 +103,7 @@ void mtk_vdisp_register(const struct mtk_vdisp_funcs *fp, enum mtk_vdisp_version
 void mtk_vidle_wait_init(void);
 int mtk_vidle_get_power_if_in_use(void);
 void mtk_vidle_put_power(void);
+int mtk_vidle_dt_available(void);
+void mtk_vidle_dt_hint_update(void);
 
 #endif

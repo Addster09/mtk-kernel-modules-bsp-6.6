@@ -20,6 +20,7 @@
 
 static atomic_t g_ff_enabled = ATOMIC_INIT(0);
 static bool vidle_paused;
+static atomic_t g_dt_debounce_cnt = ATOMIC_INIT(-1);
 
 static struct mtk_disp_vidle_para mtk_disp_vidle_flag = {
 	0,	/* vidle_en */
@@ -140,6 +141,23 @@ static void mtk_vidle_dt_enable(unsigned int en)
 		(en && mtk_vidle_check(DISP_VIDLE_QOS_DT_EN)));
 	disp_dpc_driver.dpc_group_enable(DPC_DISP_VIDLE_SRT_BW,
 		(en && mtk_vidle_check(DISP_VIDLE_QOS_DT_EN)));
+}
+
+int mtk_vidle_dt_available(void)
+{
+	if (vidle_data.dpc_version == DPC_VER1)
+		return !atomic_read(&g_dt_debounce_cnt);
+	else
+		return 1;
+}
+
+void mtk_vidle_dt_hint_update(void)
+{
+	if (vidle_data.dpc_version == DPC_VER1 && atomic_read(&g_dt_debounce_cnt) > 0) {
+		atomic_dec(&g_dt_debounce_cnt);
+		if (atomic_read(&g_dt_debounce_cnt) == 0)
+			DDPINFO("%s, dt:%d\n", __func__, atomic_read(&g_dt_debounce_cnt));
+	}
 }
 
 void mtk_vidle_clear_wfe_event(enum mtk_vidle_voter_user user, struct cmdq_pkt *pkt, int event)
@@ -639,9 +657,10 @@ static void mtk_vidle_enable_v1(bool en, void *_drm_priv)
 	}
 	/* TODO: enable timestamp */
 
+	atomic_set(&g_dt_debounce_cnt, en ? VIDLE_DT_DEBOUNCE : -1);
 	status = en;
-	DDPINFO("%s, en:%d, stop:0x%x, pause:%d, status:%d\n", __func__, en,
-		mtk_disp_vidle_flag.vidle_stop, vidle_paused, status);
+	DDPINFO("%s, en:%d, stop:0x%x, pause:%d, status:%d, dt:%d\n", __func__, en,
+		mtk_disp_vidle_flag.vidle_stop, vidle_paused, status, atomic_read(&g_dt_debounce_cnt));
 }
 
 static void mtk_vidle_enable_v2(bool _en, void *_drm_priv)

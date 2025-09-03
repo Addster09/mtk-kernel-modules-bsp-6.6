@@ -16312,7 +16312,7 @@ void mml_cmdq_pkt_init(struct drm_crtc *crtc, struct cmdq_pkt *cmdq_handle)
 	case MML_DIRECT_LINKING:
 		if (mtk_crtc->is_mml) { // mml IR mode
 			//make sure dpc has been enabled, before wait pre-TE
-			if (mtk_vidle_is_ff_enabled()) {
+			if (mtk_vidle_is_ff_enabled() && mtk_vidle_dt_available()) {
 				cmdq_pkt_clear_event(cmdq_handle,
 						mtk_crtc->gce_obj.event[EVENT_DPC_DISP1_PRETE]);
 				cmdq_pkt_wfe(cmdq_handle,
@@ -17693,6 +17693,9 @@ static void mtk_drm_crtc_atomic_begin(struct drm_crtc *crtc,
 
 		/* disable vidle by special case debounce, or enable after mtcmos on debounce */
 		mtk_vidle_hint_decision(__func__);
+	} else if (crtc_id == 0 && mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_VIDLE_TOP_EN)) {
+		if (mtk_dsi_is_cmd_mode(output_comp))
+			mtk_vidle_dt_hint_update();
 	}
 #endif
 
