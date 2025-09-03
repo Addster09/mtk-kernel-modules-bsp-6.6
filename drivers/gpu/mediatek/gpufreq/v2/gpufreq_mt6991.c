@@ -392,12 +392,10 @@ void __gpufreq_dump_infra_status(char *log_buf, int *log_len, int log_size)
 		"TBU_M3_AW", (unsigned int)(DRV_Reg32(MFG_AXI_3_ACP_AW_CNT_VAL) & GENMASK(9, 0)));
 	val1 = DRV_Reg32(MFG_AXI_SLPPROT_FREQ_BRIDGE);
 	GPUFREQ_LOGB(log_buf, log_len, log_size,
-		"%-11s %s=0x%x, %s=0x%x, %s=0x%x, %s=0x%x",
+		"%-11s %s=0x%x, %s=0x%x",
 		"[MFG_ACP0]",
 		"MFG1_ACP0_IDLE", (unsigned int)((val1 & BIT(30)) >> 30),
-		"MFG0_ACP0_IDLE", (unsigned int)((val1 & BIT(31)) >> 31),
-		"AFIFO_TX_EMPTY", (unsigned int)(DRV_Reg32(MFG_ACP_BUS_GALS0_SLV_TX_STA0) & GENMASK(2, 0)),
-		"AFIFO_RX_EMPTY", (unsigned int)(DRV_Reg32(MFG_ACP_BUS_GALS0_SLV_RX_STA0) & GENMASK(3, 0)));
+		"MFG0_ACP0_IDLE", (unsigned int)((val1 & BIT(31)) >> 31));
 
 	GPUFREQ_LOGB(log_buf, log_len, log_size,
 		"%-11s %s=0x%x, %s=0x%x, %s=0x%x, %s=0x%x",
@@ -416,12 +414,10 @@ void __gpufreq_dump_infra_status(char *log_buf, int *log_len, int log_size)
 
 	val1 = DRV_Reg32(MFG_ACP_SLPPROT_FREQ_BRIDGE);
 	GPUFREQ_LOGB(log_buf, log_len, log_size,
-		"%-11s %s=0x%x, %s=0x%x, %s=0x%x, %s=0x%x",
+		"%-11s %s=0x%x, %s=0x%x",
 		"[MFG_ACP1]",
 		"MFG1_ACP1_IDLE", (unsigned int)((val1 & BIT(2)) >> 2),
-		"MFG0_ACP1_IDLE", (unsigned int)((val1 & BIT(4)) >> 4),
-		"AFIFO_TX_EMPTY", (unsigned int)(DRV_Reg32(MFG_ACP_GALS0_SLV_TX_STA0) & GENMASK(2, 0)),
-		"AFIFO_RX_EMPTY", (unsigned int)(DRV_Reg32(MFG_ACP_GALS0_SLV_RX_STA0) & GENMASK(3, 0)));
+		"MFG0_ACP1_IDLE", (unsigned int)((val1 & BIT(4)) >> 4));
 
 	GPUFREQ_LOGB(log_buf, log_len, log_size,
 		"%-11s %s=0x%08x, %s=0x%08x, %s=0x%08lx",
