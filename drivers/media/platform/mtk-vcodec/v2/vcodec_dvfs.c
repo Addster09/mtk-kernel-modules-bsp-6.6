@@ -19,7 +19,6 @@
 #include <linux/ktime.h>
 #include "mtk_vcodec_drv.h"
 #include "vcp_feature_define.h"
-#include "pf_ctrl.h"
 
 struct vcodec_inst *get_inst(struct mtk_vcodec_ctx *ctx)
 {
@@ -777,20 +776,5 @@ void mtk_vcodec_cpu_adaptive_ctrl(struct mtk_vcodec_ctx *ctx, int enable)
 			mtk_vcodec_set_cpu_hint(dev, enable, ctx->type, ctx->id, ctx->cpu_caller_pid, __func__);
 		}
 	}
-}
-
-void mtk_vcodec_cpu_pf_ctrl(struct mtk_vcodec_ctx *ctx, int enable)
-{
-#if IS_ENABLED(CONFIG_MTK_TINYSYS_VCP_SUPPORT)
-	if (ctx == NULL) {
-		mtk_v4l2_debug(0, "%s [VDVFS] ctx is NULL\n", __func__);
-		return;
-	}
-	if (!mtk_vcodec_has_active_inst(ctx->dev, MTK_INST_DECODER)) {
-		mtk_set_pf_ctrl_enable((bool)enable, PF_CTRL_USER_VP);
-		mtk_v4l2_debug(0, "%s [VDVFS] pf dynamic control %s\n", __func__,
-				mtk_get_pf_ctrl_enable()?"enable":"disable");
-	}
-#endif
 }
 
