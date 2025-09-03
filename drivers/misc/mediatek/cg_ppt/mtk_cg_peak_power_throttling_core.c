@@ -1341,6 +1341,26 @@ static int cgppt_get_gpu_combo_usage_count(int idx)
 	return value;
 }
 
+static int cgppt_get_cpu_combo_pb(int idx)
+{
+	int value = 0;
+
+	if (g_dlpt_sram_layout_ptr && idx >= 0 && idx < CPU_PEAK_POWER_COMBO_TABLE_IDX_ROW_COUNT)
+		value = ioread32(&g_dlpt_sram_layout_ptr->peak_power_combo_table_cpu[idx].combopeakpowerin_mw);
+
+	return value;
+}
+
+static int cgppt_get_gpu_combo_pb(int idx)
+{
+	int value = 0;
+
+	if (g_dlpt_sram_layout_ptr && idx >= 0 && idx < GPU_PEAK_POWER_COMBO_TABLE_IDX_ROW_COUNT)
+		value = ioread32(&g_dlpt_sram_layout_ptr->peak_power_combo_table_gpu[idx].combopeakpowerin_mw);
+
+	return value;
+}
+
 static int cgppt_get_cpu_m_scaling_factor(void)
 {
 	int value = 0;
@@ -1511,6 +1531,8 @@ static struct ppb_cgppt_dbg_operation cgppt_dbg_op_t = {
 	.get_combo = cgppt_get_combo_idx,
 	.get_cpucb_cnt = cgppt_get_cpu_combo_usage_count,
 	.get_gpucb_cnt = cgppt_get_gpu_combo_usage_count,
+	.get_cpucb_pb = cgppt_get_cpu_combo_pb,
+	.get_gpucb_pb = cgppt_get_gpu_combo_pb,
 	.get_cg_bgt = cgppt_get_cg_budget,
 };
 

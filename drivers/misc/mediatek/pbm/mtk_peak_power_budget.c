@@ -46,6 +46,8 @@
 #define HPT_PREUV_VOLT_DEFAULT   2 //0(2.4V), 1(2.6V) 2(2.8V) 3(3.0V) 4(3.2V)
 #define PPB_MODE_DEFAULT         12
 #define DEFAULT_COMBO0_UISOC MAX_VALUE
+#define DEFAULT_MINCOMBO_TEMP_THD MAX_VALUE
+#define DEFAULT_MINCOMBO_MIN_COMBO 7
 
 static bool mt_ppb_debug;
 static spinlock_t ppb_lock;
@@ -820,6 +822,7 @@ static void bat_handler(struct work_struct *work)
 	unsigned int temp_stage, uisoc_stage, aging_stage = 0;
 	int ret = 0, soc, temp, volt, qmax, cycle, bat_rdc, uisoc, i, cb_idx;
 	bool loop;
+	int min_power = 0;
 
 	if (!pb.psy)
 		return;
@@ -944,9 +947,20 @@ static void bat_handler(struct work_struct *work)
 		if (uisoc >= pb.combo0_uisoc ||
 			(pb.combo0_uisoc == DEFAULT_COMBO0_UISOC && pb.fix_combo0[cb_idx] > 0)) {
 			pb.sys_power_noerr = 100000;
-		} else
+		} else {
 			pb.sys_power_noerr = get_sys_power_budget(pb.ocv_noerr, pb.cur_rdc, pb.cur_rac, pb.ocp,
 				pb.uvlo);
+
+			if (pb.version >= 2 && temp >= pb.mincombo_temp_thd) {
+				if (cgppt_dbg_ops && cgppt_dbg_ops->get_cpucb_pb) {
+					min_power = cgppt_dbg_ops->get_cpucb_pb(pb.mincombo_min_combo);
+					if (pb.sys_power_noerr < min_power + 1)
+						pb.sys_power_noerr = min_power + 1;
+				}
+			}
+			pr_info("mincombo: temp=%d temp_thd=%d min_combo=%d pb.sys_power_noerr=%d min_power=%d\n",
+				temp, pb.mincombo_temp_thd, pb.mincombo_min_combo, pb.sys_power_noerr, min_power);
+		}
 
 		pb.soc = soc;
 		pb.temp = temp;
@@ -1233,6 +1247,12 @@ static int __used read_power_budget_dts(struct platform_device *pdev)
 
 	if (num > 0)
 		of_property_read_u32_array(np, "ppt-fix-cb0", &pb.fix_combo0[0], num);
+
+	if (read_dts_val(np, "mincombo-temp-threshold", &pb.mincombo_temp_thd, 1))
+		pb.mincombo_temp_thd = DEFAULT_MINCOMBO_TEMP_THD;
+
+	if (read_dts_val(np, "mincombo-min-combo", &pb.mincombo_min_combo, 1))
+		pb.mincombo_min_combo = DEFAULT_MINCOMBO_MIN_COMBO;
 
 	if (read_dts_val(np, "battery-circult-rdc", &pb.circuit_rdc, 1))
 		pb.circuit_rdc = BAT_CIRCUIT_DEFAULT_RDC;

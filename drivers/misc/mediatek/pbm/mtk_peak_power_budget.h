@@ -118,6 +118,8 @@ struct power_budget_t {
 	unsigned int ocv;
 	unsigned int sys_power;
 	unsigned int bat_power;
+	int mincombo_temp_thd;
+	unsigned int mincombo_min_combo;
 	struct work_struct bat_work;
 	struct power_supply *psy;
 	struct device *dev;

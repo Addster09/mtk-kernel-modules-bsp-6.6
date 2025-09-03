@@ -11,6 +11,8 @@ extern void cgppt_set_mo_multiscene(int value);
 
 extern int cgppt_get_cpu_combo_usage_count(int idx);
 extern int cgppt_get_gpu_combo_usage_count(int idx);
+extern int cgppt_get_cpu_combo_pb(int idx);
+extern int cgppt_get_gpu_combo_pb(int idx);
 extern int cgppt_get_cpu_m_scaling_factor(void);
 extern int cgppt_get_cpu_b_scaling_factor(void);
 extern int cgppt_get_gpu_scaling_factor(void);

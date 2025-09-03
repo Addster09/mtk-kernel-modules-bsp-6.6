@@ -15,6 +15,8 @@ struct ppb_cgppt_dbg_operation {
 	int (*get_combo)(void);
 	int (*get_cpucb_cnt)(int idx);
 	int (*get_gpucb_cnt)(int idx);
+	int (*get_cpucb_pb)(int idx);
+	int (*get_gpucb_pb)(int idx);
 	int (*get_cg_bgt)(void);
 };
 
