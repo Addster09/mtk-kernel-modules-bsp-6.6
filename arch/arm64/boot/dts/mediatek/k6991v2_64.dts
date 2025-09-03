@@ -873,6 +873,9 @@ bootargs_ext = "rcu_nocbs=0-7";
 	soc-hpt-ctrl-lv2 = <7>;
 	soc-hpt-ctrl-lv3 = <0>;
 
+	mincombo-temp-threshold = <10>;
+	mincombo-min-combo = <8>;
+
 	//hpt-volt = 0(2.4V), 1(2.6V) 2(2.8V) 3(3.0V) 4(3.2V)
 	soc-hpt-volt-lv0 = <2>; //lv0 is high battery level setting
 	soc-hpt-volt-lv1 = <2>;
