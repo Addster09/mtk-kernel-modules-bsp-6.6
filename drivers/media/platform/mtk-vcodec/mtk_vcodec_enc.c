@@ -2964,6 +2964,8 @@ static int vb2ops_venc_start_streaming(struct vb2_queue *q, unsigned int count)
 		mutex_unlock(&ctx->dev->enc_dvfs_mutex);
 	}
 
+	mtk_vcodec_send_info_to_vgo(ctx, MTK_VCODEC_VGO_ADD_INST);
+
 	return 0;
 
 err_set_param:
@@ -3040,6 +3042,8 @@ static void vb2ops_venc_stop_streaming(struct vb2_queue *q)
 				venc_check_release_lock(ctx);
 			}
 		}
+
+		mtk_vcodec_send_info_to_vgo(ctx, MTK_VCODEC_VGO_DEL_INST);
 	}
 
 	if (q->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
@@ -3510,6 +3514,11 @@ static void mtk_venc_worker(struct work_struct *work)
 		mtk_v4l2_debug(1, " %d", mtk_vcodec_get_state(ctx));
 		mutex_unlock(&ctx->worker_lock);
 		return;
+	}
+
+	if (ctx->last_vgo_op_rate != ctx->vgo_op_rate) {
+		//mtk_venc_queue_videogo_info_event(ctx, ctx->vgo_op_rate);
+		ctx->last_vgo_op_rate = ctx->vgo_op_rate;
 	}
 
 	/* check dst_buf, dst_buf may be removed in device_run

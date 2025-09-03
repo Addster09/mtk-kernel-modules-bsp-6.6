@@ -22,6 +22,10 @@
 /* #define FPGA_PWRCLK_API_DISABLE */
 /* #define FPGA_INTERRUPT_API_DISABLE */
 
+#if IS_ENABLED(CONFIG_MTK_VIDEOGO)
+#define MTK_VIDEO_GO_SUPPORT
+#endif
+
 #define mem_slot_range (100*1024ULL) //100KB
 
 #define CODEC_ALLOCATE_MAX_BUFFER_SIZE 0x20000000UL /*512MB, sync with mtk_vcodec_mem.h*/
@@ -38,6 +42,7 @@
 #define MS_TO_NS(X) ((X) * 1000000)
 // FOURCC_STR: fourcc to string
 #define FOURCC_STR(x) ((const char[]){(x) & 0xFF, ((x) >> 8) & 0xFF, ((x) >> 16) & 0xFF, ((x) >> 24) & 0xFF, 0})
+#define INST_TYPE_STR(x) (((x) == MTK_INST_DECODER) ? "dec" : "enc")
 
 #define isENCODE_PERFORMANCE_USAGE(w, h, fr, opr) \
 		((((w) >= 3840 && (h) >= 2160 && (fr) >= 30) || \
@@ -141,6 +146,13 @@ enum mtk_vcodec_flags {
 	CROP_CHANGED = 1 << 2,
 	REF_FREED = 1 << 3,
 	COLOR_ASPECT_CHANGED = 1 << 4
+};
+
+enum mtk_vcodec_send_vgo_type {
+	MTK_VCODEC_VGO_OPEN,
+	MTK_VCODEC_VGO_ADD_INST,
+	MTK_VCODEC_VGO_DEL_INST,
+	MTK_VCODEC_VGO_UPDATE
 };
 
 struct mtk_vcodec_msgq {
@@ -372,10 +384,8 @@ void __iomem *mtk_vcodec_get_dec_reg_addr(struct mtk_vcodec_ctx *data,
 	unsigned int reg_idx);
 void __iomem *mtk_vcodec_get_enc_reg_addr(struct mtk_vcodec_ctx *data,
 	unsigned int reg_idx);
-void mtk_vcodec_set_curr_ctx(struct mtk_vcodec_dev *dev,
-	struct mtk_vcodec_ctx *ctx, unsigned int hw_id);
-struct mtk_vcodec_ctx *mtk_vcodec_get_curr_ctx(struct mtk_vcodec_dev *dev,
-	unsigned int hw_id);
+void mtk_vcodec_set_curr_ctx(struct mtk_vcodec_dev *dev, struct mtk_vcodec_ctx *ctx, unsigned int hw_id);
+struct mtk_vcodec_ctx *mtk_vcodec_get_curr_ctx(struct mtk_vcodec_dev *dev, unsigned int hw_id);
 void mtk_vcodec_add_ctx_list(struct mtk_vcodec_ctx *ctx);
 void mtk_vcodec_del_ctx_list(struct mtk_vcodec_ctx *ctx);
 bool mtk_vcodec_ctx_list_empty(struct mtk_vcodec_dev *dev);
@@ -414,6 +424,9 @@ void mtk_vcodec_get_log(struct mtk_vcodec_ctx *ctx, struct mtk_vcodec_dev *dev,
 	void (*get_vcu_vpud_log)(struct mtk_vcodec_ctx *ctx, void *out));
 void mtk_vcodec_init_slice_info(struct mtk_vcodec_ctx *ctx, struct mtk_video_dec_buf *dst_buf_info);
 void mtk_vcodec_check_alive(struct timer_list *t);
+
+void mtk_vcodec_vgo_send(int type, void *data);
+void mtk_vcodec_send_info_to_vgo(struct mtk_vcodec_ctx *ctx, enum mtk_vcodec_send_vgo_type type);
 
 void mtk_vcodec_set_cpu_hint(struct mtk_vcodec_dev *dev, bool enable,
 	enum mtk_instance_type type, int ctx_id, int caller_pid, const char *debug_str);
