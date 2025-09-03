@@ -209,16 +209,19 @@ static s32 mutex_trigger(struct mml_comp *comp, struct mml_task *task,
 			if (mutex_dl_perf_en && ccfg->pipe == 0 && comp == path->mutex)
 				cmdq_pkt_backup_stamp(pkt, &task->perf_prete);
 
-			if (!mutex_dl_disp_sof_vdo && comp->sysid == path->mmlsys->sysid) {
-				u16 event_target = mml_ir_get_target_event(cfg->mml);
-				u16 event_config = mml_ir_get_config_event(cfg->mml);
+			if (!mutex_dl_disp_sof_vdo) {
 				struct mml_mutex_ctl ctl = {
 					.eof_src = DDP_COMPONENT_DSI0,
 				};
 
-				if (event_target && event_config) {
-					cmdq_pkt_clear_event(pkt, event_config);
-					cmdq_pkt_wfe(pkt, event_target);
+				if (comp->sysid == path->mmlsys->sysid) {
+					u16 event_target = mml_ir_get_target_event(cfg->mml);
+					u16 event_config = mml_ir_get_config_event(cfg->mml);
+
+					if (event_target && event_config) {
+						cmdq_pkt_clear_event(pkt, event_config);
+						cmdq_pkt_wfe(pkt, event_target);
+					}
 				}
 
 				sof = mutex->data->get_mutex_sof(&ctl);
