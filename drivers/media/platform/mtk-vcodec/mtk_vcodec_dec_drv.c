@@ -123,10 +123,13 @@ static int fops_vcodec_open(struct file *file)
 
 	mutex_lock(&dev->dev_mutex);
 	ctx->dec_flush_buf = mtk_buf;
+	ctx->type = MTK_INST_DECODER;
 	dev->id_counter++;
 	if (dev->id_counter == 0)
 		dev->id_counter++;
 	ctx->id = dev->id_counter;
+	mtk_vcodec_send_info_to_vgo(ctx, MTK_VCODEC_VGO_OPEN);
+
 	v4l2_fh_init(&ctx->fh, video_devdata(file));
 	file->private_data = &ctx->fh;
 	v4l2_fh_add(&ctx->fh);
@@ -149,7 +152,6 @@ static int fops_vcodec_open(struct file *file)
 	spin_lock_init(&ctx->state_lock);
 	spin_lock_init(&ctx->lpw_lock);
 
-	ctx->type = MTK_INST_DECODER;
 	ret = mtk_vcodec_dec_ctrls_setup(ctx);
 	if (ret) {
 		mtk_v4l2_err("Failed to setup mt vcodec controls");

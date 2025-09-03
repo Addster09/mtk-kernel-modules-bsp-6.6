@@ -784,7 +784,6 @@ bool mtk_vdec_dvfs_monitor_op_rate(struct mtk_vcodec_ctx *ctx, int buf_type)
 	unsigned int cur_op, tmp_op;/* monitored op in the prev interval */
 	int prev_op;
 	bool update_op = false;
-	int ret;
 
 	if (buf_type != V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE ||
 		!ctx->dev->vdec_dvfs_params.mmdvfs_in_adaptive)
