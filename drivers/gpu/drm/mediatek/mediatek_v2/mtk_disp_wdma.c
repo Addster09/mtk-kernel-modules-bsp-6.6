@@ -671,6 +671,8 @@ static void mtk_wdma_stop(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle)
 	int crtc_idx = drm_crtc_index(&comp->mtk_crtc->base);
 	struct mtk_drm_private *priv = comp->mtk_crtc->base.dev->dev_private;
 
+	DDPMSG("%s,[capture] stop wdma\n", __func__);
+
 	if (wdma->info_data->is_support_ufbc) {
 		mtk_ddp_write(comp, 0, DISP_REG_UFBC_WDMA_EN, handle);
 		if (priv && !mtk_drm_helper_get_opt(priv->helper_opt,

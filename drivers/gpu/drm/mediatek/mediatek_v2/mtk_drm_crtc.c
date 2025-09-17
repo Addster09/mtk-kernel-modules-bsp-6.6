@@ -19152,6 +19152,9 @@ int mtk_crtc_gce_flush(struct drm_crtc *crtc, void *gce_cb,
 			}
 			mtk_crtc_release_output_buffer_fence_by_idx(crtc, session_id, fence_idx);
 			kfree(wb_cb_data);
+			DDPMSG("%s: skip wdma disconnect, wb_skip_sec_buf:%d, fb_secure:%d, crtc_blank:%d\n",
+				__func__, priv->data->wb_skip_sec_buf,
+				 mtk_crtc_check_fb_secure(crtc), mtk_crtc->crtc_blank);
 			return 0;
 		}
 
