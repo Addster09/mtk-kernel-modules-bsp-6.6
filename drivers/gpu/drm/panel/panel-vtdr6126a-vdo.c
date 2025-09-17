@@ -56,28 +56,28 @@
 #define MODE_0_FPS                  144
 #define MODE_0_VFP                  76
 #define MODE_0_HFP                  26
-#define MODE_0_DATA_RATE            1112
+#define MODE_0_DATA_RATE            1286
 /*Parameter setting for 144Hz End*/
 
 /*Parameter setting for 120Hz Start*/
 #define MODE_1_FPS                  120
-#define MODE_1_VFP                  76
-#define MODE_1_HFP                  114
-#define MODE_1_DATA_RATE            1112
+#define MODE_1_VFP                  53
+#define MODE_1_HFP                  120
+#define MODE_1_DATA_RATE            1286
 /*Parameter setting for 120Hz End*/
 
 /*Parameter setting for 90Hz Start*/
 #define MODE_2_FPS                  90
-#define MODE_2_VFP                  1016
-#define MODE_2_HFP                  114
-#define MODE_2_DATA_RATE            1112
+#define MODE_2_VFP                  980
+#define MODE_2_HFP                  120
+#define MODE_2_DATA_RATE            1286
 /*Parameter setting for 90Hz End*/
 
 /*Parameter setting for 60Hz Start*/
 #define MODE_3_FPS                  60
-#define MODE_3_VFP                  2892
-#define MODE_3_HFP                  114
-#define MODE_3_DATA_RATE            1112
+#define MODE_3_VFP                  2820
+#define MODE_3_HFP                  120
+#define MODE_3_DATA_RATE            1286
 /*Parameter setting for 60Hz End*/
 
 /* DSC RELATED */
@@ -812,7 +812,7 @@ static struct mtk_panel_params ext_params_120hz = {
 		.dfps_cmd_table[0] = {0, 2, {0x6C, 0x01}}, //120Hz
 	},
 	.data_rate = MODE_1_DATA_RATE,
-	.vfp_low_power = 2892, // HS idle to 60 fps
+	.vfp_low_power = 2820, // HS idle to 60 fps
 	.low_power_fps = {
 		.switch_en = 1,
 		.dfps_cmd_table[0] = {0, 2, {0x6C, 0x03}}, //60Hz
@@ -820,8 +820,8 @@ static struct mtk_panel_params ext_params_120hz = {
 	//.tran_panel_params = &panel_driver_status,
 	.dyn = {
 		.switch_en = 1,
-		.pll_clk = 561,
-		.vfp_lp_dyn = 2950,
+		.pll_clk = 657,
+		.vfp_lp_dyn = 2840,
 		.hfp = 114,
 		.vfp = 76,
 	},
@@ -899,7 +899,7 @@ static struct mtk_panel_params ext_params_90hz = {
 		.dfps_cmd_table[0] = {0, 2, {0x6C, 0x02}}, //90Hz
 	},
 	.data_rate = MODE_2_DATA_RATE,
-	.vfp_low_power = 2892, // HS idle to 60 fps
+	.vfp_low_power = 2820, // HS idle to 60 fps
 	.low_power_fps = {
 		.switch_en = 1,
 		.dfps_cmd_table[0] = {0, 2, {0x6C, 0x03}}, //60Hz
@@ -907,8 +907,8 @@ static struct mtk_panel_params ext_params_90hz = {
 	//.tran_panel_params = &panel_driver_status,
 	.dyn = {
 		.switch_en = 1,
-		.pll_clk = 561,
-		.vfp_lp_dyn = 2950,
+		.pll_clk = 657,
+		.vfp_lp_dyn = 2840,
 		.hfp = 114,
 		.vfp = 1016,
 	},
@@ -987,14 +987,14 @@ static struct mtk_panel_params ext_params_60hz = {
 	},
 	.data_rate = MODE_3_DATA_RATE,
 	#if IDLE_60_TO_45
-	.vfp_low_power = 4700, // HS idle to 45 fps
+	.vfp_low_power = 4720, // HS idle to 45 fps
 	#else
-	.vfp_low_power = 2892, // HS idle to 60 fps
+	.vfp_low_power = 2820, // HS idle to 60 fps
 	#endif	//.tran_panel_params = &panel_driver_status,
 	.dyn = {
 		.switch_en = 1,
-		.pll_clk = 561,
-		.vfp_lp_dyn = 4800,
+		.pll_clk = 657,
+		.vfp_lp_dyn = 2840,
 		.hfp = 114,
 		.vfp = 2892,
 	},
@@ -1028,20 +1028,17 @@ static int lcm_setbacklight_cmdq(void *dsi, dcs_write_gce cb,
 		pr_info("[LCM] %s cb is null\n", __func__);
 		return -1;
 	}
-
-	if (level > 511)
-		level = 511;
+	if (level > 3515)
+		level = 3515;
 
 	//Adjust dim speed 20241212 start
-	if(level <= 255) {
-		mapped_level = level * 3515 / 255;
-		/* after levea hbm, recovery dim speed(0x18) for second normal backlight */
+	if(level <= 3515) {
 		if (ghbm_state)
 			ghbm_state = ghbm_state - 1;
-	} else if (level > 255 && level <= 511) {
-		mapped_level = 3515 + (level - 256) * (4095-3515) / 255;
+	} else if (level > 3515 && level <= 4095) {
 		ghbm_state = 2;
 	}
+	mapped_level = level;
 
 	/* need adjust dim speed(0x08 frame) for hbm diming */
 	if ((ghbm_state == 2) && (dim_speed_change == 0)) {
