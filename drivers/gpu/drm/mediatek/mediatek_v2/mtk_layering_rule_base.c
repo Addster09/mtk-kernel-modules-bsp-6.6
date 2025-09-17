@@ -5186,7 +5186,7 @@ static int layering_rule_start(struct drm_mtk_layering_info *disp_info_user,
 		}
 		scn_decision_flag |= SCN_IDLE;
 		layering_info.hrt_num = HRT_LEVEL_LEVEL0;
-		if (priv && priv->data->need_emi_eff) {
+		if (priv && priv->data && priv->data->need_emi_eff) {
 			weight = (400 * 10000) / default_emi_eff;
 			layering_info.hrt_weight = weight;
 			if (l_rule_info->dal_enable)
