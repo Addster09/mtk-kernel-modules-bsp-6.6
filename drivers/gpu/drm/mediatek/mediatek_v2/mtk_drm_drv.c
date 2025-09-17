@@ -2033,7 +2033,8 @@ static void mtk_atomic_check_res_scaling(struct mtk_drm_crtc *mtk_crtc,
 				__func__, mode->hdisplay, mode->vdisplay,
 				mtk_crtc->scaling_ctx.scaling_mode->hdisplay,
 				mtk_crtc->scaling_ctx.scaling_mode->vdisplay);
-		}
+		} else
+			DDPPR_ERR("error fail:%s invalid scaling_mode\n", __func__);
 	} else {
 		mtk_crtc->scaling_ctx.scaling_en = false;
 		mtk_crtc->scaling_ctx.scaling_mode = mode;
@@ -2077,7 +2078,8 @@ static void mtk_atomic_check_res_switch(struct mtk_drm_private *private,
 			if ((mode->hdisplay == old_mode->hdisplay) &&
 				(mode->vdisplay == old_mode->vdisplay))
 				return;
-
+			if (!mtk_crtc->scaling_ctx.scaling_mode)
+				return;
 			DDPMSG("%s++ resolution switch:%dx%d->%dx%d,fps:%d->%d\n", __func__,
 				old_mode->hdisplay, old_mode->vdisplay,
 				mode->hdisplay, mode->vdisplay,
