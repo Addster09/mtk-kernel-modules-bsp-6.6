@@ -2360,6 +2360,27 @@ static const struct mml_comp_config_ops dl_config_ops = {
 #define OVL_DLI_ASYNC1_STATUS0 0x32800308
 #define OVL_DLI_ASYNC1_STATUS1 0x3280030c
 
+static s32 dl_wait_mt6991f(struct mml_comp *comp, struct mml_task *task,
+	struct mml_comp_config *ccfg, u32 idx)
+{
+	if (task->config->info.mode == MML_MODE_DIRECT_LINK) {
+		struct mml_frame_config *cfg = task->config;
+
+		if (cfg->disp_vdo && !mutex_dl_nopoll_dlo) {
+			const phys_addr_t pa = comp->base_pa + MT6991_MML_DLO_ASYNC5_STATUS1;
+			struct dl_frame_data *dl_frm = dl_frm_data(ccfg);
+			u32 size = dl_frm->max_size.height << 16;
+
+			mml_msg("%s dlo poll %#x addr %#llx", __func__, size, pa);
+			cmdq_pkt_poll_sleep(task->pkts[ccfg->pipe], size, pa, GENMASK(29, 16));
+		}
+
+		cmdq_pkt_wfe(task->pkts[ccfg->pipe], task->config->info.disp_done_event);
+	}
+
+	return 0;
+}
+
 static s32 dlo_post_mt6991f(struct mml_comp *comp, struct mml_task *task,
 		   struct mml_comp_config *ccfg)
 {
@@ -2405,7 +2426,7 @@ static s32 dlo_post_mt6991f(struct mml_comp *comp, struct mml_task *task,
 
 static const struct mml_comp_config_ops dlo_config_ops_mt6991f = {
 	.tile = dl_config_tile,
-	.wait = dl_wait,
+	.wait = dl_wait_mt6991f,
 	.post = dlo_post_mt6991f,
 };
 
