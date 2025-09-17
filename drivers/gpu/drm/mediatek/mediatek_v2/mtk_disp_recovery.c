@@ -174,9 +174,9 @@ static void esd_cmdq_timeout_cb(struct cmdq_cb_data data)
 static void esd_check_done_cb(struct cmdq_cb_data data)
 {
 	struct mtk_cmdq_cb_data *cb_data = data.data;
-	struct drm_crtc *crtc = cb_data->crtc;
+	struct drm_crtc *crtc = NULL;
 	struct mtk_drm_crtc *mtk_crtc = NULL;
-	int index = drm_crtc_index(crtc);
+	int index = 0;
 	struct mtk_ddp_comp *output_comp;
 	bool need_lock = true;
 	struct mtk_drm_private *private = NULL;
@@ -186,33 +186,44 @@ static void esd_check_done_cb(struct cmdq_cb_data data)
 	struct mtk_panel_ext *panel_ext = NULL;
 
 	CRTC_MMP_MARK(index, esd_check, 2, 6);
+
+	if (!cb_data->crtc) {
+		DDPPR_ERR("%s cb_data->crtc is NULL\n", __func__);
+		goto free_pkt;
+	}
+	crtc = cb_data->crtc;
+
 	if (!crtc) {
 		DDPPR_ERR("%s invalid CRTC context, stop thread\n", __func__);
-		goto done;
+		goto free_pkt;
 	}
+
 	mtk_crtc = to_mtk_crtc(crtc);
 	if (!mtk_crtc) {
 		DDPPR_ERR("%s invalid mtk_crtc stop thread\n", __func__);
-		goto done;
+		goto free_pkt;
 	}
+
+	esd_ctx = mtk_crtc->esd_ctx;
+	if (!esd_ctx) {
+		DDPPR_ERR("%s invalid ESD context, stop thread\n", __func__);
+		goto free_pkt;
+	}
+
+	if (!esd_ctx->chk_active)
+		goto done;
+
 	output_comp = mtk_ddp_comp_request_output(mtk_crtc);
 	if (unlikely(!output_comp)) {
 		DDPPR_ERR("%s:invalid output comp\n", __func__);
 		goto done;
 	}
+
+	index = drm_crtc_index(crtc);
 	if (mtk_drm_is_idle(crtc) && mtk_dsi_is_cmd_mode(output_comp)) {
 		DDPINFO("[ESD%u]%s esd check callback in idle\n", index, __func__);
 		mtk_drm_idlemgr_kick(__func__, &mtk_crtc->base, index);
 	}
-	index = drm_crtc_index(crtc);
-	esd_ctx = mtk_crtc->esd_ctx;
-	if (!esd_ctx) {
-		DDPPR_ERR("%s invalid ESD context, stop thread\n", __func__);
-		goto done;
-	}
-
-	if (!esd_ctx->chk_active)
-		goto done;
 
 	panel_ext = mtk_crtc->panel_ext;
 	if (unlikely(!(panel_ext && panel_ext->params))) {
@@ -310,6 +321,7 @@ check_done:
 done:
 	esd_ctx->chk_sta = 0;
 	wake_up_interruptible(&esd_ctx->check_task_wq);
+free_pkt:
 	cmdq_pkt_destroy(cb_data->cmdq_handle);
 	kfree(cb_data);
 }
@@ -333,6 +345,12 @@ int _mtk_esd_check_read(struct drm_crtc *crtc)
 		return -EINVAL;
 	}
 
+	cb_data = kmalloc(sizeof(*cb_data), GFP_KERNEL);
+	if (!cb_data) {
+		DDPPR_ERR("%s:allocate cb_data fail\n", __func__);
+		return -EINVAL;
+	}
+
 	if (mtk_drm_is_idle(crtc) && mtk_dsi_is_cmd_mode(output_comp)) {
 		DDPINFO("[ESD%u]%s esd check in idle\n", index, __func__);
 		mtk_drm_idlemgr_kick(__func__, &mtk_crtc->base, index);
@@ -348,7 +366,7 @@ int _mtk_esd_check_read(struct drm_crtc *crtc)
 
 	cmdq_handle->err_cb.cb = esd_cmdq_timeout_cb;
 	cmdq_handle->err_cb.data = crtc;
-	cb_data = kmalloc(sizeof(*cb_data), GFP_KERNEL);
+
 	cb_data->cmdq_handle = cmdq_handle;
 	cb_data->crtc = crtc;
 	if (is_cmd_mode)
