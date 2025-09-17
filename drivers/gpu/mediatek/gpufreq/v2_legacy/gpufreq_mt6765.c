@@ -1390,10 +1390,15 @@ static enum gpufreq_posdiv __gpufreq_get_posdiv_by_fgpu(unsigned int freq)
 	 *    |  3800   |  1500   |    8    |   475MHz    |   187.5MHz  | (O)
 	 *    |  3800   |  2000   |   16    |   237.5MHz  |   125MHz    | (X)
 	 */
-	if (freq < POSDIV_4_MIN_FREQ)
-		return POSDIV_POWER_8;
-	else
-		return POSDIV_POWER_4;
+	enum gpufreq_posdiv post_divider_power = POSDIV_POWER_4;
+
+	if (freq > POSDIV_4_MAX_FREQ)
+		post_divider_power = POSDIV_POWER_2;
+	else if (freq < POSDIV_4_MIN_FREQ)
+		post_divider_power = POSDIV_POWER_8;
+
+	GPUFREQ_LOGD("@%s: freq = %d, post_divider_power = %d", __func__, freq, post_divider_power);
+	return post_divider_power;
 }
 /* API: scale Freq of GPU via CON1 Reg or FHCTL */
 static int __gpufreq_freq_scale_gpu(unsigned int freq_old, unsigned int freq_new)
