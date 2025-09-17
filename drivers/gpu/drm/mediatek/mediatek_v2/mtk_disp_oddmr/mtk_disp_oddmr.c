@@ -8148,7 +8148,7 @@ static int mtk_oddmr_dbi_init(struct mtk_drm_dbi_cfg_info *cfg_info)
 	dbi_cfg_data_tb1 = &g_oddmr_priv->dbi_cfg_info_tb1;
 	memcpy(dbi_cfg_data, cfg_info, sizeof(struct mtk_drm_dbi_cfg_info));
 
-	if (dbi_cfg_data->basic_info.panel_id_len < 0 || dbi_cfg_data->basic_info.panel_id_len > 16) {
+	if (dbi_cfg_data->basic_info.panel_id_len > 16) {
 		mutex_unlock(&g_dbi_data_lock);
 		ODDMRFLOW_LOG("panelid len %d invalid!\n", dbi_cfg_data->basic_info.panel_id_len);
 		return -1;
@@ -10322,6 +10322,12 @@ static int mtk_oddmr_pq_ioctl_transact(struct mtk_ddp_comp *comp,
 		DDP_MUTEX_LOCK_CONDITION(&default_comp->mtk_crtc->lock, __func__, __LINE__, false);
 		priv = default_comp->mtk_crtc->base.dev->dev_private;
 		*(unsigned int *)params = priv->data->mmsys_id;
+		DDP_MUTEX_UNLOCK_CONDITION(&default_comp->mtk_crtc->lock, __func__, __LINE__, false);
+		break;
+	case PQ_DBI_GET_PANEL_TYPE:
+		ret = 0;
+		DDP_MUTEX_LOCK_CONDITION(&default_comp->mtk_crtc->lock, __func__, __LINE__, false);
+		*(int *)params = (mtk_crtc_is_frame_trigger_mode(&default_comp->mtk_crtc->base)==true)?(1):(0);
 		DDP_MUTEX_UNLOCK_CONDITION(&default_comp->mtk_crtc->lock, __func__, __LINE__, false);
 		break;
 	case PQ_DBI_GET_WIDTH:
