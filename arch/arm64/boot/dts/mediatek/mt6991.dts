@@ -21881,6 +21881,19 @@ connsys_emi_config_hyp: connsys-emi-config-hyp {
 	md-vdigrf = <700000 700000>;
 };
 
+&i2c5 {
+	rt4803@75 {
+		compatible = "richtek,rt4803";
+		reg = <0x75>;
+		richtek,vsel-active-high;
+		regulator-name = "rt4803-regulator";
+		regulator-min-microvolt = <2850000>;
+		regulator-max-microvolt = <4400000>;
+		regulator-allowed-modes = <1 2>;
+		regulator-always-on;
+	};
+};
+
 &i2c14 {
 	rt6160@75 {
 		/* richtek,rt6160-vbb compatbile is for is-existed property */
