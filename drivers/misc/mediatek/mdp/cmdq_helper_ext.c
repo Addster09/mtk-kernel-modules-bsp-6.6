@@ -322,6 +322,11 @@ s32 cmdqCoreRegisterDispatchModCB(
 	if (!cmdq_core_is_valid_group(engGroup))
 		return -EFAULT;
 
+	if (!cmdq_group_cb) {
+		CMDQ_ERR("%s callback group not ready\n", __func__);
+		return -EFAULT;
+	}
+
 	CMDQ_MSG("Register %d group engines' dispatch callback\n",
 		engGroup);
 	callback = &cmdq_group_cb[engGroup];
@@ -337,6 +342,11 @@ s32 cmdqCoreRegisterTrackTaskCB(u32 engGroup,
 
 	if (!cmdq_core_is_valid_group(engGroup))
 		return -EFAULT;
+
+	if (!cmdq_group_cb) {
+		CMDQ_ERR("%s callback group not ready\n", __func__);
+		return -EFAULT;
+	}
 
 	CMDQ_MSG("Register %d group engines' callback\n", engGroup);
 	CMDQ_MSG("trackTask:%ps\n", trackTask);
@@ -354,6 +364,11 @@ s32 cmdqCoreRegisterErrorResetCB(u32 engGroup,
 
 	if (!cmdq_core_is_valid_group(engGroup))
 		return -EFAULT;
+
+	if (!cmdq_group_cb) {
+		CMDQ_ERR("%s callback group not ready\n", __func__);
+		return -EFAULT;
+	}
 
 	CMDQ_MSG("Register %d group engines' callback\n", engGroup);
 	CMDQ_MSG("errorReset:%ps\n", errorReset);
