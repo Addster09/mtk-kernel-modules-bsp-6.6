@@ -338,6 +338,7 @@ static int videogo_process_data(int iotype, void *data)
 			info0->caller_pid = init_data->caller_pid;
 			info0->fourcc = init_data->fourcc;
 			info0->oprate = init_data->oprate;
+			info0->oprate_avdvfs = 0;
 			info0->oprate_vgo = 0;
 
 			if ((init_data->width > 0 && init_data->width < INT_MAX) &&
@@ -641,7 +642,11 @@ static long videogo_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 				data.min_proc_time, data.count);
 		break;
 	case VGO_IOCTL_GET:
-		wait_event_interruptible(service_wq, !kfifo_is_empty(&service_fifo));
+		ret = wait_event_interruptible(service_wq, !kfifo_is_empty(&service_fifo));
+		if (ret < 0) {
+			mtk_vgo_err("wait event return=%d", ret);
+			return -EFAULT;
+		}
 		mutex_lock(&service_mutex);
 		ret = kfifo_out(&service_fifo, &service_info, 1);
 		mutex_unlock(&service_mutex);
