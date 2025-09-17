@@ -1093,12 +1093,14 @@ static void mtk_drm_vdo_mode_leave_idle(struct drm_crtc *crtc)
 		if (state->lye_state.mml_dl_lye) {
 			struct mml_drm_ctx *mml_ctx = mtk_drm_get_mml_drm_ctx(crtc->dev, crtc);
 
-			DDPINFO("%s leave hs dl pkt %#lx\n", __func__, (unsigned long)handle);
-			mml_drm_submit(mml_ctx, mtk_crtc->mml_cfg, &mtk_crtc->mml_cb);
+			if (mml_ctx) {
+				DDPINFO("%s leave hs dl pkt %#lx\n", __func__, (unsigned long)handle);
+				mml_drm_submit(mml_ctx, mtk_crtc->mml_cfg, &mtk_crtc->mml_cb);
 
-			mtk_crtc_mml_addon_config(crtc, ADDON_CONNECT, handle);
+				mtk_crtc_mml_addon_config(crtc, ADDON_CONNECT, handle);
 
-			mml_drm_racing_config_sync(mml_ctx, handle, false);
+				mml_drm_racing_config_sync(mml_ctx, handle, false);
+			}
 		}
 
 		if (priv->data->bif_path_remove)
