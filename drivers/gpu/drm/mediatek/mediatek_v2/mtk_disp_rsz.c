@@ -258,7 +258,7 @@ int mtk_rsz_calc_tile_params(u32 frm_in_len, u32 frm_out_len, bool tile_mode,
 	u32 tile_in_len[2] = {0};
 	u32 tile_out_len[2] = {0};
 	u32 y_in_start, y_in_end, y_out_start, y_out_end, dst_y, dst_height;
-	s64 m_m1_zoom, n_m1_zoom;
+	s64 m_m1_zoom, n_m1_zoom, tmp, quo, rem;
 
 	DDPINFO("%s:%s:in_len:%u,out_len:%u,ori_in_len:%u,ori_out_len:%u\n", __func__,
 		t[0].par_update_y ? "pUpdate:on" : "pUpdate:off", t[0].in_len, t[0].out_len,
@@ -267,7 +267,14 @@ int mtk_rsz_calc_tile_params(u32 frm_in_len, u32 frm_out_len, bool tile_mode,
 	if(t[0].par_update_y){
 		n_m1_zoom = ((s64)t[0].ori_out_len - 1) << 20;
 		m_m1_zoom = ((s64)t[0].ori_in_len - 1) << 20;
-		step = mult_frac(UNIT, m_m1_zoom, n_m1_zoom);
+		#ifdef CONFIG_64BIT
+			step = mult_frac(UNIT, m_m1_zoom, n_m1_zoom);
+		#else
+			quo = (s64)UNIT / n_m1_zoom;
+			rem = (s64)UNIT % n_m1_zoom;
+			tmp = (s64)quo * (s64)m_m1_zoom + div64_s64((s64)rem * (s64)m_m1_zoom, n_m1_zoom);
+			step = (u32)tmp;
+		#endif
 
 		sub_offset[0] = (UNIT * (t[0].ori_in_len - 1) - step *
 			(t[0].ori_out_len - 1)) / 2;
@@ -309,7 +316,14 @@ int mtk_rsz_calc_tile_params(u32 frm_in_len, u32 frm_out_len, bool tile_mode,
 	if (frm_out_len > 1) {
 		n_m1_zoom = ((s64)frm_out_len - 1) << 20;
 		m_m1_zoom = ((s64)frm_in_len - 1) << 20;
-		step = mult_frac(UNIT, m_m1_zoom, n_m1_zoom);
+		#ifdef CONFIG_64BIT
+			step = mult_frac(UNIT, m_m1_zoom, n_m1_zoom);
+		#else
+			quo = (s64)UNIT / n_m1_zoom;
+			rem = (s64)UNIT % n_m1_zoom;
+			tmp = (s64)quo * (s64)m_m1_zoom + div64_s64((s64)rem * (s64)m_m1_zoom, n_m1_zoom);
+			step = (u32)tmp;
+		#endif
 	}
 	else {
 		DRM_ERROR("%s:%d Division by zero\n", __func__, __LINE__);
