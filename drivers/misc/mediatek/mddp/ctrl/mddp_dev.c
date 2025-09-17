@@ -219,10 +219,11 @@ state_show(struct device *dev, struct device_attribute *attr, char *buf)
 	 */
 	entry = mddp_query_dstate(list, seq);
 	while (entry) {
-		ret_num += scnprintf(buf + ret_num, PAGE_SIZE - ret_num,
-				"%s\n",
-				((struct mddp_dstate_t *)entry->rb_data)->str);
-
+		if (entry->rb_data) {
+			ret_num += scnprintf(buf + ret_num, PAGE_SIZE - ret_num,
+					"%s\n",
+					((struct mddp_dstate_t *)entry->rb_data)->str);
+		}
 		seq += 1;
 		entry = mddp_query_dstate(list, seq);
 	}
