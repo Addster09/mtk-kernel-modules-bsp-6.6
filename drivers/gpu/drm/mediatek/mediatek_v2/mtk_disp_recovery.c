@@ -695,6 +695,10 @@ static int mtk_drm_esd_recover(struct drm_crtc *crtc)
 			mtk_crtc_alloc_sram(mtk_crtc, mtk_crtc->mml_ir_sram.expiry_hrt_idx);
 		mtk_crtc_mml_racing_resubmit(crtc, NULL);
 	}
+	/* for reset dli */
+	if ((mtk_crtc->is_mml_dl) && !mtk_crtc_is_frame_trigger_mode(crtc))
+		mtk_crtc->esd_reset_dli = true;
+
 	if (is_bdg_supported())
 		mtk_output_bdg_enable(dsi, false);
 	mtk_ddp_comp_io_cmd(output_comp, NULL, CONNECTOR_PANEL_ENABLE, NULL);
