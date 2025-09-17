@@ -83,6 +83,7 @@ module_param(dbg_urgent_high, int, 0644);
 #define DSI_INTEN 0x08
 
 #define DSI_INTSTA 0x0c
+#define MT6991_DSI_UP_INTSTA 0x14
 #define LPRX_RD_RDY_INT_FLAG BIT(0)
 #define CMD_DONE_INT_FLAG BIT(1)
 #define TE_RDY_INT_FLAG BIT(2)
@@ -7055,6 +7056,7 @@ int mtk_dsi_read_gce(struct mtk_ddp_comp *comp, void *handle,
 {
 	struct mtk_dsi *dsi = container_of(comp, struct mtk_dsi, ddp_comp);
 	struct mtk_drm_crtc *mtk_crtc = (struct mtk_drm_crtc *)ptr;
+	struct mtk_drm_private *priv = NULL;
 	int index = 0;
 
 	if (mtk_crtc == NULL) {
@@ -7066,7 +7068,7 @@ int mtk_dsi_read_gce(struct mtk_ddp_comp *comp, void *handle,
 		pr_info("%s: error! dsi->driver_data=NULL! return!\n", __func__);
 		return -1;
 	}
-
+	priv = (mtk_crtc->base).dev->dev_private;
 	mtk_dsi_power_keep_gce(dsi, handle, true);
 
 	if (dsi->slave_dsi) {
@@ -7086,6 +7088,10 @@ int mtk_dsi_read_gce(struct mtk_ddp_comp *comp, void *handle,
 	cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + DSI_CMDQ_CON(dsi->driver_data),
 		0x2, CMDQ_SIZE);
 
+	if (priv->data->mmsys_id == MMSYS_MT6991)
+		cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + MT6991_DSI_UP_INTSTA,
+			0x0, 0x1);
+
 	if (mtk_dsi_is_cmd_mode(comp) && dsi->driver_data->require_phy_reset)
 		mtk_dsi_runtime_phy_reset_gce(dsi, handle);
 	cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + DSI_START,
@@ -7095,11 +7101,20 @@ int mtk_dsi_read_gce(struct mtk_ddp_comp *comp, void *handle,
 	cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + DSI_START,
 		0x0, ~0);
 	CRTC_MMP_MARK(index, esd_check, 4, 0);
-	mtk_dsi_cmdq_poll(comp, handle, comp->regs_pa + DSI_INTSTA, 0x1, 0x1);
-	CRTC_MMP_MARK(index, esd_check, 4, 1);
-	cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + DSI_INTSTA,
-		0x0, 0x1);
-	CRTC_MMP_MARK(0, esd_check, 0xddd2, 0x3);
+
+	if (priv->data->mmsys_id == MMSYS_MT6991) {
+		mtk_dsi_cmdq_poll(comp, handle, comp->regs_pa + MT6991_DSI_UP_INTSTA, 0x1, 0x1);
+		CRTC_MMP_MARK(index, esd_check, 4, 1);
+		cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + DSI_INTSTA,
+			0x0, 0x1);
+		cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + MT6991_DSI_UP_INTSTA,
+			0x0, 0x1);
+	} else {
+		mtk_dsi_cmdq_poll(comp, handle, comp->regs_pa + DSI_INTSTA, 0x1, 0x1);
+		CRTC_MMP_MARK(index, esd_check, 4, 1);
+		cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + DSI_INTSTA,
+			0x0, 0x1);
+	}
 
 	cmdq_pkt_mem_move(handle, comp->cmdq_base,
 		comp->regs_pa + DSI_RX_DATA0(dsi->driver_data),
