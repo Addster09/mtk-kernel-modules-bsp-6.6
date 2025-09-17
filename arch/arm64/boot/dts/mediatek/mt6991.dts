@@ -4726,7 +4726,7 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 		mmpc-total-pmqos-bw = <0x9ec>;
 		vmmrc-level-hex = <0x5f0>;
 
-		r-hrt-ostdl = <1>;
+		r-hrt-ostdl = <2>;
 		w-hrt-ostdl = <1>;
 	};
 
