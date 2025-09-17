@@ -18006,12 +18006,22 @@ void mtk_drm_crtc_plane_disable(struct drm_crtc *crtc, struct drm_plane *plane,
 					config_regs_pa + exdma_addr, 0, ~0);
 
 			if (comp_state->comp_id == DDP_COMPONENT_OVL_EXDMA0) {
-				if ((mtk_crtc->mml_link_state == MML_IR_ENTERING) &&
+				if ((mtk_crtc->mml_link_state == MML_IR_ENTERING) ||
 					(mtk_crtc->mml_link_state == MML_DIRECT_LINKING)) {
 					mtk_crtc_mml_racing_stop_sync(crtc, cmdq_handle, false);
-					DDPINFO("%s, stop mml sync\n",  __func__, __LINE__,
+					DDPINFO("%s[%d], stop mml sync,comp:%d,mml state:%d\n",  __func__, __LINE__,
 						comp_state->comp_id, mtk_crtc->mml_link_state);
 				}
+			}
+		} else {
+			if ((priv->data->mmsys_id == MMSYS_MT6899) &&
+				(comp_state->comp_id == DDP_COMPONENT_OVL0_2L))
+				if ((mtk_crtc->mml_link_state == MML_IR_ENTERING) ||
+					(mtk_crtc->mml_link_state == MML_DIRECT_LINKING) ||
+					(mtk_crtc->mml_link_state == MML_IR_IDLE)) {
+					mtk_crtc_mml_racing_stop_sync(crtc, cmdq_handle, false);
+					DDPINFO("%s[%d], stop mml sync,comp:%d,mml state:%d\n",  __func__, __LINE__,
+						comp_state->comp_id, mtk_crtc->mml_link_state);
 			}
 		}
 	}
