@@ -920,6 +920,8 @@ enum mtk_ddp_comp_trigger_flag {
 	MTK_TRIG_FLAG_TRIGGER,
 	MTK_TRIG_FLAG_EOF,
 	MTK_TRIG_FLAG_LAYER_REC,
+	MTK_TRIG_FLAG_TRIGGER_VDO,
+	MTK_TRIG_FLAG_EOF_VDO,
 };
 
 enum mtk_ddp_io_cmd {

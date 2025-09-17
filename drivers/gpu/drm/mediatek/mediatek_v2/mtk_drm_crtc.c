@@ -11770,6 +11770,18 @@ static void mtk_set_trig_stage(struct drm_crtc *crtc,
 	cmdq_pkt_write(handle, cmdq_base, slot, event, ~0);
 }
 
+static bool mtk_crtc_trig_loop_wait_sof_vdo(struct drm_crtc *crtc)
+{
+	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
+	struct mtk_ddp_comp *comp = NULL;
+
+	comp = mtk_ddp_comp_sel_in_cur_crtc_path(mtk_crtc, MTK_DISP_ODDMR, 0);
+	if (!comp)
+		return false;
+	return mtk_oddmr_dbi_need_ddren_wa(comp);
+}
+
+
 void mtk_crtc_start_trig_loop(struct drm_crtc *crtc)
 {
 #ifdef DRM_CMDQ_DISABLE
@@ -12129,7 +12141,12 @@ skip_prete:
 					GCE_DO(wfe, EVENT_OVLSYS0_MUTEX0_SOF);
 					GCE_DO(clear_event, EVENT_MML_DISP_DONE_EVENT);
 				}
+				if(mtk_crtc_trig_loop_wait_sof_vdo(crtc)) {
+					GCE_DO(wfe, EVENT_DISP0_MUTEX0_SOF);
+					mtk_crtc_comp_trigger(mtk_crtc, cmdq_handle, MTK_TRIG_FLAG_TRIGGER_VDO);
+				}
 				GCE_DO(wfe, EVENT_CMD_EOF);
+				mtk_crtc_comp_trigger(mtk_crtc, cmdq_handle, MTK_TRIG_FLAG_EOF_VDO);
 			}
 
 		} else if (crtc_id == 1) {
@@ -20956,6 +20973,9 @@ static void mtk_crtc_get_event_name(struct mtk_drm_crtc *mtk_crtc, char *buf,
 		break;
 	case EVENT_OVLSYS0_MUTEX0_SOF:
 		len = snprintf(buf, buf_len, "ovlsys0_mutex0_sof");
+		break;
+	case EVENT_DISP0_MUTEX0_SOF:
+		len = snprintf(buf, buf_len, "dispsys0_mutex0_sof");
 		break;
 	default:
 		DDPPR_ERR("%s invalid event_id:%d\n", __func__, event_id);

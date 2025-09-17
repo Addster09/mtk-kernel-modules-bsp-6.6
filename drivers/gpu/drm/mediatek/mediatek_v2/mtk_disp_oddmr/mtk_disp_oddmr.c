@@ -2393,6 +2393,26 @@ static void mtk_disp_oddmr_config_overhead_v(struct mtk_ddp_comp *comp,
 	oddmr_priv->tile_overhead_v.overhead_v = tile_overhead_v->overhead_v;
 }
 
+bool mtk_oddmr_dbi_need_ddren_wa(struct mtk_ddp_comp *comp)
+{
+	bool ret = false;
+	struct mtk_drm_crtc *mtk_crtc = comp->mtk_crtc;
+	struct mtk_drm_private *priv = NULL;
+
+	if (!mtk_crtc) {
+		DDPPR_ERR("%s oddmr comp not configure CRTC yet\n", __func__);
+		return ret;
+	}
+	if (!mtk_crtc->base.dev)
+		return ret;
+	priv = mtk_crtc->base.dev->dev_private;
+	if(priv && (priv->data->mmsys_id == MMSYS_MT6991)) {
+		if(comp->mtk_crtc->panel_ext->params->is_support_dbi)
+			ret = true;
+	}
+	return ret;
+}
+
 static void mtk_oddmr_first_cfg(struct mtk_ddp_comp *comp,
 		struct mtk_ddp_config *cfg, struct cmdq_pkt *handle)
 {
@@ -10110,6 +10130,23 @@ static void mtk_oddmr_config_trigger(struct mtk_ddp_comp *comp,
 		mtk_oddmr_odr_get_status(comp, handle);
 	}
 		break;
+	case MTK_TRIG_FLAG_TRIGGER_VDO:
+	{
+		if (priv && (priv->data->mmsys_id == MMSYS_MT6991)) {
+			if(comp->mtk_crtc->panel_ext->params->is_support_dbi)
+				mtk_oddmr_dbi_ddren_en(comp, handle, 1);
+		}
+	}
+		break;
+	case MTK_TRIG_FLAG_EOF_VDO:
+	{
+		if (priv && (priv->data->mmsys_id == MMSYS_MT6991)) {
+			if(comp->mtk_crtc->panel_ext->params->is_support_dbi)
+				mtk_oddmr_dbi_ddren_en(comp, handle, 0);
+		}
+	}
+		break;
+
 	default:
 		break;
 	}

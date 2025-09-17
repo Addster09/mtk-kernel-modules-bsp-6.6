@@ -154,6 +154,7 @@ const struct pq_cmd_prop g_pq_cmd_map[] = {
 	{PQ_DMR_BINSET_CHG,                  sizeof(unsigned int),                         PQ_CMD_RW,},
 	{PQ_ODDMR_REG_TUNING_INIT,           sizeof(struct mtk_drm_oddmr_reg_tuning),      PQ_CMD_RW,},
 	{PQ_ODDMR_REG_TUNING_ENABLE,         sizeof(unsigned int),                         PQ_CMD_RW,},
+	{PQ_DBI_GET_PANEL_TYPE,              sizeof(int),                                  PQ_CMD_RW,},
 	{PQ_VIRTUAL_GET_MASTER_INFO,         sizeof(int),                                  PQ_CMD_RW,},
 	{PQ_VIRTUAL_GET_IRQ,                 sizeof(int),                                  PQ_CMD_RW,},
 	{PQ_VIRTUAL_WAIT_CRTC_READY,         sizeof(int),                                  PQ_CMD_RW,},
@@ -742,6 +743,7 @@ int mtk_drm_ioctl_pq_proxy(struct drm_device *dev, void *data, struct drm_file *
 			}
 		}
 	}
+
 	if (cmd > PQ_GET_CMD_START) {
 		if (copy_to_user((void __user *)params->data, kdata, out_size) != 0)
 			goto err;

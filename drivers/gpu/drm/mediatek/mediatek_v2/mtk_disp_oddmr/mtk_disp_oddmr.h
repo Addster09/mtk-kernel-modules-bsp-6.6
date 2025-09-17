@@ -499,6 +499,7 @@ void mtk_oddmr_ddren(struct cmdq_pkt *cmdq_handle,
 unsigned int check_oddmr_err_event(void);
 void clear_oddmr_err_event(void);
 void mtk_oddmr_scp_status(bool enable);
+bool mtk_oddmr_dbi_need_ddren_wa(struct mtk_ddp_comp *comp);
 
 
 #endif
