@@ -4574,7 +4574,6 @@ static void mml_addon_module_disconnect(struct drm_crtc *crtc,
 	int w = crtc->state->adjusted_mode.hdisplay;
 	int h = crtc->state->adjusted_mode.vdisplay;
 	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
-	struct mtk_ddp_comp *output_comp;
 	struct mtk_rect ovl_roi = {0, 0, w, h};
 	unsigned int i = 0;
 	const struct mtk_addon_module_data *m[] = {addon_module, addon_module_dual};
@@ -4588,15 +4587,15 @@ static void mml_addon_module_disconnect(struct drm_crtc *crtc,
 		copy_mml_submit(mtk_crtc->mml_cfg, &addon_config->addon_mml_config.submit);
 	else if (scenario == MML_RSZ && mtk_crtc->mml_cfg_pq)
 		copy_mml_submit(mtk_crtc->mml_cfg_pq, &addon_config->addon_mml_config.submit);
+	else {
+		struct mtk_ddp_comp *output_comp = mtk_ddp_comp_request_output(mtk_crtc);
 
-	if (output_comp &&
-		drm_crtc_index(crtc) == 0) {
-		ovl_roi.width = mtk_ddp_comp_io_cmd(
-			output_comp, NULL,
-			DSI_GET_VIRTUAL_WIDTH, NULL);
-		ovl_roi.height = mtk_ddp_comp_io_cmd(
-			output_comp, NULL,
-			DSI_GET_VIRTUAL_HEIGH, NULL);
+		if (output_comp && drm_crtc_index(crtc) == 0) {
+			ovl_roi.width = mtk_ddp_comp_io_cmd(output_comp, NULL,
+				DSI_GET_VIRTUAL_WIDTH, NULL);
+			ovl_roi.height = mtk_ddp_comp_io_cmd(output_comp, NULL,
+				DSI_GET_VIRTUAL_HEIGH, NULL);
+		}
 	}
 
 	if (mtk_crtc->is_dual_pipe)
