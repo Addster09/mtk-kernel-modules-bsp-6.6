@@ -513,6 +513,13 @@ enum DISPLAY_MODE {
 	DISPLAY_MODE_NUM,
 };
 
+struct low_power_fps_params {
+	unsigned int switch_en;
+	unsigned int data_rate;
+	unsigned int data_rate_khz;
+	struct dfps_switch_cmd dfps_cmd_table[MAX_DYN_CMD_NUM];
+};
+
 struct mtk_panel_params {
 	unsigned int prefetch_time;
 	unsigned int pll_clk;
@@ -568,7 +575,7 @@ struct mtk_panel_params {
 	unsigned int cmd_null_pkt_en;
 	unsigned int cmd_null_pkt_len;
 	unsigned int lcm_degree;
-//Settings for LFR Function:
+	//Settings for LFR Function:
 	unsigned int lfr_enable;
 	unsigned int lfr_minimum_fps;
 	/*Msync 2.0*/
@@ -614,6 +621,8 @@ struct mtk_panel_params {
 	bool b_send_pps_per_frame;
 	unsigned char pps[128];
 #endif
+
+	struct low_power_fps_params low_power_fps;
 };
 
 struct mtk_panel_ext {

@@ -115,6 +115,9 @@
 #define DSC_RC_TGT_OFFSET_HI        3
 #define DSC_RC_TGT_OFFSET_LO        3
 
+// for vidle test and measure low power related. panel doesn't support 45fps
+#define IDLE_60_TO_45               0
+
 static unsigned int rc_buf_thresh[14] = {
 //The original values VS values multiplied by 64
 896, 1792, 2688, 3584, 4480, 5376, 6272, 6720, 7168, 7616, 7744, 7872, 8000, 8064};
@@ -597,6 +600,35 @@ static const struct drm_display_mode switch_mode_120hz = {
 	.vsync_end = FRAME_HEIGHT + MODE_1_VFP + VSA,
 	.vtotal = FRAME_HEIGHT + MODE_1_VFP + VSA + VBP,
 };
+
+static const struct drm_display_mode switch_mode_90hz = {
+	.clock =
+		(int)((FRAME_WIDTH + MODE_2_HFP + HSA + HBP) *
+		(FRAME_HEIGHT + MODE_2_VFP + VSA + VBP) * MODE_2_FPS / 1000),
+	.hdisplay = FRAME_WIDTH,
+	.hsync_start = FRAME_WIDTH + MODE_2_HFP,
+	.hsync_end = FRAME_WIDTH + MODE_2_HFP + HSA,
+	.htotal = FRAME_WIDTH + MODE_2_HFP + HSA + HBP,
+	.vdisplay = FRAME_HEIGHT,
+	.vsync_start = FRAME_HEIGHT + MODE_2_VFP,
+	.vsync_end = FRAME_HEIGHT + MODE_2_VFP + VSA,
+	.vtotal = FRAME_HEIGHT + MODE_2_VFP + VSA + VBP,
+};
+
+static const struct drm_display_mode switch_mode_60hz = {
+	.clock =
+		(int)((FRAME_WIDTH + MODE_3_HFP + HSA + HBP) *
+		(FRAME_HEIGHT + MODE_3_VFP + VSA + VBP) * MODE_3_FPS / 1000),
+	.hdisplay = FRAME_WIDTH,
+	.hsync_start = FRAME_WIDTH + MODE_3_HFP,
+	.hsync_end = FRAME_WIDTH + MODE_3_HFP + HSA,
+	.htotal = FRAME_WIDTH + MODE_3_HFP + HSA + HBP,
+	.vdisplay = FRAME_HEIGHT,
+	.vsync_start = FRAME_HEIGHT + MODE_3_VFP,
+	.vsync_end = FRAME_HEIGHT + MODE_3_VFP + VSA,
+	.vtotal = FRAME_HEIGHT + MODE_3_VFP + VSA + VBP,
+};
+
 static const struct drm_display_mode switch_mode_fhd_120hz = {
 	.clock =
 		(int)((FHD_FRAME_WIDTH + MODE_1_HFP + HSA + HBP) *
@@ -699,7 +731,7 @@ static struct mtk_panel_params ext_params_144hz = {
 			.range_bpg_ofs = range_bpg_ofs,
 			},
 	},
-	//.change_fps_by_vfp_send_cmd = 1,
+	.change_fps_by_vfp_send_cmd = 1,
 	.dyn_fps = {
 		.switch_en = 0,
 		.dfps_cmd_table[0] = {0, 2, {0x6C, 0x00}}, //144Hz
@@ -774,21 +806,25 @@ static struct mtk_panel_params ext_params_120hz = {
 			.range_bpg_ofs = range_bpg_ofs,
 		},
 	},
-	//.change_fps_by_vfp_send_cmd = 1,
-	//.dyn_fps = {
-	//	.switch_en = 0,
-	//	.dfps_cmd_table[0] = {0, 2, {0x6C, 0x01}}, //120Hz
-	//},
+	.change_fps_by_vfp_send_cmd = 1,
+	.dyn_fps = {
+		.switch_en = 0,
+		.dfps_cmd_table[0] = {0, 2, {0x6C, 0x01}}, //120Hz
+	},
 	.data_rate = MODE_1_DATA_RATE,
-	//.vfp_low_power = 2892, // HS idle to 60 fps
+	.vfp_low_power = 2892, // HS idle to 60 fps
+	.low_power_fps = {
+		.switch_en = 1,
+		.dfps_cmd_table[0] = {0, 2, {0x6C, 0x03}}, //60Hz
+	},
 	//.tran_panel_params = &panel_driver_status,
-	//.dyn = {
-	//	.switch_en = 1,
-	//	.pll_clk = 561,
-	//	.vfp_lp_dyn = 2950,
-	//	.hfp = 114,
-	//	.vfp = 76,
-	//},
+	.dyn = {
+		.switch_en = 1,
+		.pll_clk = 561,
+		.vfp_lp_dyn = 2950,
+		.hfp = 114,
+		.vfp = 76,
+	},
 #ifdef CONFIG_MTK_ROUND_CORNER_SUPPORT
 	.round_corner_en = 1,
 	.corner_pattern_height = ROUND_CORNER_H_TOP,
@@ -857,13 +893,17 @@ static struct mtk_panel_params ext_params_90hz = {
 			.range_bpg_ofs = range_bpg_ofs,
 		},
 	},
-	//.change_fps_by_vfp_send_cmd = 1,
+	.change_fps_by_vfp_send_cmd = 1,
 	.dyn_fps = {
 		.switch_en = 0,
 		.dfps_cmd_table[0] = {0, 2, {0x6C, 0x02}}, //90Hz
 	},
 	.data_rate = MODE_2_DATA_RATE,
 	.vfp_low_power = 2892, // HS idle to 60 fps
+	.low_power_fps = {
+		.switch_en = 1,
+		.dfps_cmd_table[0] = {0, 2, {0x6C, 0x03}}, //60Hz
+	},
 	//.tran_panel_params = &panel_driver_status,
 	.dyn = {
 		.switch_en = 1,
@@ -940,14 +980,17 @@ static struct mtk_panel_params ext_params_60hz = {
 			.range_bpg_ofs = range_bpg_ofs,
 			},
 	},
-	//.change_fps_by_vfp_send_cmd = 1,
+	.change_fps_by_vfp_send_cmd = 1,
 	.dyn_fps = {
 		.switch_en = 0,
 		.dfps_cmd_table[0] = {0, 2, {0x6C, 0x03}}, //60Hz
 	},
 	.data_rate = MODE_3_DATA_RATE,
-	.vfp_low_power = 2892, // HS idle to 45 fps
-	//.tran_panel_params = &panel_driver_status,
+	#if IDLE_60_TO_45
+	.vfp_low_power = 4700, // HS idle to 45 fps
+	#else
+	.vfp_low_power = 2892, // HS idle to 60 fps
+	#endif	//.tran_panel_params = &panel_driver_status,
 	.dyn = {
 		.switch_en = 1,
 		.pll_clk = 561,
@@ -1533,8 +1576,8 @@ struct panel_desc {
 static int lcm_get_modes(struct drm_panel *panel,
 					struct drm_connector *connector)
 {
-	//struct drm_display_mode *mode_60hz;
-	//struct drm_display_mode *mode_90hz;
+	struct drm_display_mode *mode_60hz;
+	struct drm_display_mode *mode_90hz;
 	struct drm_display_mode *mode_120hz;
 //	struct drm_display_mode *mode_144hz;
 	struct drm_display_mode *mode_fhd_60hz;
@@ -1553,6 +1596,31 @@ static int lcm_get_modes(struct drm_panel *panel,
 	drm_mode_set_name(mode_120hz);
 	mode_120hz->type = DRM_MODE_TYPE_DRIVER;
 	drm_mode_probed_add(connector, mode_120hz);
+
+	mode_90hz = drm_mode_duplicate(connector->dev, &switch_mode_90hz);
+	if (!mode_90hz) {
+		dev_dbg(connector->dev->dev, "failed to add mode %ux%ux@%u\n",
+			switch_mode_90hz.hdisplay,
+			switch_mode_90hz.vdisplay,
+			drm_mode_vrefresh(&switch_mode_90hz));
+		return -ENOMEM;
+	}
+	drm_mode_set_name(mode_90hz);
+	mode_90hz->type = DRM_MODE_TYPE_DRIVER;
+	drm_mode_probed_add(connector, mode_90hz);
+
+	mode_60hz = drm_mode_duplicate(connector->dev, &switch_mode_60hz);
+	if (!mode_60hz) {
+		dev_dbg(connector->dev->dev, "failed to add mode %ux%ux@%u\n",
+			switch_mode_60hz.hdisplay,
+			switch_mode_60hz.vdisplay,
+			drm_mode_vrefresh(&switch_mode_60hz));
+		return -ENOMEM;
+	}
+	drm_mode_set_name(mode_60hz);
+	mode_60hz->type = DRM_MODE_TYPE_DRIVER;
+	drm_mode_probed_add(connector, mode_60hz);
+
 	if (res_switch_type == RES_SWITCH_ON_AP) {
 		mode_fhd_120hz = drm_mode_duplicate(connector->dev, &switch_mode_fhd_120hz);
 		if (!mode_fhd_120hz) {
