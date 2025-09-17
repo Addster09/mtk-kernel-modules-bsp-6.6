@@ -78,28 +78,15 @@ static unsigned int rt4803_get_mode(struct regulator_dev *rdev)
 static int rt4803_get_error_flags(struct regulator_dev *rdev, unsigned int *flags)
 {
 	struct regmap *regmap = rdev_get_regmap(rdev);
-	unsigned int state, events = 0;
+	unsigned int state;
 	int ret;
 
 	ret = regmap_read(regmap, RT4803_REG_STAT, &state);
 	if (ret)
 		return ret;
 
-	if (state & RT4803_PGOOD_MASK)
-		goto out_error_flag;
-
-	if (state & RT4803_FAULT_MASK)
-		events |= REGULATOR_ERROR_FAIL;
-
-	if (state & RT4803_HOTDIE_MASK)
-		events |= REGULATOR_ERROR_OVER_TEMP_WARN;
-
-	if (state & RT4803_TSD_MASK)
-		events |= REGULATOR_ERROR_OVER_TEMP;
-
-out_error_flag:
-	*flags = events;
-	return 0;
+	*flags = state;
+	return ret;
 }
 
 static int rt4803_set_suspend_voltage(struct regulator_dev *rdev, int uV)
