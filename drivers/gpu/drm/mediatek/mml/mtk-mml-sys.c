@@ -2371,7 +2371,7 @@ static s32 dl_wait_mt6991f(struct mml_comp *comp, struct mml_task *task,
 			struct dl_frame_data *dl_frm = dl_frm_data(ccfg);
 			u32 size = dl_frm->max_size.height << 16;
 
-			mml_msg("%s dlo poll %#x addr %#llx", __func__, size, pa);
+			mml_msg("%s dlo poll %#x addr %pa", __func__, size, &pa);
 			cmdq_pkt_poll_sleep(task->pkts[ccfg->pipe], size, pa, GENMASK(29, 16));
 		}
 
