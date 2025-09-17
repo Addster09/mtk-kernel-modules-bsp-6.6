@@ -8757,7 +8757,8 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				"disp_wdma4_eof0",
 				"disp_ovlsys0_exdma0_eof0",
 				"mml_stream_config",
-				"ovlsys0_mutex0_sof";
+				"ovlsys0_mutex0_sof",
+				"dispsys0_mutex0_sof";
 
 			gce-events =
 				<&gce CMDQ_EVENT_DISP1_STREAM_DONE_ENG_EVENT0>,
@@ -8819,7 +8820,8 @@ sw_info,frame_id,custom,pipeline_stage,RPID,UID";
 				<&gce CMDQ_EVENT_DISP1_FRAME_DONE_SEL7>,
 				<&gce CMDQ_EVENT_OVL0_FRAME_DONE_SEL2>,
 				<&gce CMDQ_SYNC_TOKEN_MML_STREAM_CONFIG>,
-				<&gce CMDQ_EVENT_OVL0_STREAM_SOF0>;
+				<&gce CMDQ_EVENT_OVL0_STREAM_SOF0>,
+				<&gce CMDQ_EVENT_DISP0_STREAM_SOF0>;
 
 			helper-name = "MTK_DRM_OPT_STAGE",
 				"MTK_DRM_OPT_USE_CMDQ",
