@@ -2363,6 +2363,7 @@
 			operating-points-v2 = <&opp_table_venc>;
 			mmdvfs-dvfsrc-vcore-supply = <&dvfsrc_vcore>;
 			venc-disable-hw-break = <1>;
+			venc-core-count = <1>;
 			port-arg-num = <3>;
 			port-def = <0 M4U_PORT_L7_VENC_RCPU 0>,
 				<0 M4U_PORT_L7_VENC_REC 0>,

@@ -4919,7 +4919,7 @@ cpus {
 			compatible = "mediatek,mt6885-vcodec-enc";
 			mediatek,platform = "platform:mt6885";
 			mediatek,ipm = <2>;
-			reg = <0 0x17020000 0 0x2000>,
+			reg = <0 0x17020000 0 0x6000>,
 				  <0 0x17820000 0 0x20000>;
 			reg-names =
 				"VENC_SYS",
@@ -4956,6 +4956,7 @@ cpus {
 			operating-points-v2 = <&opp_table_venc>;
 			mmdvfs-dvfsrc-vcore-supply = <&dvfsrc_vcore>;
 			venc-disable-hw-break = <1>;
+			venc-core-count = <2>;
 			port-arg-num = <3>;
 			port-def = <0 M4U_PORT_L7_VENC_RCPU_DISP 0>,
 				<0 M4U_PORT_L7_VENC_REC_DISP 0>,
