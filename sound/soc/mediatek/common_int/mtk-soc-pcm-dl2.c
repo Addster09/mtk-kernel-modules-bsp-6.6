@@ -775,7 +775,6 @@ EXPORT_SYMBOL(mtk_dl2_copy2buffer);
 
 void mtk_dl2_copy_l(void)
 {
-	pr_info("%s, pMemControl %p\n", __func__, pMemControl);
 	if(pMemControl == 0x0){
 		pMemControl = Get_Mem_ControlT(Soc_Aud_Digital_Block_MEM_DL2);
 		pr_info("%s, pMemControl %p\n", __func__,pMemControl);
