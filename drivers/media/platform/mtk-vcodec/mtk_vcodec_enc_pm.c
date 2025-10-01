@@ -743,14 +743,14 @@ static int mtk_venc_translation_fault_callback(
 	int port, dma_addr_t mva, void *data)
 {
 	struct mtk_vcodec_dev *dev = (struct mtk_vcodec_dev *)data;
-	int larb_id = port >> 5;
+	int larb_id = MTK_M4U_TO_LARB(port);
 	void __iomem *reg_base = NULL;
 	int hw_id = 0;
 	unsigned long flags;
 
-	mtk_v4l2_err("larb port %d of m4u port %d", larb_id, port & 0x1F);
+	mtk_v4l2_err("larb port %d of m4u port %d", larb_id, MTK_M4U_TO_LARB(port));
 
-	if (larb_id == 7) {
+	if (larb_id == 7 || larb_id == 4) {
 		reg_base = dev->enc_reg_base[VENC_SYS];
 		hw_id = MTK_VENC_CORE_0;
 	} else if (larb_id == 8) {
@@ -816,27 +816,30 @@ static int mtk_venc_translation_fault_callback(
 		mtk_v4l2_err("0x13c: 0x%x, 0x484: 0x%x, 0x568: 0x%x",
 			readl(reg_base + 0x13c), readl(reg_base + 0x484), readl(reg_base + 0x568));
 
-		//soc base address as VENC_SYS
-		if (larb_id == 7) {
-			mtk_v4l2_err("0x4064: 0x%x, 0x406c : 0x%x, 0x4074: 0x%x, 0x52c0: 0x%x",
-				readl(reg_base + 0x4064), readl(reg_base + 0x406c),
-				readl(reg_base + 0x4074), readl(reg_base + 0x52c0));
-		} else if (larb_id == 8 || larb_id == 37) {
-			reg_base = dev->enc_reg_base[VENC_SYS];
-			spin_lock_irqsave(&dev->enc_power_lock[MTK_VENC_CORE_0], flags);
-			if (dev->enc_is_power_on[MTK_VENC_CORE_0] == false) {
-				mtk_v4l2_err("hw %d power is off !!", MTK_VENC_CORE_0);
-				spin_unlock_irqrestore(&dev->enc_power_lock[MTK_VENC_CORE_0],
-					flags);
-				spin_unlock_irqrestore(&dev->enc_power_lock[hw_id], flags);
-				return -1;
-			}
-			if (reg_base != NULL) {
+		//soc base address
+		if (dev->hw_max_count > 1) {
+			//soc base address as VENC_SYS
+			if (larb_id == 7) {
 				mtk_v4l2_err("0x4064: 0x%x, 0x406c : 0x%x, 0x4074: 0x%x, 0x52c0: 0x%x",
 					readl(reg_base + 0x4064), readl(reg_base + 0x406c),
 					readl(reg_base + 0x4074), readl(reg_base + 0x52c0));
+			} else if (larb_id == 8 || larb_id == 37) {
+				reg_base = dev->enc_reg_base[VENC_SYS];
+				spin_lock_irqsave(&dev->enc_power_lock[MTK_VENC_CORE_0], flags);
+				if (dev->enc_is_power_on[MTK_VENC_CORE_0] == false) {
+					mtk_v4l2_err("hw %d power is off !!", MTK_VENC_CORE_0);
+					spin_unlock_irqrestore(&dev->enc_power_lock[MTK_VENC_CORE_0],
+						flags);
+					spin_unlock_irqrestore(&dev->enc_power_lock[hw_id], flags);
+					return -1;
+				}
+				if (reg_base != NULL) {
+					mtk_v4l2_err("0x4064: 0x%x, 0x406c : 0x%x, 0x4074: 0x%x, 0x52c0: 0x%x",
+						readl(reg_base + 0x4064), readl(reg_base + 0x406c),
+						readl(reg_base + 0x4074), readl(reg_base + 0x52c0));
+				}
+				spin_unlock_irqrestore(&dev->enc_power_lock[MTK_VENC_CORE_0], flags);
 			}
-			spin_unlock_irqrestore(&dev->enc_power_lock[MTK_VENC_CORE_0], flags);
 		}
 	}
 
