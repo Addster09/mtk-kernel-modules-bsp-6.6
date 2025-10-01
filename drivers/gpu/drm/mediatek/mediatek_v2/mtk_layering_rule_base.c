@@ -80,6 +80,8 @@ static DEFINE_MUTEX(layering_rule_lock);
 #define DISP_MML_LAYER_LIMIT 1
 #define DISP_LAYER_RULE_MAX_NUM 1024
 
+#define DISP_RSZ_LAYER_NUM 2
+
 #define DISP_EXDMA_LAYER_LIMIT 7
 #define DISP_DUAL_EXDMA_LAYER_LIMIT 4
 static struct {
@@ -4251,6 +4253,12 @@ static int RPO_rule(struct drm_crtc *crtc,
 	for (i = 0; i < disp_info->layer_num[disp_idx]; i++) {
 		struct mtk_rsz_param param[2] = {0};
 
+		if (i >= DISP_RSZ_LAYER_NUM &&
+		    (private->data->mmsys_id == MMSYS_MT6768 ||
+		    private->data->mmsys_id == MMSYS_MT6765 ||
+		    private->data->mmsys_id == MMSYS_MT6761))
+			break;
+
 		c = &disp_info->input_config[disp_idx][i];
 
 		/*if (i == 0 && c->src_fmt == MTK_DRM_FORMAT_DIM)
@@ -4270,9 +4278,11 @@ static int RPO_rule(struct drm_crtc *crtc,
 			continue;
 
 		if (ref_layer && private && private->data &&
-				(private->data->mmsys_id == MMSYS_MT6768) &&
-				is_same_ratio(ref_layer, c) == false &&
-				is_same_ratio(c, ref_layer) == false)
+		    (private->data->mmsys_id == MMSYS_MT6768 ||
+		    private->data->mmsys_id == MMSYS_MT6765 ||
+		    private->data->mmsys_id == MMSYS_MT6761) &&
+		    is_same_ratio(ref_layer, c) == false &&
+		    is_same_ratio(c, ref_layer) == false)
 			break;
 
 		if (!(!(mtk_crtc->is_dual_pipe) &&
