@@ -1740,6 +1740,29 @@ static void mtk_atomic_mml(struct drm_device *dev,
 			mtk_crtc->mml_link_state = MML_IR_IDLE;
 		DDPINFO("no plane_update with mml lye, skip %s, mml_link_state = %d\n",
 			__func__, mtk_crtc->mml_link_state);
+
+		for (i = 0; i < mtk_crtc->layer_nr; i++) {
+			struct drm_plane *plane = &mtk_crtc->planes[i].base;
+			struct mtk_plane_state *plane_state;
+
+			plane_state = to_mtk_plane_state(plane->state);
+			DDPINFO("[test]%s:%d,i=%d,layer_caps = 0x%x\n",__func__,__LINE__,
+				i ,plane_state->comp_state.layer_caps);
+			if (plane_state->comp_state.layer_caps & MTK_MML_DISP_DIRECT_LINK_LAYER) {
+				plane_state->comp_state.layer_caps &= ~MTK_MML_DISP_DIRECT_LINK_LAYER;
+				plane_state->pending.enable = 0;
+				plane_state->pending.mml_mode = 0;
+				break;
+			}
+
+			if (priv->data->mmsys_id == MMSYS_MT6899 &&
+				!mtk_crtc_is_frame_trigger_mode(&mtk_crtc->base) &&
+				(plane_state->comp_state.layer_caps & MTK_MML_DISP_DIRECT_DECOUPLE_LAYER)) {
+				plane_state->comp_state.layer_caps &= ~MTK_MML_DISP_DIRECT_DECOUPLE_LAYER;
+				mtk_crtc->mml_link_state = MML_STOP_LINKING;
+				break;
+			}
+		}
 		CRTC_MMP_MARK(0, mml_job_status, 0xFFFF, 2);
 		return;
 	}

@@ -17930,8 +17930,9 @@ void mtk_drm_crtc_plane_disable(struct drm_crtc *crtc, struct drm_plane *plane,
 	struct cmdq_pkt *cmdq_handle = state->cmdq_handle;
 
 	if (comp)
-		DDPINFO("%s plane_id:%d, comp_id:%d, comp_id:%d\n", __func__,
-			plane->index, comp->id, plane_state->comp_state.comp_id);
+		DDPINFO("%s plane_id:%d, comp_id:%d, comp_id:%d, lye_id %d, layer_caps 0x%x\n", __func__,
+			plane->index, comp->id, plane_state->comp_state.comp_id,
+			plane_state->comp_state.lye_id,plane_state->comp_state.layer_caps);
 
 	if (plane_state->pending.enable) {
 		if (mtk_crtc->is_dual_pipe || mtk_crtc->path_data->is_exdma_dual_layer) {
@@ -18028,16 +18029,6 @@ void mtk_drm_crtc_plane_disable(struct drm_crtc *crtc, struct drm_plane *plane,
 					DDPINFO("%s[%d], stop mml sync,comp:%d,mml state:%d\n",  __func__, __LINE__,
 						comp_state->comp_id, mtk_crtc->mml_link_state);
 				}
-			}
-		} else {
-			if ((priv->data->mmsys_id == MMSYS_MT6899) &&
-				(comp_state->comp_id == DDP_COMPONENT_OVL0_2L))
-				if ((mtk_crtc->mml_link_state == MML_IR_ENTERING) ||
-					(mtk_crtc->mml_link_state == MML_DIRECT_LINKING) ||
-					(mtk_crtc->mml_link_state == MML_IR_IDLE)) {
-					mtk_crtc_mml_racing_stop_sync(crtc, cmdq_handle, false);
-					DDPINFO("%s[%d], stop mml sync,comp:%d,mml state:%d\n",  __func__, __LINE__,
-						comp_state->comp_id, mtk_crtc->mml_link_state);
 			}
 		}
 	}
