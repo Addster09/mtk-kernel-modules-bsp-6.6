@@ -7,10 +7,6 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/spinlock.h>
-#if IS_ENABLED(CONFIG_MTK_IDLE_BOOST)
-#include <linux/regulator/consumer.h>
-#include <linux/platform_device.h>
-#endif
 #include "mtk_spm_internal.h"
 #include "mt-plat/mtk_ccci_common.h" /* exec_ccci_kern_func_by_md_id */
 //#include <mt-plat/mtk_wd_api.h> /* ap wdt related definitons */
@@ -36,9 +32,6 @@
 #include <mtk_power_gs_internal.h>
 #endif
 
-#if IS_ENABLED(CONFIG_MTK_IDLE_BOOST)
-static struct regulator *spm_regulator_vcore;
-#endif
 
 /* FIXME: IT with vcorefs ? */
 void __attribute__((weak)) dvfsrc_md_scenario_update(bool suspend) {}
@@ -105,19 +98,6 @@ static struct pwr_ctrl *get_pwrctrl[IDLE_MODEL_NUM] = {
 	[IDLE_MODEL_SYSPLL] = &pwrctrl_syspll,
 	[IDLE_MODEL_DRAM] = &pwrctrl_dram,
 };
-
-#if IS_ENABLED(CONFIG_MTK_IDLE_BOOST)
-int mtk_spm_regulator_map(struct platform_device *pdev)
-{
-	pr_info("%s:%d: [SPM] start get regulator.\n", __func__, __LINE__);
-	spm_regulator_vcore = devm_regulator_get_optional(&pdev->dev, "dvfsrc-vcore");
-	if (IS_ERR(spm_regulator_vcore)) {
-		pr_info("%s:%d: [SPM] Vcore Get Failed, need to check the regulator name.\n", __func__, __LINE__);
-		return -ENODEV;
-	}
-	return 0;
-}
-#endif
 
 static void mtk_idle_gs_dump(int idle_type)
 {
@@ -251,9 +231,7 @@ void mtk_idle_pre_process_by_chip(
 	unsigned int pcm_flags1;
 #if IS_ENABLED(CONFIG_MTK_IDLE_BOOST)
 	static unsigned int counter;
-	int ret = 0;
 #endif
-
 	if (INVALID_IDLE_TYPE(idle_type))
 		return;
 
@@ -271,13 +249,9 @@ void mtk_idle_pre_process_by_chip(
 	spin_lock_irqsave(&__spm_lock, flags);
 
 #if IS_ENABLED(CONFIG_MTK_IDLE_BOOST)
-	ret = regulator_set_voltage(spm_regulator_vcore, 700000, INT_MAX);
-
+	spm_idle_vcore_boost(VCORE_OPP_BOOST);
 	if(counter++ >= 125){
-		pr_info("%s:%d: [SPM] set vcore to %u\n", __func__, __LINE__, 700000);
-		if(ret < 0)
-			pr_info("%s:%d: [SPM] regulator set voltage failed!\n", __func__, __LINE__);
-
+		pr_info("[SPM] Vcore boost for idle, level=%d\n", VCORE_OPP_BOOST);
 		counter = 0;
 	}
 #endif
@@ -316,7 +290,6 @@ void mtk_idle_post_process_by_chip(
 	unsigned int wr __maybe_unused = WR_NONE;
 #if IS_ENABLED(CONFIG_MTK_IDLE_BOOST)
 	static unsigned int counter;
-	int ret = 0;
 #endif
 
 	if (INVALID_IDLE_TYPE(idle_type))
@@ -337,17 +310,12 @@ void mtk_idle_post_process_by_chip(
 	wr = mtk_idle_log[idle_type](idle_type, &wakesta, op_cond, idle_flag);
 
 #if IS_ENABLED(CONFIG_MTK_IDLE_BOOST)
-	ret = regulator_set_voltage(spm_regulator_vcore, 0, INT_MAX);
-
+	spm_idle_vcore_boost(VCORE_OPP_RELEASE);
 	if(counter++ >= 125){
-		pr_info("%s:%d: [SPM] release regulator voltage\n", __func__, __LINE__);
-		if(ret < 0)
-			pr_info("%s:%d: [SPM] regulator set voltage failed\n", __func__, __LINE__);
-
+		pr_info("[SPM] Vcore release after idle, level=%d\n", VCORE_OPP_RELEASE);
 		counter = 0;
 	}
 #endif
-
 	/* unmask irq and restore cirq */
 	mtk_spm_irq_restore();
 

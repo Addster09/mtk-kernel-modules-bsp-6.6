@@ -14,6 +14,7 @@
 #include <linux/of.h>
 #include <linux/of_irq.h>
 #include <linux/of_address.h>
+#include <linux/of_platform.h>
 #include <linux/suspend.h>
 #include <linux/platform_device.h>
 #include <linux/rtc.h>
@@ -29,6 +30,7 @@
 #include "mtk_sspm.h"
 
 #include <mtk_idle_fs/mtk_idle_sysfs.h>
+#include <mt-plat/dvfsrc-exp.h>
 DEFINE_SPINLOCK(__spm_lock);
 
 /* Note: implemented in mtk_cpuidle.c */
@@ -51,6 +53,16 @@ void __iomem *sleep_reg_md_base;
 
 static struct platform_device *pspmdev;
 static struct wakeup_source *spm_wakelock;
+
+#if IS_ENABLED(CONFIG_MTK_IDLE_BOOST)
+static struct platform_device *dvfsrc_pdev;
+
+void spm_idle_vcore_boost(int level)
+{
+	if (dvfsrc_pdev)
+		dvfsrc_set_vcore_request_nolock(&dvfsrc_pdev->dev, level);
+}
+#endif
 
 /* FIXME: should not used externally !!! */
 void *mt_spm_base_get(void)
@@ -114,6 +126,39 @@ static ssize_t debug_log_store(
 
 static DEVICE_ATTR_RW(debug_log);
 
+#if IS_ENABLED(CONFIG_MTK_IDLE_BOOST)
+static int spm_dvfsrc_init(struct platform_device *pdev)
+{
+	int ret = 0;
+	struct device_node *node = NULL;
+	struct device_node *dvfsrc_node = NULL;
+
+	if (!pdev) {
+		pr_info("%s:%d: [SPM] invalid pdev\n", __func__, __LINE__);
+		return -ENODEV;
+	}
+
+	node = pdev->dev.of_node;
+	if (!node) {
+		pr_info("%s:%d: [SPM] invalid node\n", __func__, __LINE__);
+		return -ENODEV;
+	}
+	dvfsrc_node = of_parse_phandle(node, "dvfs", 0);
+	if (!dvfsrc_node) {
+		pr_info("%s:%d: [SPM] fail to find dvfs node\n", __func__, __LINE__);
+		return -ENODEV;
+	}
+
+	dvfsrc_pdev = of_find_device_by_node(dvfsrc_node);
+	of_node_put(dvfsrc_node);
+	if (!dvfsrc_pdev) {
+		pr_info("%s:%d: [SPM] fail to find dvfsrc_pdev\n", __func__, __LINE__);
+		return -ENODEV;
+	}
+	return ret;
+}
+#endif
+
 static int spm_probe(struct platform_device *pdev)
 {
 	int ret __maybe_unused;
@@ -125,12 +170,13 @@ static int spm_probe(struct platform_device *pdev)
 		return 0;
 	}
 
-	ret = mtk_spm_regulator_map(pdev);
-	if (ret < 0)
-		pr_info("%s:%d: [SPM] regulator map failed!\n", __func__, __LINE__);
+	ret = spm_dvfsrc_init(pdev);
+	if (ret) {
+		pr_info("[SPM] spm_dvfsrc_init failed, ret=%d\n", ret);
+		return ret;
+	}
 	times++;
 #endif
-
 	ret = device_create_file(&(pdev->dev), &dev_attr_debug_log);
 
 	return 0;
@@ -138,6 +184,12 @@ static int spm_probe(struct platform_device *pdev)
 
 static int spm_remove(struct platform_device *pdev)
 {
+#if IS_ENABLED(CONFIG_MTK_IDLE_BOOST)
+	if (dvfsrc_pdev) {
+		platform_device_put(dvfsrc_pdev);
+		dvfsrc_pdev = NULL;
+	}
+#endif
 	return 0;
 }
 

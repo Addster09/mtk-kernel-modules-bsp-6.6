@@ -21,6 +21,7 @@
 extern u32 dvfsrc_get_required_opp_peak_bw(struct device_node *np,
 					   int index);
 extern void dvfsrc_set_power_model_ddr_request(const struct device *dev, int level);
+extern void dvfsrc_set_vcore_request_nolock(const struct device *dev, int level);
 #if IS_ENABLED(CONFIG_MTK_DVFSRC_LEGACY)
 extern u32 dvfsrc_get_required_opp_peak_bw_legacy(struct device_node *np, int index);
 #endif

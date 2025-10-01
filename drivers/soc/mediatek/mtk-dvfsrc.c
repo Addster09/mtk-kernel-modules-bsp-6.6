@@ -697,6 +697,17 @@ void dvfsrc_set_power_model_ddr_request(const struct device *dev, int level)
 }
 EXPORT_SYMBOL(dvfsrc_set_power_model_ddr_request);
 
+void dvfsrc_set_vcore_request_nolock(const struct device *dev, int level)
+{
+	struct mtk_dvfsrc *dvfsrc = dev_get_drvdata(dev);
+
+	if (level < 0)
+		level = 0;
+
+	dvfsrc_rmw(dvfsrc, DVFSRC_SW_REQ, level, 0x3, 2);
+}
+EXPORT_SYMBOL(dvfsrc_set_vcore_request_nolock);
+
 #ifdef DVFSRC_FORCE_OPP_SUPPORT
 static void mt6873_set_force_opp_level(struct mtk_dvfsrc *dvfsrc, u32 level)
 {
