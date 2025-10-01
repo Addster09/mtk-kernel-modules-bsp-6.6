@@ -20480,10 +20480,6 @@ static void mtk_drm_crtc_atomic_flush(struct drm_crtc *crtc,
 		if (mtk_crtc->is_mml || (mtk_crtc->is_mml_dl && mtk_crtc->is_mml_dl_submit))
 			mtk_drm_wait_mml_submit_done(&(mtk_crtc->mml_cb));
 	}
-	if ((mtk_crtc->esd_reset_dli) && (mtk_crtc->is_mml_dl)) {
-		mtk_crtc_reset_ovlsys_dli(crtc, cmdq_handle);
-		mtk_crtc->esd_reset_dli = false;
-	}
 
 	mtk_vidle_dvfs_trigger(__func__);
 
@@ -25589,18 +25585,13 @@ void mtk_crtc_vdisp_ao_config(struct drm_crtc *crtc)
 		priv->data->vdisp_ao_irq_config(crtc->dev);
 }
 
-void mtk_crtc_reset_ovlsys_dli(struct drm_crtc *crtc,  struct cmdq_pkt *cmdq_handle)
+void mtk_crtc_disconnect_ovlsys_mml_mutex(struct drm_crtc *crtc)
 {
 	struct mtk_drm_crtc *mtk_crtc = NULL;
-	struct mtk_drm_private *priv = NULL;
+	struct cmdq_pkt *cmdq_handle = NULL;
 
 	if (!crtc) {
 		DDPPR_ERR("%s: crtc is NULL\n", __func__);
-		return;
-	}
-
-	if (!cmdq_handle) {
-		DDPPR_ERR("%s: cmdq_handle is NULL\n", __func__);
 		return;
 	}
 
@@ -25609,16 +25600,12 @@ void mtk_crtc_reset_ovlsys_dli(struct drm_crtc *crtc,  struct cmdq_pkt *cmdq_han
 		DDPPR_ERR("%s: mtk_crtc is NULL\n", __func__);
 		return;
 	}
-
-	priv = crtc->dev->dev_private;
-	if (priv->data->mmsys_id == MMSYS_MT6991) {
-		if (mtk_crtc->ovlsys0_regs_pa) {
-			DDPINFO("%s: Reset ovlsys for DL\n", __func__);
-			cmdq_pkt_write(cmdq_handle, mtk_crtc->gce_obj.base,
-				   mtk_crtc->ovlsys0_regs_pa + MT6991_OVLSYS_MISC,
-				   OVLSYS_RESET_FLOW, OVLSYS_RESET_FLOW);
-			cmdq_pkt_write(cmdq_handle, mtk_crtc->gce_obj.base,
-				   mtk_crtc->ovlsys0_regs_pa + MT6991_OVLSYS_MISC, 0, OVLSYS_RESET_FLOW);
-		}
+	mtk_crtc_pkt_create(&cmdq_handle, crtc, mtk_crtc->gce_obj.client[CLIENT_CFG]);
+	if (!cmdq_handle) {
+		DDPPR_ERR("%s: cmdq_handle is NULL\n", __func__);
+		return;
 	}
+	mtk_crtc_mml_addon_config(crtc, ADDON_DISCONNECT, cmdq_handle);
+	cmdq_pkt_flush(cmdq_handle);
+	cmdq_pkt_destroy(cmdq_handle);
 }

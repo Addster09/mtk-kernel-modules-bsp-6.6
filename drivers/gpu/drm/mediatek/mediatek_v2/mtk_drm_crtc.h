@@ -1347,8 +1347,6 @@ struct mtk_drm_crtc {
 
 	/* bif data */
 	struct mtk_bif_info *bif_info;
-
-	bool esd_reset_dli;
 };
 
 enum BL_GAMMA_GAIN {
@@ -1765,5 +1763,5 @@ void mtk_crtc_bif_keep_read_path(struct drm_crtc *crtc, struct cmdq_pkt *handle,
 void mtk_crtc_bif_path_prepare(struct mtk_drm_crtc *mtk_crtc);
 void mtk_crtc_bif_apsrc_ddren_control(struct mtk_drm_crtc *mtk_crtc, bool en, struct cmdq_pkt *handle);
 void mtk_crtc_update_bif_roi(struct mtk_drm_crtc *mtk_crtc);
-void mtk_crtc_reset_ovlsys_dli(struct drm_crtc *crtc,  struct cmdq_pkt *cmdq_handle);
+void mtk_crtc_disconnect_ovlsys_mml_mutex(struct drm_crtc *crtc);
 #endif /* MTK_DRM_CRTC_H */

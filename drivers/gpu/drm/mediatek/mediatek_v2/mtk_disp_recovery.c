@@ -697,7 +697,7 @@ static int mtk_drm_esd_recover(struct drm_crtc *crtc)
 	}
 	/* for reset dli */
 	if ((mtk_crtc->is_mml_dl) && !mtk_crtc_is_frame_trigger_mode(crtc))
-		mtk_crtc->esd_reset_dli = true;
+		mtk_crtc_disconnect_ovlsys_mml_mutex(crtc);
 
 	if (is_bdg_supported())
 		mtk_output_bdg_enable(dsi, false);
