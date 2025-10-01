@@ -4611,8 +4611,10 @@ static int mtk_ovl_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
 		}
 
 		if (!IS_ERR_OR_NULL(comp->hdr_qos_req)) {
-			if (total_bw)
+			if (total_bw) {
 				hdr_bw = (total_bw > 32) ? total_bw / 32 : 1;
+				hdr_bw = (hdr_bw > 129) ? hdr_bw : 129; //set low bound
+			}
 
 			if (comp->last_hdr_bw != hdr_bw) {
 				DDPQOS("%s/%u,layer:%u update hdr:%u->%u total:%u bw:%u\n",
@@ -4713,8 +4715,10 @@ static int mtk_ovl_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
 		}
 
 		if (!IS_ERR_OR_NULL(comp->hdr_qos_req)) {
-			if (total_bw)
+			if (total_bw) {
 				hdr_bw = (total_bw > 32) ? total_bw / 32 : 1;
+				hdr_bw = (hdr_bw > 129) ? hdr_bw : 129; //set low bound
+			}
 
 			if (hdr_bw > comp->last_hdr_bw) {
 				DDPQOS("%s/%u,layer:%u hdr fast up:%u->%u total:%u bw:%u\n",

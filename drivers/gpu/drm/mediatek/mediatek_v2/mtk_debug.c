@@ -641,8 +641,11 @@ void mtk_dump_mminfra_ck(void *_priv)
 			vlp_vote_done = ioremap(0x1c00091c, 0x4);
 
 		/* defined in clk-mt6899-fmeter.c */
-		DDPMSG("FM_MMINFRA_CK:%u VLP_VOTE_DONE:%u\n",
-			mt_get_fmeter_freq(21, CKGEN_CK2), readl(vlp_vote_done));
+		DDPMSG("FM_MMINFRA_CK:%u VLP_VOTE_DONE:%u, VDISP_CK:%u EMI_PLL:%u,%u\n",
+			mt_get_fmeter_freq(21, CKGEN_CK2), readl(vlp_vote_done),
+			mt_get_fmeter_freq(19, CKGEN_CK2),
+			mt_get_fmeter_freq(9, ABIST),
+			mt_get_fmeter_freq(10, ABIST));
 	}
 }
 

@@ -1737,6 +1737,7 @@ static void mtk_wdma_addon_config(struct mtk_ddp_comp *comp,
 			line_time * vact);
 		if (comp->last_hrt_bw < bw_base) {
 			comp->hrt_bw = bw_base;
+			bw_base = (bw_base > 520) ? bw_base : 520; //set low bound
 			mtk_ddp_comp_io_cmd(comp, NULL, PMQOS_SET_HRT_BW, &bw_base);
 		}
 		srt_bw = div_u64((unsigned long long)clip_w * clip_h * vrefresh * bpp, 1000000);
