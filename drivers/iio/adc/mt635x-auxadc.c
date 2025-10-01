@@ -25,7 +25,11 @@
 
 #include <dt-bindings/iio/mt635x-auxadc.h>
 
+#if IS_ENABLED (CONFIG_MTK_PLAT_POWER_6781)
+#define AUXADC_DEBUG			0
+#else
 #define AUXADC_DEBUG			1
+#endif
 #define AUXADC_RDY_BIT			BIT(15)
 
 #define AUXADC_DEF_R_RATIO		1
