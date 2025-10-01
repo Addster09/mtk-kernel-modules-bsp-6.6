@@ -121,6 +121,8 @@ module_param(mml_freq_for_tppa, int, 0644);
 
 int mml_opp_rsv = 4;
 module_param(mml_opp_rsv, int, 0644);
+int mml_min_bw_hrt = 256;
+module_param(mml_min_bw_hrt, int, 0644);
 
 struct mml_dpc {
 	atomic_t task_cnt;
@@ -1385,8 +1387,7 @@ static u32 mml_calc_bw_couple(struct mml_dev *mml, u32 datasize)
 	 */
 	if (mml->smmu_en)
 		return (u32)div_u64((u64)datasize * 3, 20000);
-	else
-		return (u32)div_u64((u64)datasize * 21, 80000);
+	return (u32)div_u64((u64)datasize * 21, 80000);
 }
 
 void mml_comp_qos_calc(struct mml_comp *comp, struct mml_task *task,
@@ -1412,6 +1413,9 @@ void mml_comp_qos_calc(struct mml_comp *comp, struct mml_task *task,
 			mtk_mml_hrt_mode == MML_HRT_MMQOS) {
 			srt_bw = mml_calc_bw_couple(cfg->mml, datasize);
 			hrt_bw = (u32)((u64)datasize * 1000 / cfg->info.act_time);
+
+			srt_bw = max_t(u32, srt_bw, mml_min_bw_hrt);
+			hrt_bw = max_t(u32, hrt_bw, mml_min_bw_hrt);
 
 			if (cfg->panel_w > dest->data.width)
 				hrt_bw = (u32)((u64)hrt_bw * cfg->panel_w / dest->data.width);

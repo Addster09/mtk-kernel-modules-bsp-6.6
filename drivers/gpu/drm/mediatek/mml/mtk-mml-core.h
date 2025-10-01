@@ -61,7 +61,7 @@ extern int mml_irq;
  */
 #define MML_QOS_MIN_BW		513
 #define MML_QOS_MAX_BW		5329
-#define MML_QOS_MIN_STASH_BW	17
+#define MML_QOS_MIN_STASH_BW	64
 
 /* MML couple mode HRT mode, HRT bandwidth to MMQoS and DPC
  * MML_HRT_ENABLE:	default, config srt and hrt to mmqos and dpc
