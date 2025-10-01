@@ -323,6 +323,7 @@ struct mtk_disp_oddmr_data {
 	enum mtk_od_version od_version;
 	bool is_dmr_support_stash;
 	bool is_dbi_support_stash;
+	unsigned int min_port_bw;
 };
 
 struct mtk_disp_oddmr_od_data {

@@ -5777,6 +5777,9 @@ int mtk_oddmr_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
 				bw_val += (stash_bw * dmr_enable);
 			}
 
+			bw_val = bw_val > oddmr_priv->data->min_port_bw ?
+				bw_val : oddmr_priv->data->min_port_bw; //set low bound
+			bw_val *= (dmr_enable > 0) ? 1 : 0;
 			if (bw_val != oddmr_priv->last_hrt_dmrr)
 				__mtk_disp_set_module_hrt(oddmr_priv->qos_req_dmrr_hrt, comp->id, bw_val,
 					priv->data->respective_ostdl);
@@ -5789,6 +5792,8 @@ int mtk_oddmr_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
 				/* stash bw = data_bw / 4096 * 16 */
 				bw_val += (bw_val / 256 > 17) ? (bw_val / 256) : 17;
 			}
+			bw_val = bw_val > oddmr_priv->data->min_port_bw ?
+				bw_val : oddmr_priv->data->min_port_bw; //set low bound
 			bw_val *= (dbi_enable > 0) ? 1 : 0;
 			if (bw_val != oddmr_priv->last_hrt_dbir)
 				__mtk_disp_set_module_hrt(oddmr_priv->qos_req_dbir_hrt, comp->id, bw_val,
@@ -5801,6 +5806,9 @@ int mtk_oddmr_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
 			else
 				layer_num = mtk_oddmr_od_bpp(g_od_param.od_basic_info.basic_param.od_mode) / 2;
 			bw_val = (layer_num * bw_base / 400) * od_enable;
+			bw_val = bw_val > oddmr_priv->data->min_port_bw ?
+				bw_val : oddmr_priv->data->min_port_bw; //set low bound
+			bw_val *= (od_enable > 0) ? 1 : 0;
 			if (bw_val != oddmr_priv->last_hrt_odrw) {
 				__mtk_disp_set_module_hrt(oddmr_priv->qos_req_odr_hrt, comp->id, bw_val,
 					priv->data->respective_ostdl);
@@ -5862,6 +5870,9 @@ int mtk_oddmr_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
 			stash_bw = stash_bw > 17 ? stash_bw : 17; //set low bound
 			bw_val += (stash_bw * dmr_enable);
 		}
+		bw_val = bw_val > oddmr_priv->data->min_port_bw ?
+			bw_val : oddmr_priv->data->min_port_bw; //set low bound
+		bw_val *= (dmr_enable > 0) ? 1 : 0;
 		if (bw_val > oddmr_priv->last_hrt_dmrr) {
 			ODDMRLOW_LOG("dmrr bw_val fast up %u -> %u\n", oddmr_priv->last_hrt_dmrr, bw_val);
 			__mtk_disp_set_module_hrt(oddmr_priv->qos_req_dmrr_hrt, comp->id, bw_val,
@@ -5885,6 +5896,8 @@ int mtk_oddmr_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
 			/* stash bw = data_bw / 4096 * 16 */
 			bw_val += (bw_val / 256 > 17) ? (bw_val / 256) : 17;
 		}
+		bw_val = bw_val > oddmr_priv->data->min_port_bw ?
+			bw_val : oddmr_priv->data->min_port_bw; //set low bound
 		bw_val *= (dbi_enable > 0) ? 1 : 0;
 		if (bw_val > oddmr_priv->last_hrt_dbir) {
 			ODDMRLOW_LOG("dbir bw_val fast up %u -> %u\n", oddmr_priv->last_hrt_dbir, bw_val);
@@ -5908,6 +5921,9 @@ int mtk_oddmr_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
 		else
 			layer_num = mtk_oddmr_od_bpp(g_od_param.od_basic_info.basic_param.od_mode) / 2;
 		bw_val = (layer_num * bw_base / 400) * od_enable;
+		bw_val = bw_val > oddmr_priv->data->min_port_bw ?
+			bw_val : oddmr_priv->data->min_port_bw; //set low bound
+		bw_val *= (od_enable > 0) ? 1 : 0;
 		if (bw_val > oddmr_priv->last_hrt_odrw) {
 			ODDMRLOW_LOG("odrw bw_val fast up %u -> %u\n", oddmr_priv->last_hrt_odrw, bw_val);
 			__mtk_disp_set_module_hrt(oddmr_priv->qos_req_odr_hrt, comp->id, bw_val,
@@ -11381,6 +11397,7 @@ static const struct mtk_disp_oddmr_data mt6899_oddmr_driver_data = {
 	.odr_buffer_size = 960,
 	.odw_buffer_size = 960,
 	.irq_handler = mtk_oddmr_check_framedone,
+	.min_port_bw = 300,
 };
 
 static const struct mtk_disp_oddmr_data mt6989_oddmr_driver_data = {
