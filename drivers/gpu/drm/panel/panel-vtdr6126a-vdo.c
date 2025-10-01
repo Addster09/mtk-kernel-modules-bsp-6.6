@@ -1032,12 +1032,9 @@ static int lcm_setbacklight_cmdq(void *dsi, dcs_write_gce cb,
 		level = 3515;
 
 	//Adjust dim speed 20241212 start
-	if(level <= 3515) {
-		if (ghbm_state)
-			ghbm_state = ghbm_state - 1;
-	} else if (level > 3515 && level <= 4095) {
-		ghbm_state = 2;
-	}
+	if (ghbm_state)
+		ghbm_state = ghbm_state - 1;
+
 	mapped_level = level;
 
 	/* need adjust dim speed(0x08 frame) for hbm diming */
