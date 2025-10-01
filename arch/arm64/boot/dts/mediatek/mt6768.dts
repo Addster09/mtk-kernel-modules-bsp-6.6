@@ -4458,6 +4458,19 @@ transparent_hugepage=never";
 		operating-points-v2 = <&opp_table_venc>;
 		mmdvfs-dvfsrc-vcore-supply = <&dvfsrc_vcore>;
 		venc-disable-hw-break = <1>;
+		venc-core-count = <1>;
+		port-arg-num = <3>;
+		port-def = <0 M4U_PORT_VENC_RCPU 0>,
+			<0 M4U_PORT_VENC_REC 0>,
+			<0 M4U_PORT_VENC_BSDMA 0>,
+			<0 M4U_PORT_VENC_SV_COMV 0>,
+			<0 M4U_PORT_VENC_RD_COMV 0>,
+			<0 M4U_PORT_JPGENC_RDMA 0>,
+			<0 M4U_PORT_JPGENC_BSDMA 0>,
+			<0 M4U_PORT_VENC_CUR_LUMA 0>,
+			<0 M4U_PORT_VENC_CUR_CHROMA 0>,
+			<0 M4U_PORT_VENC_REF_LUMA 0>,
+			<0 M4U_PORT_VENC_REF_CHROMA 0>;
 		throughput-op-rate-thresh = <120>;
 		throughput-min = <312000000>;
 		throughput-normal-max = <457000000>;
