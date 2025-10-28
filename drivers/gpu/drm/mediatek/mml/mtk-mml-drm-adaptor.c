@@ -1128,8 +1128,7 @@ static struct mml_drm_ctx *drm_ctx_create(struct mml_dev *mml,
 					  struct mml_drm_param *disp)
 {
 	static const char * const threads[] = {
-		"mml_drm_done", "mml_destroy",
-		NULL, "mml_work1",
+		NULL, "mml_destroy", NULL, NULL,
 	};
 	struct mml_drm_ctx *dctx;
 	int ret;
@@ -1140,7 +1139,9 @@ static struct mml_drm_ctx *drm_ctx_create(struct mml_dev *mml,
 	if (!dctx)
 		return ERR_PTR(-ENOMEM);
 
-	dctx->ctx.kt_config[0] = mml_dev_get_config_worker(mml);
+	dctx->ctx.kt_done = mml_dev_get_kt_worker(mml, mml_kt_taskdone);
+	dctx->ctx.kt_config[0] = mml_dev_get_kt_worker(mml, mml_kt_config0);
+	dctx->ctx.kt_config[1] = mml_dev_get_kt_worker(mml, mml_kt_config1);
 
 	ret = mml_ctx_init(&dctx->ctx, mml, threads);
 	if (ret) {
@@ -1226,7 +1227,11 @@ static void drm_ctx_release(struct mml_drm_ctx *dctx)
 
 	mml_msg("[drm]%s on ctx %p", __func__, ctx);
 
-	ctx->kt_config[0] = NULL;	/* clear kthread from mml driver */
+	/* clear kthread from mml driver to avoid deinit */
+	ctx->kt_done = NULL;
+	ctx->kt_config[0] = NULL;
+	ctx->kt_config[1] = NULL;
+
 	mml_ctx_deinit(ctx);
 	for (i = 0; i < ARRAY_SIZE(ctx->tile_cache); i++)
 		if (ctx->tile_cache[i].tiles)
