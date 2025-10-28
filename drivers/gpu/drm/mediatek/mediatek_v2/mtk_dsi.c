@@ -2972,14 +2972,41 @@ static void mtk_dsi_tx_buf_rw(struct mtk_dsi *dsi)
 				dsi->driver_data->preultra_lo_fifo_us : 35;
 	preultra_hi_fifo_us = dsi->driver_data->preultra_hi_fifo_us ?
 				dsi->driver_data->preultra_hi_fifo_us : 36;
-	ultra_lo_fifo_us = dsi->driver_data->ultra_lo_fifo_us ?
-				dsi->driver_data->ultra_lo_fifo_us : 25;
-	ultra_hi_fifo_us = dsi->driver_data->ultra_hi_fifo_us ?
-				dsi->driver_data->ultra_hi_fifo_us : 26;
-	urgent_lo_fifo_us = dsi->driver_data->urgent_lo_fifo_us ?
-				dsi->driver_data->urgent_lo_fifo_us : 11;
-	urgent_hi_fifo_us = dsi->driver_data->urgent_hi_fifo_us ?
-				dsi->driver_data->urgent_hi_fifo_us : 12;
+
+	if (!mtk_crtc_is_frame_trigger_mode(&mtk_crtc->base)) {
+		if (dsi->driver_data->ultra_lo_fifo_vdo_us)
+			ultra_lo_fifo_us = dsi->driver_data->ultra_lo_fifo_vdo_us;
+		else
+			ultra_lo_fifo_us = dsi->driver_data->ultra_lo_fifo_us ?
+					dsi->driver_data->ultra_lo_fifo_us : 25;
+
+		if (dsi->driver_data->ultra_hi_fifo_vdo_us)
+			ultra_hi_fifo_us = dsi->driver_data->ultra_hi_fifo_vdo_us;
+		else
+			ultra_hi_fifo_us = dsi->driver_data->ultra_hi_fifo_us ?
+					dsi->driver_data->ultra_hi_fifo_us : 26;
+
+		if (dsi->driver_data->urgent_lo_fifo_vdo_us)
+			urgent_lo_fifo_us = dsi->driver_data->urgent_lo_fifo_vdo_us;
+		else
+			urgent_lo_fifo_us = dsi->driver_data->urgent_lo_fifo_us ?
+					dsi->driver_data->urgent_lo_fifo_us : 11;
+
+		if (dsi->driver_data->urgent_hi_fifo_vdo_us)
+			urgent_hi_fifo_us = dsi->driver_data->urgent_hi_fifo_vdo_us;
+		else
+			urgent_hi_fifo_us = dsi->driver_data->urgent_hi_fifo_us ?
+					dsi->driver_data->urgent_hi_fifo_us : 12;
+	} else {
+		ultra_lo_fifo_us = dsi->driver_data->ultra_lo_fifo_us ?
+					dsi->driver_data->ultra_lo_fifo_us : 25;
+		ultra_hi_fifo_us = dsi->driver_data->ultra_hi_fifo_us ?
+					dsi->driver_data->ultra_hi_fifo_us : 26;
+		urgent_lo_fifo_us = dsi->driver_data->urgent_lo_fifo_us ?
+					dsi->driver_data->urgent_lo_fifo_us : 11;
+		urgent_hi_fifo_us = dsi->driver_data->urgent_hi_fifo_us ?
+					dsi->driver_data->urgent_hi_fifo_us : 12;
+	}
 	urgent_hi_fifo_us = dbg_urgent_high ?
 				dbg_urgent_high : urgent_hi_fifo_us;
 	output_valid_us = dsi->driver_data->output_valid_fifo_us ?
@@ -15500,6 +15527,10 @@ static const struct mtk_dsi_driver_data mt6991_dsi_driver_data = {
 	.ultra_hi_fifo_us = 41,
 	.urgent_lo_fifo_us = 17,
 	.urgent_hi_fifo_us = 37,
+	.ultra_lo_fifo_vdo_us = 72,
+	.ultra_hi_fifo_vdo_us = 81,
+	.urgent_lo_fifo_vdo_us = 27,
+	.urgent_hi_fifo_vdo_us = 54,
 	.output_valid_fifo_us = 50,
 	.max_vfp = 0x7ffe,
 	.mmclk_by_datarate = mtk_dsi_set_mmclk_by_datarate_V2,
