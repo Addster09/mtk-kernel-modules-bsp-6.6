@@ -17525,8 +17525,12 @@ static void mtk_drm_crtc_atomic_begin(struct drm_crtc *crtc,
 		mtk_drm_ovl_bw_monitor_ratio_prework(crtc, atomic_state);
 	}
 #endif
-	if (mtk_crtc->is_mml_dl)
-		need_sync_mml = mtk_crtc->is_mml_dl_submit;
+	if (mtk_crtc->is_mml_dl) {
+		if (mtk_crtc->mml_link_state == MML_STOP_LINKING)
+			need_sync_mml = true;
+		else
+			need_sync_mml = mtk_crtc->is_mml_dl_submit;
+	}
 
 	mtk_crtc_state->cmdq_handle =
 		mtk_crtc_gce_commit_begin(crtc, old_crtc_state, mtk_crtc_state, need_sync_mml);
@@ -18025,15 +18029,6 @@ void mtk_drm_crtc_plane_disable(struct drm_crtc *crtc, struct drm_plane *plane,
 			if (config_regs_pa > 0)
 				cmdq_pkt_write(cmdq_handle, mtk_crtc->gce_obj.base,
 					config_regs_pa + exdma_addr, 0, ~0);
-
-			if (comp_state->comp_id == DDP_COMPONENT_OVL_EXDMA0) {
-				if ((mtk_crtc->mml_link_state == MML_IR_ENTERING) ||
-					(mtk_crtc->mml_link_state == MML_DIRECT_LINKING)) {
-					mtk_crtc_mml_racing_stop_sync(crtc, cmdq_handle, false);
-					DDPINFO("%s[%d], stop mml sync,comp:%d,mml state:%d\n",  __func__, __LINE__,
-						comp_state->comp_id, mtk_crtc->mml_link_state);
-				}
-			}
 		}
 	}
 #ifndef DRM_CMDQ_DISABLE

@@ -1752,6 +1752,8 @@ static void mtk_atomic_mml(struct drm_device *dev,
 				plane_state->comp_state.layer_caps &= ~MTK_MML_DISP_DIRECT_LINK_LAYER;
 				plane_state->pending.enable = 0;
 				plane_state->pending.mml_mode = 0;
+				if (!mtk_crtc_is_frame_trigger_mode(&mtk_crtc->base))
+					mtk_crtc->mml_link_state = MML_STOP_LINKING;
 				break;
 			}
 
