@@ -1157,7 +1157,7 @@ static irqreturn_t mtk_disp_ovl_irq_handler(int irq, void *dev_id)
 		DDPIRQ("[IRQ] %s: OVL target line\n", mtk_dump_comp_str(ovl));
 	if (val & (1 << 2)) {
 		unsigned long long aee_now_ts = sched_clock();
-		if (g_mobile_log == 0) {
+		if (!g_mobile_log) {
 			g_mobile_log = 1;
 			DDPMSG("%s, enable mobile log due to underflow\n", __func__);
 		}

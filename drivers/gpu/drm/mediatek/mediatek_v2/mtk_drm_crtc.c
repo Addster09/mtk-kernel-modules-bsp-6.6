@@ -6924,10 +6924,8 @@ static void mtk_crtc_update_hrt_state(struct drm_crtc *crtc,
 			CRTC_MMP_MARK(0, atomic_begin, (unsigned long)cmdq_handle, __LINE__);
 		} else {
 			en = 1;
-			if (g_mobile_log) {
+			if (!g_mobile_log_bak && g_mobile_log)
 				g_mobile_log = 0;
-				DDPMSG("%s, disable mobile log after force step\n", __func__);
-			}
 			output_comp = mtk_ddp_comp_request_output(mtk_crtc);
 			if (output_comp) {
 				DDPMSG("set MMCLK back, and enable underrun irq\n");

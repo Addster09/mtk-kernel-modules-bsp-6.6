@@ -54,6 +54,7 @@ enum MTK_UNDERRUN_RECOVERY_LEVEL {
 };
 
 extern int mtk_disp_hrt_bw_dbg(void);
+extern bool g_mobile_log_bak;
 
 struct cb_data_store {
 	struct cmdq_cb_data data;

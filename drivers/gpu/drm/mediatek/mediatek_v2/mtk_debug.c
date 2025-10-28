@@ -99,6 +99,7 @@ static struct drm_device *drm_dev;
 
 bool g_mobile_log;
 EXPORT_SYMBOL(g_mobile_log);
+bool g_mobile_log_bak;
 bool g_fence_log;
 bool g_detail_log;
 EXPORT_SYMBOL(g_detail_log);
@@ -3057,6 +3058,7 @@ static void process_dbg_opt(const char *opt)
 			g_mobile_log = 1;
 		else if (strncmp(opt + 7, "off", 3) == 0)
 			g_mobile_log = 0;
+		g_mobile_log_bak = g_mobile_log;
 	} else if (strncmp(opt, "msync_debug:", 12) == 0) {
 		if (strncmp(opt + 12, "on", 2) == 0)
 			g_msync_debug = 1;
@@ -5964,11 +5966,8 @@ static int mtk_disp_underrun_recovery_kthread(void *data)
 		DDP_COMMIT_UNLOCK(&private->commit.lock, __func__, __LINE__);
 
 		msleep(1000);
-		/* user load disable mobile log*/
-		if (g_mobile_log) {
-			DDPMSG("%s, disable mobile log after recovery\n", __func__);
+		if (!g_mobile_log_bak && g_mobile_log)
 			g_mobile_log = 0;
-		}
 	}
 	return 0;
 }
@@ -6034,7 +6033,7 @@ void disp_dbg_init(struct drm_device *dev)
 #endif
 	for (i = 0; i < MAX_CRTC; ++i)
 		INIT_LIST_HEAD(&cb_data_list[i]);
-
+	g_mobile_log_bak = g_mobile_log;
 #ifdef DISP_UNDERRUN_RECOVERY
 	disp_underrun_recovery_thd_init(dev);
 #endif
