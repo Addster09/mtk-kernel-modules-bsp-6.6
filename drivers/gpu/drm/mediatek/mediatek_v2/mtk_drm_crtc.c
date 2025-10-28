@@ -4962,11 +4962,7 @@ static void _mtk_crtc_lye_addon_module_disconnect(
 	if (lye_state->rpo_lye ||
 		priv->data->mmsys_id == MMSYS_MT6768 ||
 		priv->data->mmsys_id == MMSYS_MT6761 ||
-		priv->data->mmsys_id == MMSYS_MT6765 ||
-		priv->data->mmsys_id == MMSYS_MT6833 ||
-		priv->data->mmsys_id == MMSYS_MT6885 ||
-		priv->data->mmsys_id == MMSYS_MT6853 ||
-		priv->data->mmsys_id == MMSYS_MT6781) {
+		priv->data->mmsys_id == MMSYS_MT6765) {
 		union mtk_addon_config addon_config;
 		int w = crtc->state->adjusted_mode.hdisplay;
 		int h = crtc->state->adjusted_mode.vdisplay;
@@ -5667,11 +5663,7 @@ static void _mtk_crtc_lye_addon_module_connect(
 	if (lye_state->rpo_lye ||
 		priv->data->mmsys_id == MMSYS_MT6768 ||
 		priv->data->mmsys_id == MMSYS_MT6761 ||
-		priv->data->mmsys_id == MMSYS_MT6765 ||
-		priv->data->mmsys_id == MMSYS_MT6833 ||
-		priv->data->mmsys_id == MMSYS_MT6885 ||
-		priv->data->mmsys_id == MMSYS_MT6853 ||
-		priv->data->mmsys_id == MMSYS_MT6781) {
+		priv->data->mmsys_id == MMSYS_MT6765) {
 		const struct mtk_addon_module_data *addon_module[2] = {NULL, NULL};
 		union mtk_addon_config addon_config;
 		u32 tgt_comp[2] = {0};
