@@ -6932,6 +6932,10 @@ static void mtk_crtc_update_hrt_state(struct drm_crtc *crtc,
 			CRTC_MMP_MARK(0, atomic_begin, (unsigned long)cmdq_handle, __LINE__);
 		} else {
 			en = 1;
+			if (g_mobile_log) {
+				g_mobile_log = 0;
+				DDPMSG("%s, disable mobile log after force step\n", __func__);
+			}
 			output_comp = mtk_ddp_comp_request_output(mtk_crtc);
 			if (output_comp) {
 				DDPMSG("set MMCLK back, and enable underrun irq\n");
@@ -17393,6 +17397,21 @@ static void mtk_drm_check_plane_for_se(struct drm_crtc *crtc)
 }
 #endif
 
+#ifdef DISP_UNDERRUN_RECOVERY
+static void mtk_ddp_sw_reset(struct cmdq_pkt *cmdq_handle,
+		struct mtk_drm_crtc *mtk_crtc)
+{
+	int i, j;
+	struct mtk_ddp_comp *comp = NULL;
+	int recovery_level = atomic_read(&mtk_crtc->underrun_recovery_level);
+
+	if (recovery_level == MTK_UNDERRUN_RECOVERY_RESET_DDP) {
+		for_each_comp_in_cur_crtc_path(comp, mtk_crtc, i, j)
+			mtk_ddp_comp_reset(comp, cmdq_handle);
+	}
+}
+#endif
+
 static void mtk_drm_crtc_atomic_begin(struct drm_crtc *crtc,
 				      struct drm_atomic_state *atomic_state)
 {
@@ -17574,8 +17593,10 @@ static void mtk_drm_crtc_atomic_begin(struct drm_crtc *crtc,
 		mtk_drm_ovl_bw_monitor_ratio_get(crtc, atomic_state);
 		CRTC_MMP_MARK(index, atomic_begin, (unsigned long)mtk_crtc_state->cmdq_handle, __LINE__);
 	}
+#ifdef DISP_UNDERRUN_RECOVERY
+	mtk_ddp_sw_reset(mtk_crtc_state->cmdq_handle, mtk_crtc);
 #endif
-
+#endif
 	/*Msync 2.0: add cmds to cfg thread*/
 	if (!mtk_crtc_is_frame_trigger_mode(crtc) &&
 		msync_is_on(priv, params, crtc_id,
