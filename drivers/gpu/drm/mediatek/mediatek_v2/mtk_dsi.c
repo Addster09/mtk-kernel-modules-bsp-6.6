@@ -4123,6 +4123,302 @@ void mipi_dsi_dcs_write_pps(struct mtk_dsi *dsi,
 				  const void *data, size_t len, bool is_pps);
 #endif
 
+static void __iomem *mml_addr;
+static void __iomem *mml_wrot_addr;
+static void __iomem *mml_rsz_addr;
+static void __iomem *mml_tdshp_addr;
+static void __iomem *mml_color_addr;
+#define RSZ_ENABLE			0x000
+#define RSZ_CON_1			0x004
+#define RSZ_CON_2			0x008
+#define RSZ_INT_FLAG			0x00c
+#define RSZ_INPUT_IMAGE			0x010
+#define RSZ_OUTPUT_IMAGE		0x014
+#define RSZ_HOR_COEFF_STEP		0x018
+#define RSZ_VER_COEFF_STEP		0x01c
+#define RSZ_LUMA_HOR_INT_OFFSET		0x020
+#define RSZ_LUMA_HOR_SUB_OFFSET		0x024
+#define RSZ_LUMA_VER_INT_OFFSET		0x028
+#define RSZ_LUMA_VER_SUB_OFFSET		0x02c
+#define RSZ_CHROMA_HOR_INT_OFFSET	0x030
+#define RSZ_CHROMA_HOR_SUB_OFFSET	0x034
+#define RSZ_RSV				0x040
+#define RSZ_DEBUG_SEL			0x044
+#define RSZ_DEBUG			0x048
+#define RSZ_TAP_ADAPT			0x04c
+#define RSZ_IBSE_SOFTCLIP		0x050
+#define RSZ_IBSE_YLEVEL_1		0x054
+#define RSZ_IBSE_YLEVEL_2		0x058
+#define RSZ_IBSE_YLEVEL_3		0x05c
+#define RSZ_IBSE_YLEVEL_4		0x060
+#define RSZ_IBSE_YLEVEL_5		0x064
+#define RSZ_IBSE_GAINCON_1		0x068
+#define RSZ_IBSE_GAINCON_2		0x06c
+#define RSZ_DEMO_IN_HMASK		0x070
+#define RSZ_DEMO_IN_VMASK		0x074
+#define RSZ_DEMO_OUT_HMASK		0x078
+#define RSZ_DEMO_OUT_VMASK		0x07c
+#define RSZ_CONTROL_3			0x084
+#define RSZ_SHADOW_CTRL			0x0f0
+#define RSZ_ATPG			0x0fc
+#define RSZ_PAT1_GEN_SET		0x100
+#define RSZ_PAT1_GEN_FRM_SIZE		0x104
+#define RSZ_PAT1_GEN_COLOR0		0x108
+#define RSZ_PAT1_GEN_COLOR1		0x10c
+#define RSZ_PAT1_GEN_COLOR2		0x110
+#define RSZ_PAT1_GEN_POS		0x114
+#define RSZ_PAT1_GEN_TILE_POS		0x124
+#define RSZ_PAT1_GEN_TILE_OV		0x128
+#define RSZ_PAT2_GEN_SET		0x200
+#define RSZ_PAT2_GEN_COLOR0		0x208
+#define RSZ_PAT2_GEN_COLOR1		0x20c
+#define RSZ_PAT2_GEN_POS		0x214
+#define RSZ_PAT2_GEN_CURSOR_RB0		0x218
+#define RSZ_PAT2_GEN_CURSOR_RB1		0x21c
+#define RSZ_PAT2_GEN_TILE_POS		0x224
+#define RSZ_PAT2_GEN_TILE_OV		0x228
+#define RSZ_ETC_CONTROL			0x22c
+#define RSZ_ETC_SWITCH_MAX_MIN_1	0x230
+#define RSZ_ETC_SWITCH_MAX_MIN_2	0x234
+#define RSZ_ETC_RING			0x238
+#define RSZ_ETC_RING_GAINCON_1		0x23c
+#define RSZ_ETC_RING_GAINCON_2		0x240
+#define RSZ_ETC_RING_GAINCON_3		0x244
+#define RSZ_ETC_SIM_PROT_GAINCON_1	0x248
+#define RSZ_ETC_SIM_PROT_GAINCON_2	0x24c
+#define RSZ_ETC_SIM_PROT_GAINCON_3	0x250
+#define RSZ_ETC_BLEND			0x254
+
+static const char *wrot_state(u32 state)
+{
+	switch (state) {
+	case 0x0:
+		return "sof";
+	case 0x1:
+		return "frame done";
+	default:
+		return "";
+	}
+}
+
+static const char *get_rsz_state2(const u32 state)
+{
+	/* in_valid, in_ready, out_valid, out_ready */
+
+	switch (state) {
+	case 0x5:
+		/* 0,1,0,1 */
+		return "upstream hang";
+	case 0xa:
+		/* 1,0,1,0 */
+		return "downstream hang";
+	default:
+		return "";
+	}
+}
+
+void mtk_mml_debug_dump(struct drm_crtc *crtc)
+{
+	int i;
+	u32 debug[33];
+	u32 request[4];
+	u32 dbg_id = 0, state, smi_req, value[31];
+	u32 shadow_ctrl;
+
+	DDPMSG("%s:%d,mml_addr:0x%x+\n",__func__,__LINE__,mml_addr);
+
+	shadow_ctrl = readl(mml_addr + 0x010);
+	shadow_ctrl |= 0x4;
+	writel(shadow_ctrl, mml_addr + 0x010);
+
+	for (i = 0xfe0;i < 0x1000;i = i+4)
+		DDPMSG("0x%x:0x%x,\n",i,readl(mml_addr+i));
+	for (i = 0x220;i < 0x240;i = i+4)
+		DDPMSG("0x%x:0x%x,\n",i,readl(mml_addr+i));
+	for (i = 0x240;i < 0x260;i = i+4)
+		DDPMSG("0x%x:0x%x,\n",i,readl(mml_addr+i));
+	for (i = 0x260;i < 0x280;i = i+4)
+		DDPMSG("0x%x:0x%x,\n",i,readl(mml_addr+i));
+
+	shadow_ctrl = readl(mml_wrot_addr + 0x08c);
+	shadow_ctrl |= 0x4;
+	writel(shadow_ctrl, mml_wrot_addr + 0x08c);
+
+	for (i = 0; i < ARRAY_SIZE(debug); i++) {
+		dbg_id += 0x100;
+		writel(dbg_id, mml_wrot_addr + 0x018);
+		debug[i] = readl(mml_wrot_addr + 0x0d0);
+	}
+	for (i = 0; i < ARRAY_SIZE(debug) / 3; i++) {
+		DDPMSG("VIDO_DEBUG %02X %#010x VIDO_DEBUG %02X %#010x VIDO_DEBUG %02X %#010x\n",
+			i * 3 + 1, debug[i * 3],
+			i * 3 + 2, debug[i * 3 + 1],
+			i * 3 + 3, debug[i * 3 + 2]);
+	}
+	DDPMSG("WROT crop_busy:%u req:%u valid:%u\n",
+		(debug[2] >> 1) & 0x1, (debug[2] >> 2) & 0x1,
+		(debug[2] >> 3) & 0x1);
+	state = debug[2] & 0x1;
+	smi_req = (debug[24] >> 30) & 0x1;
+	DDPMSG("WROT state: %#x (%s)\n", state, wrot_state(state));
+	DDPMSG("WROT x_cnt %u y_cnt %u\n", debug[9] & 0x7f, (debug[9] >> 12) & 0x3ff);
+	DDPMSG("WROT smi_req:%u => suggest to ask SMI help:%u\n", smi_req, smi_req);
+
+	shadow_ctrl = readl(mml_rsz_addr + 0x0f0);
+	shadow_ctrl |= 0x4;
+	writel(shadow_ctrl, mml_rsz_addr + 0x0f0);
+
+	value[0] = readl(mml_rsz_addr + RSZ_ENABLE);
+	value[1] = readl(mml_rsz_addr + RSZ_CON_1);
+	value[2] = readl(mml_rsz_addr + RSZ_CON_2);
+	value[3] = readl(mml_rsz_addr + RSZ_INT_FLAG);
+	value[4] = readl(mml_rsz_addr + RSZ_INPUT_IMAGE);
+	value[5] = readl(mml_rsz_addr + RSZ_OUTPUT_IMAGE);
+	value[6] = readl(mml_rsz_addr + RSZ_HOR_COEFF_STEP);
+	value[7] = readl(mml_rsz_addr + RSZ_VER_COEFF_STEP);
+	value[8] = readl(mml_rsz_addr + RSZ_LUMA_HOR_INT_OFFSET);
+	value[9] = readl(mml_rsz_addr + RSZ_LUMA_HOR_SUB_OFFSET);
+	value[10] = readl(mml_rsz_addr + RSZ_LUMA_VER_INT_OFFSET);
+	value[11] = readl(mml_rsz_addr + RSZ_LUMA_VER_SUB_OFFSET);
+	value[12] = readl(mml_rsz_addr + RSZ_CHROMA_HOR_INT_OFFSET);
+	value[13] = readl(mml_rsz_addr + RSZ_CHROMA_HOR_SUB_OFFSET);
+	value[14] = readl(mml_rsz_addr + RSZ_RSV);
+	value[15] = readl(mml_rsz_addr + RSZ_TAP_ADAPT);
+	value[16] = readl(mml_rsz_addr + RSZ_IBSE_SOFTCLIP);
+	value[17] = readl(mml_rsz_addr + RSZ_PAT1_GEN_SET);
+	value[18] = readl(mml_rsz_addr + RSZ_PAT2_GEN_SET);
+	value[19] = readl(mml_rsz_addr + RSZ_ETC_CONTROL);
+	value[20] = readl(mml_rsz_addr + RSZ_ETC_SWITCH_MAX_MIN_1);
+	value[21] = readl(mml_rsz_addr + RSZ_ETC_SWITCH_MAX_MIN_2);
+	value[22] = readl(mml_rsz_addr + RSZ_ETC_RING);
+	value[23] = readl(mml_rsz_addr + RSZ_ETC_RING_GAINCON_1);
+	value[24] = readl(mml_rsz_addr + RSZ_ETC_RING_GAINCON_2);
+	value[25] = readl(mml_rsz_addr + RSZ_ETC_RING_GAINCON_3);
+	value[26] = readl(mml_rsz_addr + RSZ_ETC_SIM_PROT_GAINCON_1);
+	value[27] = readl(mml_rsz_addr + RSZ_ETC_SIM_PROT_GAINCON_2);
+	value[28] = readl(mml_rsz_addr + RSZ_ETC_SIM_PROT_GAINCON_3);
+	value[29] = readl(mml_rsz_addr + RSZ_ETC_BLEND);
+	value[30] = readl(mml_rsz_addr + RSZ_CONTROL_3);
+
+	DDPMSG("RSZ_ENABLE %#010x RSZ_CON_1 %#010x RSZ_CON_2 %#010x RSZ_INT_FLAG %#010x\n",
+		value[0], value[1], value[2], value[3]);
+	DDPMSG("RSZ_INPUT_IMAGE %#010x RSZ_OUTPUT_IMAGE %#010x RSZ_CONTROL_3 %#010x\n",
+		value[4], value[5], value[30]);
+	DDPMSG("RSZ_HOR_COEFF_STEP %#010x RSZ_VER_COEFF_STEP %#010x\n",
+		value[6], value[7]);
+	DDPMSG("RSZ_LUMA_HOR_INT_OFFSET %#010x RSZ_LUMA_HOR_SUB_OFFSET %#010x\n",
+		value[8], value[9]);
+	DDPMSG("RSZ_LUMA_VER_INT_OFFSET %#010x RSZ_LUMA_VER_SUB_OFFSET %#010x\n",
+		value[10], value[11]);
+	DDPMSG("RSZ_CHROMA_HOR_INT_OFFSET %#010x RSZ_CHROMA_HOR_SUB_OFFSET %#010x\n",
+		value[12], value[13]);
+	DDPMSG("RSZ_RSV %#010x RSZ_TAP_ADAPT %#010x RSZ_IBSE_SOFTCLIP %#010x\n",
+		value[14], value[15], value[16]);
+	DDPMSG("RSZ_PAT1_GEN_SET %#010x RSZ_PAT2_GEN_SET %#010x\n",
+		value[17], value[18]);
+	DDPMSG("RSZ_ETC_CONTROL %#010x RSZ_ETC_RING %#010x RSZ_ETC_BLEND %#010x\n",
+		value[19], value[22], value[29]);
+	DDPMSG("RSZ_ETC_SWITCH_MAX_MIN_1 %#010x RSZ_ETC_SWITCH_MAX_MIN_2 %#010x\n",
+		value[20], value[21]);
+	DDPMSG("RSZ_ETC_RING_GAINCON_1 %#010x RSZ_ETC_RING_GAINCON_2 %#010x\n",
+		value[23], value[24]);
+	DDPMSG("RSZ_ETC_RING_GAINCON_3 %#010x RSZ_ETC_SIM_PROT_GAINCON_1 %#010x\n",
+		value[25], value[26]);
+	DDPMSG("RSZ_ETC_SIM_PROT_GAINCON_2 %#010x RSZ_ETC_SIM_PROT_GAINCON_3 %#010x\n",
+		value[27], value[28]);
+
+	writel(0x1, mml_rsz_addr + 0x044);
+	value[0] = readl(mml_rsz_addr + 0x048);
+	writel(0x2, mml_rsz_addr + 0x044);
+	value[1] = readl(mml_rsz_addr + 0x048);
+	writel(0x3, mml_rsz_addr + 0x044);
+	value[2] = readl(mml_rsz_addr + 0x048);
+	state = value[1] & 0xf;
+	DDPMSG("RSZ_DEBUG_1 %#010x RSZ_DEBUG_2 %#010x RSZ_DEBUG_3 %#010x\n",
+		value[0], value[1], value[2]);
+
+	for (i = 4; i < 16; i += 3) {
+		writel(i, mml_rsz_addr + 0x044);
+		value[0] = readl(mml_rsz_addr + 0x048);
+		writel(i + 1, mml_rsz_addr + 0x044);
+		value[1] = readl(mml_rsz_addr + 0x048);
+		writel(i + 2, mml_rsz_addr + 0x044);
+		value[2] = readl(mml_rsz_addr + 0x048);
+		DDPMSG("RSZ_DEBUG_%u %#010x RSZ_DEBUG_%u %#010x RSZ_DEBUG_%u %#010x\n",
+			i, value[0], i + 1, value[1], i + 2, value[2]);
+	}
+
+	request[0] = state & 0x1;
+	request[1] = (state >> 1) & 0x1;
+	request[2] = (state >> 2) & 0x1;
+	request[3] = (state >> 3) & 0x1;
+	DDPMSG("RSZ in_valid,in_ready,out_valid,out_ready: %d,%d,%d,%d (%s)\n",
+		request[3], request[2], request[1], request[0], get_rsz_state2(state));
+
+	shadow_ctrl = readl(mml_tdshp_addr + 0x724);
+	shadow_ctrl |= 0x4;
+	writel(shadow_ctrl, mml_tdshp_addr + 0x724);
+
+	value[0] = readl(mml_tdshp_addr + 0x100);
+	value[1] = readl(mml_tdshp_addr + 0x104);
+	value[2] = readl(mml_tdshp_addr + 0x108);
+	value[3] = readl(mml_tdshp_addr + 0x10c);
+	value[4] = readl(mml_tdshp_addr + 0x110);
+	value[5] = readl(mml_tdshp_addr + 0x114);
+	value[6] = readl(mml_tdshp_addr + 0x11c);
+	value[7] = readl(mml_tdshp_addr + 0x120);
+	value[8] = readl(mml_tdshp_addr + 0x124);
+	value[9] = readl(mml_tdshp_addr + 0x128);
+	value[10] = readl(mml_tdshp_addr + 0x12c);
+	value[11] = readl(mml_tdshp_addr + 0x680);
+	value[12] = readl(mml_tdshp_addr + 0x720);
+
+	DDPMSG("TDSHP_CTRL %#010x TDSHP_INTEN %#010x TDSHP_INTSTA %#010x TDSHP_STATUS %#010x\n",
+		value[0], value[1], value[2], value[3]);
+	DDPMSG("TDSHP_CFG %#010x TDSHP_INPUT_COUNT %#010x TDSHP_OUTPUT_COUNT %#010x\n",
+		value[4], value[5], value[6]);
+	DDPMSG("TDSHP_INPUT_SIZE %#010x TDSHP_OUTPUT_OFFSET %#010x TDSHP_OUTPUT_SIZE %#010x\n",
+		value[7], value[8], value[9]);
+	DDPMSG("TDSHP_BLANK_WIDTH %#010x TDSHP_REGION_PQ_PARAM %#010x\n",
+		value[10], value[11]);
+	DDPMSG("TDSHP_FRAME_WIDTH_HEIGHT %#010x\n", value[12]);
+
+	shadow_ctrl = readl(mml_color_addr + 0xcb0);
+	shadow_ctrl |= 0x4;
+	writel(shadow_ctrl, mml_color_addr + 0xcb0);
+
+	value[0] = readl(mml_color_addr + 0x400);
+	value[1] = readl(mml_color_addr + 0x404);
+	value[2] = readl(mml_color_addr + 0x408);
+	value[3] = readl(mml_color_addr + 0x40c);
+	value[4] = readl(mml_color_addr + 0x410);
+	value[5] = readl(mml_color_addr + 0x420);
+	value[6] = readl(mml_color_addr + 0xc00);
+	value[7] = readl(mml_color_addr + 0xc04);
+	value[8] = readl(mml_color_addr + 0xc08);
+	value[9] = readl(mml_color_addr + 0xc0c);
+	value[10] = readl(mml_color_addr + 0xc10);
+	value[11] = readl(mml_color_addr + 0xc50);
+	value[12] = readl(mml_color_addr + 0xc54);
+	value[13] = readl(mml_color_addr + 0xf0c);
+
+	DDPMSG("COLOR_CFG_MAIN %#010x COLOR_PXL_CNT_MAIN %#010x COLOR_LINE_CNT_MAIN %#010x\n",
+		value[0], value[1], value[2]);
+	DDPMSG("COLOR_WIN_X_MAIN %#010x COLOR_WIN_Y_MAIN %#010x\n",
+		value[3], value[4]);
+	DDPMSG("COLOR_DBG_CFG_MAIN %#010x COLOR_START %#010x COLOR_INTEN %#010x\n",
+		value[5], value[6], value[7]);
+	DDPMSG("COLOR_INTSTA %#010x COLOR_OUT_SEL %#010x COLOR_FRAME_DONE_DEL %#010x\n",
+		value[8], value[9], value[10]);
+	DDPMSG("COLOR_INTERNAL_IP_WIDTH %#010x COLOR_INTERNAL_IP_HEIGHT %#010x\n",
+		value[11], value[12]);
+	DDPMSG("COLOR_MISC %#010x\n",
+		value[13]);
+
+
+	DDPMSG("%s:%d-\n\n",__func__,__LINE__);
+}
+
 irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 {
 	struct mtk_dsi *dsi = dev_id;
@@ -4242,6 +4538,7 @@ irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 				}
 			}
 			dump_cur_pos(mtk_crtc);
+			mtk_mml_debug_dump(dsi->encoder.crtc);
 			if (dsi->encoder.crtc)
 				mtk_drm_crtc_dump_vr_rg(dsi->encoder.crtc);
 
@@ -4473,6 +4770,7 @@ irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 
 				// to check underrun is because of 'path hang' or 'bw'
 				dump_cur_pos(mtk_crtc);
+				mtk_mml_debug_dump(dsi->encoder.crtc);
 				if (dsi->encoder.crtc)
 					mtk_drm_crtc_dump_vr_rg(dsi->encoder.crtc);
 
@@ -16086,6 +16384,12 @@ static int mtk_dsi_probe(struct platform_device *pdev)
 		       __func__, mtk_dump_comp_str_id(comp_id), prepare_ret);
 	}
 #endif
+
+	mml_addr = ioremap(0x1f800000, 0x1000);
+	mml_wrot_addr = ioremap(0x1f80F000, 0x1000);
+	mml_rsz_addr = ioremap(0x1f809000, 0x1000);
+	mml_tdshp_addr = ioremap(0x1f80b000, 0x1000);
+	mml_color_addr = ioremap(0x1f80d000, 0x1000);
 
 	DDPINFO("%s-\n", __func__);
 	return ret;
