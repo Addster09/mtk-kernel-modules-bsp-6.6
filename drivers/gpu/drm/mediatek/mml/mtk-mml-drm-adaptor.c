@@ -58,6 +58,7 @@ struct mml_drm_ctx {
 	u16 panel_width;
 	u16 panel_height;
 	bool racing_begin;
+	bool couple_used;
 	void (*ddren_cb)(struct cmdq_pkt *pkt, bool enable, void *disp_crtc);
 	void *disp_crtc;
 	void (*dispen_cb)(bool enable, void *dispen_param);
@@ -362,7 +363,7 @@ int mml_drm_query_multi_layer(struct mml_drm_ctx *dctx,
 	u32 remain[mml_max_sys] = {0};
 	u32 mml_layer_cnt = 0;
 	u32 i;
-	bool couple_used = false;
+	bool couple_used = dctx->couple_used;
 	struct mml_dev *mml = dctx->ctx.mml;
 	s32 max_layer = mml_max_layers ? mml_max_layers : mml_max_layer(mml);
 
@@ -435,6 +436,8 @@ int mml_drm_query_multi_layer(struct mml_drm_ctx *dctx,
 			i << 16 | (atomic_read(&dctx->ctx.job_serial) & 0xffff), mode);
 		mml_layer_cnt++;
 	}
+	if (dctx->ctx.disp_vdo)
+		dctx->couple_used = couple_used;
 
 	return 0;
 }
@@ -726,14 +729,19 @@ s32 mml_drm_submit(struct mml_drm_ctx *dctx, struct mml_submit *submit,
 	if (submit->info.ovlsys_id != MML_DLO_OVLSYS0)
 		mml_err("[drm]%s submit ovlsys id %u", __func__, submit->info.ovlsys_id);
 
-	if (submit->info.mode == MML_MODE_DIRECT_LINK && !submit->info.act_time) {
-		static bool logonce;
+	if (submit->info.mode == MML_MODE_DIRECT_LINK) {
+		if (ctx->disp_vdo)
+			dctx->couple_used = false;
 
-		if (!logonce) {
-			mml_err("[drm]empty active time will result wrong bandwidth");
-			logonce = true;
+		if (!submit->info.act_time) {
+			static bool logonce;
+
+			if (!logonce) {
+				mml_err("[drm]empty active time will result wrong bandwidth");
+				logonce = true;
+			}
+			submit->info.act_time = 1000;
 		}
-		submit->info.act_time = 1000;
 	}
 
 	/* always fixup dest_cnt > MML_MAX_OUTPUTS */
