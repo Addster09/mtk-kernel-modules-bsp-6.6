@@ -4265,6 +4265,10 @@ static int RPO_rule(struct drm_crtc *crtc,
 		 *	continue;
 		 */
 
+		/* only check L0 and L1 for platforms with two scale num */
+		if (l_rule_info->rpo_scale_num == 2 && i >= 2)
+			break;
+
 		if (disp_info->gles_head[disp_idx] >= 0 &&
 		    disp_info->gles_head[disp_idx] <= i)
 			continue;
@@ -4277,12 +4281,8 @@ static int RPO_rule(struct drm_crtc *crtc,
 		if (!is_rsz_valid(c))
 			continue;
 
-		if (ref_layer && private && private->data &&
-		    (private->data->mmsys_id == MMSYS_MT6768 ||
-		    private->data->mmsys_id == MMSYS_MT6765 ||
-		    private->data->mmsys_id == MMSYS_MT6761) &&
-		    is_same_ratio(ref_layer, c) == false &&
-		    is_same_ratio(c, ref_layer) == false)
+		if (ref_layer && is_same_ratio(ref_layer, c) == false &&
+				is_same_ratio(c, ref_layer) == false)
 			break;
 
 		if (!(!(mtk_crtc->is_dual_pipe) &&
@@ -4357,6 +4357,8 @@ static int RPO_rule(struct drm_crtc *crtc,
 		if (!ref_layer)
 			ref_layer = c;
 	}
+	DDPINFO("%s scale_cnt:%d\n", __func__, scale_cnt);
+
 	return scale_cnt;
 }
 
