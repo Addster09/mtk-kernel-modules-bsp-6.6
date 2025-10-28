@@ -11440,6 +11440,7 @@ static const struct mtk_disp_oddmr_data mt6991_oddmr_driver_data = {
 	.od_version = MTK_OD_V2,
 	.is_dmr_support_stash = true,
 	.is_dbi_support_stash = true,
+	.min_port_bw = 1025,
 };
 
 static const struct of_device_id mtk_disp_oddmr_driver_dt_match[] = {
