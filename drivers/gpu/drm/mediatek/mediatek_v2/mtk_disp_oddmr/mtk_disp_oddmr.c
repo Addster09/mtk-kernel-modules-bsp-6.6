@@ -7248,12 +7248,26 @@ static void mtk_oddmr_tuning_cfg(struct mtk_ddp_comp *comp,
 		DDPPR_ERR("oddmr tuning config error\n");
 }
 
+static int offset_idx_in_fps_dbv_change_cfg_nomask(unsigned int offset,
+	struct mtk_drm_dmr_fps_dbv_change_cfg *cfg)
+{
+	int index = -1, i;
+
+	for (i = 0; i < cfg->reg_num; i++) {
+		if (offset == cfg->reg_offset[i]) {
+			index = i;
+			break;
+		}
+	}
+	return index;
+}
+
 static void mtk_oddmr_dbi_gain_cfg(struct mtk_ddp_comp *comp,
 		struct cmdq_pkt *pkg, unsigned int dbv_node, unsigned int fps_node,
 		struct mtk_drm_dbi_cfg_info *cfg_info, unsigned int gain_ratio)
 {
 	unsigned int cnt;
-	int i;
+	int i, index_nomask;
 	unsigned int base_idx;
 	unsigned int base_idx_fps_add1;
 	unsigned int base_idx_dbv_add1;
@@ -7267,6 +7281,7 @@ static void mtk_oddmr_dbi_gain_cfg(struct mtk_ddp_comp *comp,
 	unsigned int cur_dbv;
 	unsigned int cur_fps;
 	unsigned long flags;
+	struct mtk_drm_dmr_fps_dbv_change_cfg *cfg_nomask;
 
 	/* keep track of chg anytime */
 	spin_lock_irqsave(&g_oddmr_timing_lock, flags);
@@ -7276,7 +7291,9 @@ static void mtk_oddmr_dbi_gain_cfg(struct mtk_ddp_comp *comp,
 
 	ODDMRAPI_LOG("+\n");
 
-	if (cfg_info && cfg_info->fps_dbv_change_cfg.reg_offset && cfg_info->fps_dbv_change_cfg.reg_value) {
+	if (cfg_info && cfg_info->fps_dbv_change_cfg.reg_offset && cfg_info->fps_dbv_change_cfg.reg_value
+		&& g_oddmr_priv->dbi_data.fps_dbv_change_cfg_nomask.reg_offset
+		&& g_oddmr_priv->dbi_data.fps_dbv_change_cfg_nomask.reg_value) {
 		cnt = cfg_info->fps_dbv_change_cfg.reg_num;
 		if(dbv_node < (cfg_info->fps_dbv_node.DBV_num - 1))
 			dbv_node_add1 = dbv_node + 1;
@@ -7293,7 +7310,8 @@ static void mtk_oddmr_dbi_gain_cfg(struct mtk_ddp_comp *comp,
 		base_idx_fps_add1 = dbv_node * (cfg_info->fps_dbv_node.FPS_num) * cnt + fps_node_add1 * cnt;
 		base_idx_dbv_add1 = dbv_node_add1 * (cfg_info->fps_dbv_node.FPS_num) * cnt + fps_node * cnt;
 		base_idx_dbv_fps_add1 = dbv_node_add1 * (cfg_info->fps_dbv_node.FPS_num) * cnt + fps_node_add1 * cnt;
-
+		cfg_nomask = &g_oddmr_priv->dbi_data.fps_dbv_change_cfg_nomask;
+		cfg_nomask->reg_num = 0;
 		for(i = 0; i < cnt; i++) {
 			value_interpolate_by_dbv = mtk_oddmr_linear_interpolation(cur_dbv,
 				cfg_info->fps_dbv_node.DBV_node[dbv_node],
@@ -7315,22 +7333,73 @@ static void mtk_oddmr_dbi_gain_cfg(struct mtk_ddp_comp *comp,
 			value_interpolate_by_fps *= gain_ratio;
 			value_interpolate_by_fps /= 100;
 
+			index_nomask = offset_idx_in_fps_dbv_change_cfg_nomask(
+				cfg_info->fps_dbv_change_cfg.reg_offset[i], cfg_nomask);
+			if (index_nomask < 0) {
+				int idx = cfg_nomask->reg_num;
+
+				cfg_nomask->reg_offset[idx] =
+					cfg_info->fps_dbv_change_cfg.reg_offset[i];
+				cfg_nomask->reg_value[idx] =
+					value_interpolate_by_fps & cfg_info->fps_dbv_change_cfg.reg_mask[i];
+				ODDMRLOW_LOG("add reg_num %u -> %u addr %x value %x -> %x\n",
+					cfg_info->fps_dbv_change_cfg.reg_num, idx + 1,
+					cfg_nomask->reg_offset[idx],
+					value_interpolate_by_fps, cfg_nomask->reg_value[idx]);
+				cfg_nomask->reg_num++;
+			} else if (index_nomask >= 0 && index_nomask < cfg_info->fps_dbv_change_cfg.reg_num) {
+				int idx = index_nomask;
+
+				cfg_nomask->reg_value[idx] |=
+					value_interpolate_by_fps & cfg_info->fps_dbv_change_cfg.reg_mask[i];
+				ODDMRLOW_LOG("merge idx %d in [0-%u] addr %x value %x -> %x\n",
+					idx, cfg_nomask->reg_num - 1,
+					cfg_nomask->reg_offset[idx],
+					value_interpolate_by_fps, cfg_nomask->reg_value[idx]);
+			} else {
+				ODDMRFLOW_LOG("index_nomask %d invalid, reg_num %u\n",
+					cfg_info->fps_dbv_change_cfg.reg_num);
+			}
+		}
+		ODDMRFLOW_LOG("reg merge done reg_num %u -> %u\n",
+				cfg_info->fps_dbv_change_cfg.reg_num, cfg_nomask->reg_num);
+		cnt = cfg_nomask->reg_num;
+		for (i = 0; i < cnt; i++) {
 			mtk_oddmr_write_mask(comp,
-				value_interpolate_by_fps,
-				cfg_info->fps_dbv_change_cfg.reg_offset[i],
-				cfg_info->fps_dbv_change_cfg.reg_mask[i], pkg);
+				cfg_nomask->reg_value[i],
+				cfg_nomask->reg_offset[i],
+				~0, pkg);
 		}
 	} else
 		ODDMRFLOW_LOG("dbi gain config data error\n");
 }
 
+static int offset_idx_in_dbv_change_cfg_nomask(unsigned int offset,
+	struct mtk_drm_oddmr_dbv_chg_cfg *cfg)
+{
+	int index = -1, i;
+
+	//ODDMRLOW_LOG("find %x in regs %u\n", offset, cfg->reg_num);
+	for (i = 0; i < cfg->reg_num; i++) {
+		//ODDMRLOW_LOG("find %x in regs %d [%d] = %x\n", offset, cfg->reg_num, i, cfg->reg_offset[i]);
+		if (offset == cfg->reg_offset[i]) {
+			index = i;
+			break;
+		}
+	}
+	if (index >= 0)
+		ODDMRLOW_LOG("found %x in [0-%u][%d] = %x\n", offset, cfg->reg_num, index, cfg->reg_offset[index]);
+	else
+		ODDMRLOW_LOG("not found %x [0-%u]\n", offset, cfg->reg_num);
+	return index;
+}
 
 static void mtk_oddmr_dbi_dbv_table_cfg(struct mtk_ddp_comp *comp,
 		struct cmdq_pkt *pkg, unsigned int dbv_node,
 		struct mtk_drm_dbi_cfg_info *cfg_info)
 {
 	unsigned int cnt;
-	int i,j;
+	int i,j, index_nomask;
 	unsigned int base_idx;
 	unsigned int base_idx_dbv_add1;
 
@@ -7342,6 +7411,7 @@ static void mtk_oddmr_dbi_dbv_table_cfg(struct mtk_ddp_comp *comp,
 	unsigned long flags;
 	int index[7] = {3, 4, 6, 8, 12, 18, 20};
 	int value[7] = {4, 8, 32, 64, 128, 224, 255};
+	struct mtk_drm_oddmr_dbv_chg_cfg *cfg_nomask;
 
 	/* keep track of chg anytime */
 	spin_lock_irqsave(&g_oddmr_timing_lock, flags);
@@ -7351,7 +7421,9 @@ static void mtk_oddmr_dbi_dbv_table_cfg(struct mtk_ddp_comp *comp,
 
 	ODDMRAPI_LOG("+\n");
 
-	if (cfg_info && cfg_info->dbv_change_cfg.reg_offset && cfg_info->dbv_change_cfg.reg_value) {
+	if (cfg_info && cfg_info->dbv_change_cfg.reg_offset && cfg_info->dbv_change_cfg.reg_value
+		&& g_oddmr_priv->dbi_data.dbv_change_cfg_nomask.reg_offset
+		&& g_oddmr_priv->dbi_data.dbv_change_cfg_nomask.reg_value) {
 		cnt = cfg_info->dbv_change_cfg.reg_num;
 		if(dbv_node < (cfg_info->fps_dbv_node.DBV_num - 1))
 			dbv_node_add1 = dbv_node + 1;
@@ -7361,10 +7433,11 @@ static void mtk_oddmr_dbi_dbv_table_cfg(struct mtk_ddp_comp *comp,
 		base_idx = dbv_node * cfg_info->dbv_change_cfg.reg_num;
 		base_idx_dbv_add1 = dbv_node_add1 * cfg_info->dbv_change_cfg.reg_num;
 
+		cfg_nomask = &g_oddmr_priv->dbi_data.dbv_change_cfg_nomask;
+		cfg_nomask->reg_num = 0;
 		ODDMRAPI_LOG("dbv num  %d\n", cfg_info->dbv_node.DBV_num);
 		ODDMRAPI_LOG("curdbv : %d\n", cur_dbv);
 		for(i = 0; i < cnt; i++) {
-
 			value_interpolate_by_dbv = mtk_oddmr_linear_interpolation(cur_dbv,
 				cfg_info->dbv_node.DBV_node[dbv_node],
 				cfg_info->dbv_change_cfg.reg_value[base_idx + i],
@@ -7390,10 +7463,42 @@ static void mtk_oddmr_dbi_dbv_table_cfg(struct mtk_ddp_comp *comp,
 							value_interpolate_by_dbv/4);
 				}
 			}
+			index_nomask = offset_idx_in_dbv_change_cfg_nomask(cfg_info->dbv_change_cfg.reg_offset[i],
+				cfg_nomask);
+			if (index_nomask < 0) {
+				int idx = cfg_nomask->reg_num;
+
+				cfg_nomask->reg_offset[idx] =
+					cfg_info->dbv_change_cfg.reg_offset[i];
+				cfg_nomask->reg_value[idx] =
+					value_interpolate_by_dbv & cfg_info->dbv_change_cfg.reg_mask[i];
+				ODDMRLOW_LOG("add reg_num %u -> %u addr %x value %x -> %x\n",
+					cfg_info->dbv_change_cfg.reg_num, idx + 1,
+					cfg_nomask->reg_offset[idx],
+					value_interpolate_by_dbv, cfg_nomask->reg_value[idx]);
+				cfg_nomask->reg_num++;
+			} else if (index_nomask >= 0 && index_nomask < cfg_info->dbv_change_cfg.reg_num) {
+				int idx = index_nomask;
+
+				cfg_nomask->reg_value[idx] |=
+					value_interpolate_by_dbv & cfg_info->dbv_change_cfg.reg_mask[i];
+				ODDMRLOW_LOG("merge idx %d in [0-%u] addr %x value %x -> %x\n",
+					index_nomask, cfg_nomask->reg_num - 1,
+					cfg_nomask->reg_offset[idx],
+					value_interpolate_by_dbv, cfg_nomask->reg_value[idx]);
+			} else {
+				ODDMRFLOW_LOG("index_nomask %d invalid, reg_num %u\n",
+					cfg_info->dbv_change_cfg.reg_num);
+			}
+		}
+		ODDMRFLOW_LOG("reg merge done reg_num %u -> %u\n",
+				cfg_info->dbv_change_cfg.reg_num, cfg_nomask->reg_num);
+		cnt = cfg_nomask->reg_num;
+		for (i = 0; i < cnt; i++) {
 			mtk_oddmr_write_mask(comp,
-				value_interpolate_by_dbv,
-				cfg_info->dbv_change_cfg.reg_offset[i],
-				cfg_info->dbv_change_cfg.reg_mask[i], pkg);
+				cfg_nomask->reg_value[i],
+				cfg_nomask->reg_offset[i],
+				~0, pkg);
 		}
 	} else
 		ODDMRFLOW_LOG("dbi dbv table config data error\n");
@@ -8150,7 +8255,7 @@ static int mtk_oddmr_dbi_init(struct mtk_drm_dbi_cfg_info *cfg_info)
 	struct mtk_oddmr_panelid expect_panel_id = {0};
 	struct mtk_drm_dbi_cfg_info *dbi_cfg_data;
 	struct mtk_drm_dbi_cfg_info *dbi_cfg_data_tb1;
-	void *data[30] = {0};
+	void *data[34] = {0};
 	unsigned int size;
 	unsigned int index = 0;
 	int i;
@@ -8503,6 +8608,27 @@ static int mtk_oddmr_dbi_init(struct mtk_drm_dbi_cfg_info *cfg_info)
 		else
 			dbi_cfg_data_tb1->fps_dbv_change_cfg.reg_value= (uint32_t *)data[index];
 		index++;
+
+		size = sizeof(uint32_t) * dbi_cfg_data->fps_dbv_change_cfg.reg_num;
+		data[index] = vmalloc(size);
+		if (!data[index]) {
+			DDPINFO("%s:%d, param buffer alloc fail\n",
+			__func__, __LINE__);
+			goto fail;
+		}
+		memset(data[index], 0, size);
+		g_oddmr_priv->dbi_data.fps_dbv_change_cfg_nomask.reg_offset = (uint32_t *)data[index];
+		index++;
+
+		data[index] = vmalloc(size);
+		if (!data[index]) {
+			DDPINFO("%s:%d, param buffer alloc fail\n",
+			__func__, __LINE__);
+			goto fail;
+		}
+		memset(data[index], 0, size);
+		g_oddmr_priv->dbi_data.fps_dbv_change_cfg_nomask.reg_value = (uint32_t *)data[index];
+		index++;
 	}
 
 	if(dbi_cfg_data->dbv_node.DBV_num) {
@@ -8568,6 +8694,28 @@ static int mtk_oddmr_dbi_init(struct mtk_drm_dbi_cfg_info *cfg_info)
 			goto fail;
 		}
 		dbi_cfg_data->dbv_change_cfg.reg_value= (uint32_t *)data[index];
+		index++;
+
+
+		size = sizeof(uint32_t) * dbi_cfg_data->dbv_change_cfg.reg_num;
+		data[index] = vmalloc(size);
+		if (!data[index]) {
+			DDPINFO("%s:%d, param buffer alloc fail\n",
+			__func__, __LINE__);
+			goto fail;
+		}
+		memset(data[index], 0, size);
+		g_oddmr_priv->dbi_data.dbv_change_cfg_nomask.reg_offset= (uint32_t *)data[index];
+		index++;
+
+		data[index] = vmalloc(size);
+		if (!data[index]) {
+			DDPINFO("%s:%d, param buffer alloc fail\n",
+			__func__, __LINE__);
+			goto fail;
+		}
+		memset(data[index], 0, size);
+		g_oddmr_priv->dbi_data.dbv_change_cfg_nomask.reg_value= (uint32_t *)data[index];
 		index++;
 	}
 
