@@ -68,7 +68,7 @@ void mtk_jpeg_enc_set_axdomain(struct mtk_jpeg_dev *jpeg, void __iomem *base)
 	value = readl(base+ (0xF80 + 16*4));
 	value |= jpeg->axdomain;
 	writel(value, base+ (0xF80 + 16*4));
-	pr_info("%s %d: set jpeg enc domain", __func__, __LINE__);
+
 }
 
 void mtk_jpeg_enc_set_34bits(struct mtk_jpeg_ctx *ctx, void __iomem *base,

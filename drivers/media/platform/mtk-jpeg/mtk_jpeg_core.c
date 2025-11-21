@@ -848,7 +848,6 @@ static void mtk_jpeg_dvfs_begin(struct mtk_jpeg_ctx *ctx)
 		}
 		pr_info("%s  volt: %d\n", __func__, volt);
 	} else if (jpeg->jpegenc_mmdvfs_clk) {
-		pr_info("%s set mmdvfs clk\n", __func__);
 		if (mmdvfs_get_version())
 			mtk_mmdvfs_enable_vcp(true, VCP_PWR_USR_JPEGENC);
 		ret = clk_set_rate(jpeg->jpegenc_mmdvfs_clk, active_freq);
@@ -870,7 +869,6 @@ static void mtk_jpeg_dvfs_end(struct mtk_jpeg_ctx *ctx)
 	unsigned long active_freq = 0;
 	struct mtk_jpeg_dev *jpeg = ctx->jpeg;
 
-	pr_info("%s  ++\n", __func__);
 	active_freq = jpeg->freqs[0];
 
 	if (jpeg->jpegenc_reg) {
