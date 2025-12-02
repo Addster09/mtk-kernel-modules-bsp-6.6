@@ -276,7 +276,7 @@ int mtk_rsz_calc_tile_params(u32 frm_in_len, u32 frm_out_len, bool tile_mode,
 			step = (u32)tmp;
 		#endif
 
-		sub_offset[0] = (UNIT * (t[0].ori_in_len - 1) - step *
+		sub_offset[0] = (s32)(UNIT * (t[0].ori_in_len - 1) - (s32)step *
 			(t[0].ori_out_len - 1)) / 2;
 		if (sub_offset[0] < 0) {
 			int_offset[0]--;
@@ -332,7 +332,7 @@ int mtk_rsz_calc_tile_params(u32 frm_in_len, u32 frm_out_len, bool tile_mode,
 
 
 	/* left half */
-	offset[0] = (step * (frm_out_len - 1) - UNIT * (frm_in_len - 1)) / 2;
+	offset[0] = (s32)(step * (frm_out_len - 1) - (s32)UNIT * (frm_in_len - 1)) / 2;
 	init_phase = UNIT - offset[0];
 	sub_offset[0] = -offset[0];
 	if (sub_offset[0] < 0) {
