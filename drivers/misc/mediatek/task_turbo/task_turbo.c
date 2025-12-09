@@ -33,6 +33,7 @@
 #include <trace/hooks/dtask.h>
 #include <trace/hooks/cgroup.h>
 #include <trace/hooks/sys.h>
+#include <include/trace/events/task.h>
 
 #include <task_turbo.h>
 #include <task_turbo_v.h>
@@ -206,6 +207,15 @@ static atomic_t vip_loom_select_cfg;
 static DEFINE_SPINLOCK(loom_affinity_lock);
 static struct affinity_data_node loom_rec_buffer[MAX_LOOM_BUF_SIZE];
 static atomic_t loom_cpu_dedicated_enable;
+static atomic_t loom_aff_ctl_enable = ATOMIC_INIT(1);
+
+struct tracepoints_table {
+	const char *name;
+	void *func;
+	struct tracepoint *tp;
+	bool registered;
+};
+
 static const char * const caller_id_desc[] = {
 	"DEBUG_NODE", "FPSGO", "UX", "VIDEO"
 };
@@ -2864,6 +2874,138 @@ static void loom_affinity_node_init(void)
 	spin_unlock_irqrestore(&loom_affinity_lock, flags);
 }
 
+int loom_aff_ctl(unsigned int enable)
+{
+	unsigned int old_val = atomic_read(&loom_aff_ctl_enable);
+	unsigned int new_val;
+
+	if (enable > 1)
+		return -EINVAL;
+
+	atomic_set(&loom_aff_ctl_enable, enable);
+	new_val = atomic_read(&loom_aff_ctl_enable);
+
+	pr_info("%s: loom affinity control enable from %u to %u\n",
+		 __func__, old_val, new_val);
+
+	return 0;
+}
+EXPORT_SYMBOL(loom_aff_ctl);
+
+static int set_loom_aff_ctl_enable(const char *buf, const struct kernel_param *kp)
+{
+	int retval = 0, val = 0;
+
+	retval = kstrtouint(buf, 0, &val);
+
+	if (retval)
+		return -EINVAL;
+
+	retval = loom_aff_ctl(!!val);
+
+	return retval;
+}
+
+static int get_loom_aff_ctl_enable(char *buffer, const struct kernel_param *kp)
+{
+	int len = 0;
+
+	return scnprintf(buffer + len, PAGE_SIZE - len,
+		"loom_aff_ctl_enable=%u\n", atomic_read(&loom_aff_ctl_enable));
+}
+
+static const struct kernel_param_ops loom_aff_ctl_enable_ops = {
+	.set = set_loom_aff_ctl_enable,
+	.get = get_loom_aff_ctl_enable,
+};
+module_param_cb(loom_aff_ctl_enable, &loom_aff_ctl_enable_ops, NULL, 0664);
+MODULE_PARM_DESC(loom_aff_ctl_enable, "Enable or disable affinity control");
+
+static unsigned int cpumask_to_uint(const cpumask_t *mask)
+{
+	if (mask)
+		return (unsigned int)cpumask_bits(mask)[0];
+	return 0;
+}
+
+static void loom_sched_process_fork(void *data, struct task_struct *parent, struct task_struct *child)
+{
+	unsigned long flags;
+	int i;
+
+	if (!atomic_read(&loom_cpu_dedicated_enable) || !atomic_read(&loom_aff_ctl_enable))
+		return;
+
+	/* check dedicated CPU for new task */
+	spin_lock_irqsave(&loom_affinity_lock, flags);
+	for(i=0; i<MAX_LOOM_BUF_SIZE; i++) {
+		if (loom_rec_buffer[i].pid == parent->pid) {
+			cpumask_setall(&child->cpus_mask);
+			child->cpus_ptr = &child->cpus_mask;
+			child->nr_cpus_allowed = cpumask_weight(&child->cpus_mask);
+			trace_loom_affinity_ctl(parent->pid, loom_rec_buffer[i].aff_cpu,
+				child->pid, cpumask_to_uint(child->cpus_ptr));
+			break;
+		}
+	}
+	spin_unlock_irqrestore(&loom_affinity_lock, flags);
+}
+
+#define FOR_EACH_INTEREST(i) \
+	for (i = 0; i < sizeof(loom_tracepoints) / sizeof(struct tracepoints_table); i++)
+
+struct tracepoints_table loom_tracepoints[] = {
+	{.name = "sched_process_fork", .func = loom_sched_process_fork},
+};
+
+static void lookup_tracepoints(struct tracepoint *tp, void *ignore)
+{
+	int i;
+
+	FOR_EACH_INTEREST(i) {
+		if (strcmp(loom_tracepoints[i].name, tp->name) == 0)
+			loom_tracepoints[i].tp = tp;
+	}
+}
+
+static void tracepoint_cleanup(void)
+{
+	int i;
+
+	FOR_EACH_INTEREST(i) {
+		if (loom_tracepoints[i].registered) {
+			tracepoint_probe_unregister(
+				loom_tracepoints[i].tp,
+				loom_tracepoints[i].func, NULL);
+			loom_tracepoints[i].registered = false;
+		}
+	}
+}
+
+int init_tracepoints(void)
+{
+	int i = 0, ret = 0;
+
+	FOR_EACH_INTEREST(i) {
+		if (loom_tracepoints[i].tp == NULL) {
+			pr_info("[LOOM] %s: invalid register trace-name=%s\n", __func__, loom_tracepoints[i].name);
+			tracepoint_cleanup();
+			return -1;
+		}
+	}
+
+	FOR_EACH_INTEREST(i) {
+		ret = tracepoint_probe_register(loom_tracepoints[i].tp, loom_tracepoints[i].func,  NULL);
+		if (ret) {
+			pr_info("[LOOM] %s: invalid activate trace-name=%s\n", __func__, loom_tracepoints[i].name);
+			continue;
+		}
+		loom_tracepoints[i].registered = true;
+	}
+	return ret;
+}
+
+
 void vip_loom_select_task_rq_fair(struct task_struct *p, int *target_cpu, int *flag)
 {
 #if IS_ENABLED(CONFIG_MTK_SCHED_VIP_TASK)
@@ -3076,6 +3218,11 @@ static int __init init_task_turbo(void)
 
 	loom_affinity_node_init();
 
+	//Init Once Time
+	for_each_kernel_tracepoint(lookup_tracepoints, NULL);
+	//Enable API
+	init_tracepoints();
+
 failed:
 	if (ret)
 		pr_err("register hooks failed, ret %d line %d\n", ret, ret_erri_line);
@@ -3092,6 +3239,8 @@ static void  __exit exit_task_turbo(void)
 	/*
 	 * vendor hook cannot unregister, please check vendor_hook.h
 	 */
+	 //Disable API
+	tracepoint_cleanup();
 }
 module_init(init_task_turbo);
 module_exit(exit_task_turbo);
