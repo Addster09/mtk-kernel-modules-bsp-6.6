@@ -9449,11 +9449,11 @@ void mipi_dsi_dcs_write_gce(struct mtk_dsi *dsi, struct cmdq_pkt *handle,
 				VM_CMD_START);
 
 		/* poll VM cmd done */
-		mtk_dsi_cmdq_poll(&dsi->ddp_comp, handle,
+		mtk_dsi_cmdq_poll_block(&dsi->ddp_comp, handle,
 			dsi->ddp_comp.regs_pa + DSI_INTSTA,
 			VM_CMD_DONE_INT_EN, VM_CMD_DONE_INT_EN);
 		if (dsi->slave_dsi)
-			mtk_dsi_cmdq_poll(&dsi->slave_dsi->ddp_comp, handle,
+			mtk_dsi_cmdq_poll_block(&dsi->slave_dsi->ddp_comp, handle,
 				dsi->slave_dsi->ddp_comp.regs_pa + DSI_INTSTA,
 				VM_CMD_DONE_INT_EN, VM_CMD_DONE_INT_EN);
 		cmdq_pkt_set_event(handle,
