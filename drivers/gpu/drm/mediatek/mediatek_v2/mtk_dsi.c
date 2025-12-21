@@ -4538,7 +4538,8 @@ irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 				}
 			}
 			dump_cur_pos(mtk_crtc);
-			mtk_mml_debug_dump(dsi->encoder.crtc);
+			if (priv->data->mmsys_id == MMSYS_MT6899)
+				mtk_mml_debug_dump(dsi->encoder.crtc);
 			if (dsi->encoder.crtc)
 				mtk_drm_crtc_dump_vr_rg(dsi->encoder.crtc);
 
@@ -4770,7 +4771,8 @@ irqreturn_t mtk_dsi_irq_status(int irq, void *dev_id)
 
 				// to check underrun is because of 'path hang' or 'bw'
 				dump_cur_pos(mtk_crtc);
-				mtk_mml_debug_dump(dsi->encoder.crtc);
+				if (priv->data->mmsys_id == MMSYS_MT6899)
+					mtk_mml_debug_dump(dsi->encoder.crtc);
 				if (dsi->encoder.crtc)
 					mtk_drm_crtc_dump_vr_rg(dsi->encoder.crtc);
 
