@@ -10815,6 +10815,8 @@ int mtk_mipi_dsi_read_gce(struct mtk_dsi *dsi,
 				mtk_crtc->gce_obj.event[EVENT_CMD_EOF]);
 		cmdq_pkt_wfe(cmdq_handle,
 				mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
+		cmdq_pkt_set_event(handle,
+					mtk_crtc->gce_obj.event[EVENT_MML_DISP_DONE_EVENT]);
 
 		mtk_dsi_stop_vdo_mode(dsi, cmdq_handle);
 
@@ -11031,6 +11033,8 @@ int mtk_dsi_ddic_handler_read_by_gce(struct mtk_dsi *dsi,
 				mtk_crtc->gce_obj.event[EVENT_CMD_EOF]);
 		cmdq_pkt_wfe(handle,
 				mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
+		cmdq_pkt_set_event(handle,
+				mtk_crtc->gce_obj.event[EVENT_MML_DISP_DONE_EVENT]);
 
 		mtk_dsi_stop_vdo_mode(dsi, handle);
 
@@ -13348,6 +13352,8 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 				mtk_crtc->gce_obj.event[EVENT_CMD_EOF]);
 		cmdq_pkt_wfe(handle,
 				mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
+		cmdq_pkt_set_event(handle,
+				mtk_crtc->gce_obj.event[EVENT_MML_DISP_DONE_EVENT]);
 		/*1.1 send cmd: stop vdo mode*/
 		mtk_dsi_stop_vdo_mode(dsi, handle);
 		/* for crtc first enable,dyn fps fail*/
