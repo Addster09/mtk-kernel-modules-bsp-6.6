@@ -13206,6 +13206,8 @@ static void mtk_dsi_change_vfp(struct mtk_dsi *dsi, struct mtk_drm_crtc *mtk_crt
 				mtk_crtc->gce_obj.event[EVENT_CMD_EOF]);
 		cmdq_pkt_wfe(handle,
 				mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
+		cmdq_pkt_set_event(handle,
+				mtk_crtc->gce_obj.event[EVENT_MML_DISP_DONE_EVENT]);
 		/*1.1 send cmd: stop vdo mode*/
 		mtk_dsi_stop_vdo_mode(dsi, handle);
 		/* for crtc first enable,dyn fps fail*/
@@ -13510,6 +13512,8 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 					mtk_crtc->gce_obj.event[EVENT_CMD_EOF]);
 			cmdq_pkt_wfe(handle,
 					mtk_crtc->gce_obj.event[EVENT_VDO_CABC_EOF]);
+			cmdq_pkt_set_event(handle,
+					mtk_crtc->gce_obj.event[EVENT_MML_DISP_DONE_EVENT]);
 			/*1.1 send cmd: stop vdo mode*/
 			mtk_dsi_stop_vdo_mode(dsi, handle);
 			/* for crtc first enable,dyn fps fail*/
